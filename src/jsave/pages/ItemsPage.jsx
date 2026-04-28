@@ -44,9 +44,11 @@ export default function ItemsPage() {
     return cpdB - cpdA
   })
 
-  const activeItems = items.filter(i => itemStatus(i) === 'active')
-  const totalAssets = activeItems.reduce((s, i) => s + i.cost, 0)
-  const totalCPD    = activeItems.reduce((s, i) => s + i.cost / daysTotal(i.purchaseDate, endDate(i)), 0)
+  const activeItems  = items.filter(i => itemStatus(i) === 'active')
+  const retiredItems = items.filter(i => itemStatus(i) === 'retired')
+  const soldItems    = items.filter(i => itemStatus(i) === 'sold')
+  const totalAssets  = activeItems.reduce((s, i) => s + i.cost, 0)
+  const totalCPD     = activeItems.reduce((s, i) => s + i.cost / daysTotal(i.purchaseDate, endDate(i)), 0)
 
   function openEdit(item) { setEditing(item); setShowForm(true) }
   function openAdd() { setEditing(null); setShowForm(true) }
@@ -63,13 +65,21 @@ export default function ItemsPage() {
 
       {items.length > 0 && (
         <GlassCard className="jsave-item-summary">
-          <div className="jsave-item-stat">
-            <span className="jsave-stat-label">{t('itemsTotalAssets')}</span>
-            <span className="jsave-stat-val">{fmt(totalAssets)}</span>
+          <p className="jsave-section-sub" style={{ margin: '0 0 10px', fontWeight: 600 }}>{t('itemsOverview')}</p>
+          <div className="jsave-item-summary-stats">
+            <div className="jsave-item-stat">
+              <span className="jsave-stat-label">{t('itemsTotalAssets')}</span>
+              <span className="jsave-stat-val">{fmt(totalAssets)}</span>
+            </div>
+            <div className="jsave-item-stat">
+              <span className="jsave-stat-label">{t('itemsTotalCPD')}</span>
+              <span className="jsave-stat-val">{fmt(totalCPD)}</span>
+            </div>
           </div>
-          <div className="jsave-item-stat">
-            <span className="jsave-stat-label">{t('itemsTotalCPD')}</span>
-            <span className="jsave-stat-val">{fmt(totalCPD)}</span>
+          <div className="jsave-item-summary-counts">
+            <span className="jsave-badge jsave-badge-blue">{t('itemsCountActive')} {activeItems.length}</span>
+            <span className="jsave-badge jsave-badge-dim">{t('itemsCountRetired')} {retiredItems.length}</span>
+            <span className="jsave-badge jsave-badge-green">{t('itemsCountSold')} {soldItems.length}</span>
           </div>
         </GlassCard>
       )}

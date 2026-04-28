@@ -101,8 +101,12 @@ export default {
   // Items (CPD)
   itemsTitle: 'Items',
   itemsSubtitle: 'Track cost per day',
+  itemsOverview: 'Asset Overview',
   itemsTotalAssets: 'Total Assets',
   itemsTotalCPD: 'Total Cost / Day',
+  itemsCountActive: 'In Service',
+  itemsCountRetired: 'Retired',
+  itemsCountSold: 'Sold',
   addItem: 'Add Item',
   itemName: 'Item Name',
   itemNamePh: 'e.g. MacBook Pro',
