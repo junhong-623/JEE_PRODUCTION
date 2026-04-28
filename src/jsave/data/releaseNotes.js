@@ -1,8 +1,25 @@
 export const RELEASE_NOTES = [
   {
-    version: '2.6.0',
+    version: '2.7.0',
     date: '2026-04-28',
     isLatest: true,
+    items: [
+      'Expense transactions can now be marked as monthly recurring — note auto-prefixed with current month (e.g. "Apr - Netflix")',
+      'Recurring expenses are auto-added every month when you open the app',
+      'Items: retired and sold status with dedicated toggle fields (retirement date, sale price, sale date)',
+      'Items: asset overview card showing total assets, total cost/day, and counts by status',
+    ],
+    itemsZh: [
+      '支出交易新增「每月扣款」toggle — 备注自动加当月前缀（如「4月 - Netflix」）',
+      '每月首次打开 app 自动添加当月recurring支出',
+      '物品新增已退役／已出售状态，独立 toggle 展示退役时间、出售价格和出售时间',
+      '物品页新增资产总览卡片，显示总资产、总日均成本及各状态数量',
+    ],
+  },
+  {
+    version: '2.6.0',
+    date: '2026-04-28',
+    isLatest: false,
     items: [
       'New transaction type: AA Split — pay the full bill, only your share counts as expense',
       'Track which friends have returned money; choose which account receives each return',
