@@ -8,6 +8,13 @@ const TYPES = ['income', 'expense', 'transfer', 'split']
 
 const today = () => new Date().toISOString().split('T')[0]
 
+function monthPrefix(lang) {
+  const now = new Date()
+  return lang === 'zh'
+    ? `${now.getMonth() + 1}月`
+    : now.toLocaleString('en', { month: 'short' })
+}
+
 function fmt(amount, currency = 'MYR') {
   return new Intl.NumberFormat('en-MY', { style: 'currency', currency, minimumFractionDigits: 2 }).format(amount)
 }
@@ -131,7 +138,7 @@ function SplitEditView({ initial, onClose }) {
 
 // ── Main form ─────────────────────────────────────────────────────────────────
 export default function TransactionForm({ initial, onClose }) {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const { accounts, addTransaction, updateTransaction, deleteTransaction, settings } = useJSave()
 
   // Route to settlement view when editing an existing split
@@ -146,7 +153,8 @@ export default function TransactionForm({ initial, onClose }) {
   const [fromAccountId, setFrom]  = useState(initial?.fromAccountId ?? accounts[0]?.id ?? '')
   const [toAccountId, setTo]      = useState(initial?.toAccountId ?? accounts[1]?.id ?? '')
   const [date, setDate]           = useState(initial?.date ?? today())
-  const [note, setNote]           = useState(initial?.note ?? '')
+  const [note, setNote]           = useState(initial?.recurringBaseNote ?? initial?.note ?? '')
+  const [recurring, setRecurring] = useState(initial?.recurring ?? false)
   const [saving, setSaving]       = useState(false)
 
   // Split-specific state
@@ -204,7 +212,14 @@ export default function TransactionForm({ initial, onClose }) {
       }))
       data = { type: 'split', amount: amt, myShare: share, splitWith, accountId, category, date, note }
     } else {
-      data = { type, amount: amt, category, accountId, date, note }
+      const finalNote = (type === 'expense' && recurring && note)
+        ? `${monthPrefix(lang)} - ${note}`
+        : note
+      data = {
+        type, amount: amt, category, accountId, date,
+        note: finalNote,
+        ...(type === 'expense' && recurring && { recurring: true, recurringBaseNote: note }),
+      }
     }
 
     if (initial?.id) await updateTransaction(initial.id, data)
@@ -336,6 +351,24 @@ export default function TransactionForm({ initial, onClose }) {
 
           <label className="jsave-label">{t('txNote')}</label>
           <input className="jsave-input" type="text" placeholder={t('txNotePh')} value={note} onChange={e => setNote(e.target.value)} />
+
+          {type === 'expense' && (
+            <div className="jsave-setting-row" style={{ marginTop: 4 }}>
+              <div>
+                <span className="jsave-label">{t('txRecurring')}</span>
+                <p className="jsave-section-sub" style={{ marginTop: 2 }}>{t('txRecurringDesc')}</p>
+                {recurring && note && (
+                  <p className="jsave-section-sub" style={{ marginTop: 2, color: '#10b981' }}>
+                    {t('txRecurringPreview')} {monthPrefix(lang)} - {note}
+                  </p>
+                )}
+              </div>
+              <label className="jsave-toggle">
+                <input type="checkbox" checked={recurring} onChange={e => setRecurring(e.target.checked)} />
+                <span className="jsave-toggle-track" />
+              </label>
+            </div>
+          )}
 
           <div className="jsave-form-actions">
             {initial?.id && (
