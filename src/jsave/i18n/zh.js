@@ -101,6 +101,8 @@ export default {
   // Items (CPD)
   itemsTitle: '物品',
   itemsSubtitle: '追踪日均成本',
+  itemsTotalAssets: '总资产',
+  itemsTotalCPD: '总日均成本',
   addItem: '添加物品',
   itemName: '物品名称',
   itemNamePh: '例：MacBook Pro',

@@ -44,6 +44,10 @@ export default function ItemsPage() {
     return cpdB - cpdA
   })
 
+  const activeItems = items.filter(i => itemStatus(i) === 'active')
+  const totalAssets = activeItems.reduce((s, i) => s + i.cost, 0)
+  const totalCPD    = activeItems.reduce((s, i) => s + i.cost / daysTotal(i.purchaseDate, endDate(i)), 0)
+
   function openEdit(item) { setEditing(item); setShowForm(true) }
   function openAdd() { setEditing(null); setShowForm(true) }
 
@@ -56,6 +60,19 @@ export default function ItemsPage() {
         </div>
         <button className="jsave-btn-primary" onClick={openAdd}>{t('addItem')}</button>
       </div>
+
+      {items.length > 0 && (
+        <GlassCard className="jsave-item-summary">
+          <div className="jsave-item-stat">
+            <span className="jsave-stat-label">{t('itemsTotalAssets')}</span>
+            <span className="jsave-stat-val">{fmt(totalAssets)}</span>
+          </div>
+          <div className="jsave-item-stat">
+            <span className="jsave-stat-label">{t('itemsTotalCPD')}</span>
+            <span className="jsave-stat-val">{fmt(totalCPD)}</span>
+          </div>
+        </GlassCard>
+      )}
 
       {items.length === 0 ? (
         <p className="jsave-empty-msg">{t('noItems')}</p>

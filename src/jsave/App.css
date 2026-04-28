@@ -634,6 +634,7 @@ input[type="number"].jsave-input::-webkit-outer-spin-button { -webkit-appearance
 /* ── Items ── */
 .jsave-items-list { display: flex; flex-direction: column; gap: 10px; }
 
+.jsave-item-summary { display: flex; gap: 24px; padding: 14px 16px; margin-bottom: 4px; }
 .jsave-item-card { padding: 14px 16px; cursor: pointer; }
 .jsave-item-top  { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
 .jsave-item-name { font-size: 15px; font-weight: 600; display: block; margin-bottom: 6px; }
