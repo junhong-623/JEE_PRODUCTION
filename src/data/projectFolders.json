@@ -1,0 +1,28 @@
+[
+  {
+    "id": "portfolio__welcome",
+    "type": "portfolio",
+    "slug": "welcome",
+    "title": "Welcome",
+    "titleZh": "欢迎页",
+    "description": "A sample portfolio entry used as a local fallback.",
+    "descriptionZh": "一个本地回退用的示例作品条目。",
+    "url": "https://jeeprod.com",
+    "visible": true,
+    "order": 1,
+    "iconUrl": "/logo.svg"
+  },
+  {
+    "id": "bookmark__openai",
+    "type": "bookmark",
+    "slug": "openai",
+    "title": "OpenAI",
+    "titleZh": "OpenAI",
+    "description": "A sample bookmark entry used as a local fallback.",
+    "descriptionZh": "一个本地回退用的示例书签条目。",
+    "url": "https://openai.com",
+    "visible": true,
+    "order": 2,
+    "iconUrl": "/logo.svg"
+  }
+]

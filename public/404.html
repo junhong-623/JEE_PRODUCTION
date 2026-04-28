@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>404 — Jee Production</title>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #eeeedd;
+        background-image:
+          radial-gradient(ellipse 80% 60% at 20% 10%, rgba(232,68,10,0.07) 0%, transparent 60%),
+          radial-gradient(ellipse 60% 50% at 80% 80%, rgba(232,68,10,0.05) 0%, transparent 55%);
+        font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+        color: #0d0d0d;
+        padding: 2rem;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body {
+          background-color: #141410;
+          background-image:
+            radial-gradient(ellipse 80% 60% at 20% 10%, rgba(232,68,10,0.09) 0%, transparent 60%),
+            radial-gradient(ellipse 60% 50% at 80% 80%, rgba(232,68,10,0.06) 0%, transparent 55%);
+          color: #eeeedd;
+        }
+        .card {
+          background: rgba(20,20,16,0.7) !important;
+          border-color: rgba(238,238,221,0.08) !important;
+        }
+        .label { color: rgba(238,238,221,0.3) !important; }
+        .sub { color: rgba(238,238,221,0.45) !important; }
+        .back {
+          border-color: rgba(238,238,221,0.12) !important;
+          color: rgba(238,238,221,0.6) !important;
+        }
+        .back:hover {
+          border-color: #e8440a !important;
+          color: #e8440a !important;
+        }
+      }
+
+      .card {
+        text-align: center;
+        max-width: 400px;
+        width: 100%;
+        padding: 3rem 2.5rem;
+        border-radius: 2rem;
+        border: 1px solid rgba(13,13,13,0.08);
+        background: rgba(255,255,255,0.6);
+        backdrop-filter: blur(12px);
+      }
+
+      .logo {
+        width: 52px;
+        height: 52px;
+        margin: 0 auto 2rem;
+        opacity: 0.65;
+      }
+
+      .label {
+        font-family: 'JetBrains Mono', 'Courier New', monospace;
+        font-size: 10px;
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        color: rgba(13,13,13,0.28);
+        margin-bottom: 0.75rem;
+      }
+
+      h1 {
+        font-size: 3rem;
+        font-weight: 300;
+        line-height: 1;
+        letter-spacing: -0.02em;
+        color: #e8440a;
+        margin-bottom: 0.5rem;
+      }
+
+      .sub {
+        font-size: 0.875rem;
+        color: rgba(13,13,13,0.5);
+        line-height: 1.7;
+        margin-bottom: 2rem;
+      }
+
+      .back {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: 9999px;
+        border: 1px solid rgba(13,13,13,0.12);
+        font-family: 'JetBrains Mono', 'Courier New', monospace;
+        font-size: 11px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        text-decoration: none;
+        color: rgba(13,13,13,0.55);
+        transition: border-color 0.15s, color 0.15s;
+      }
+
+      .back:hover {
+        border-color: #e8440a;
+        color: #e8440a;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <img src="/logo.svg" alt="Jee Production" class="logo" />
+      <p class="label">jeeprod.com</p>
+      <h1>404</h1>
+      <p class="sub">This page doesn't exist.<br />Check the URL or head back home.</p>
+      <a href="/" class="back">← Back home</a>
+    </div>
+  </body>
+</html>

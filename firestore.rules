@@ -1,0 +1,225 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && (request.auth.uid == "QVLyCaNT5FgDDxXA95ZpHAiSCvy2"
+            || request.auth.uid == "IhcEvknXK1OQ24PdA3UmwnyxzSq1");
+    }
+
+    function canAccessTrip(tripId) {
+      return signedIn()
+        && (
+          get(/databases/$(database)/documents/trips/$(tripId)).data.createdBy == request.auth.uid
+          || get(/databases/$(database)/documents/trips/$(tripId)).data.memberIds.hasAny([request.auth.uid])
+        );
+    }
+
+    match /projects/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /entries/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /hagency_submissions/{document=**} {
+      allow read: if isAdmin();
+      allow create: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    match /hagency_leaderboard/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /hagency_posts/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /usernames/{uid} {
+      allow read: if true;
+      allow create, update, delete: if (signedIn() && request.auth.uid == uid) || isAdmin();
+    }
+
+    match /trips/{tripId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.createdBy == request.auth.uid;
+      allow delete: if canAccessTrip(tripId);
+      // Normal trip edits require access; joining = signed-in user adding only themselves to memberIds
+      allow update: if canAccessTrip(tripId)
+        || (signedIn()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds'])
+            && request.resource.data.memberIds.hasAll(resource.data.memberIds)
+            && request.resource.data.memberIds.hasAll([request.auth.uid]));
+
+      match /people/{personId} {
+        allow read: if canAccessTrip(tripId) || isAdmin();
+        allow write: if canAccessTrip(tripId);
+      }
+
+      match /receipts/{receiptId} {
+        allow read: if canAccessTrip(tripId) || isAdmin();
+        allow write: if canAccessTrip(tripId);
+      }
+
+      match /photos/{photoId} {
+        allow read: if canAccessTrip(tripId) || isAdmin();
+        allow write: if canAccessTrip(tripId);
+      }
+
+      match /settlements/{settlementId} {
+        allow read: if canAccessTrip(tripId) || isAdmin();
+        allow write: if canAccessTrip(tripId);
+      }
+
+      match /schedule/{itemId} {
+        allow read: if canAccessTrip(tripId) || isAdmin();
+        allow write: if canAccessTrip(tripId);
+      }
+
+      match /messages/{messageId} {
+        allow read: if canAccessTrip(tripId) || isAdmin();
+        allow write: if canAccessTrip(tripId);
+      }
+    }
+
+    // ── Mall ────────────────────────────────────────────────────
+    match /mall_config/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /mall_categories/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /mall_products/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /mall_transactions/{doc} {
+      // Anyone can create (guest checkout). Owner or admin can read. Only admin can update.
+      allow create: if true;
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.userId == request.auth.uid);
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── JSave ────────────────────────────────────────────────────
+    // Each user owns their own sub-collections; admin can read all
+    match /users/{uid}/{collection}/{document} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+      allow read: if isAdmin();
+    }
+
+    // Top-level donation log — any signed-in user can append; only admin reads
+    match /jsave_donations_all/{doc} {
+      allow create: if signedIn();
+      allow read, delete: if isAdmin();
+    }
+
+    // jsavePushSubs — doc ID is uid; owner manages their own; admin reads all
+    match /jsavePushSubs/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+      allow read: if isAdmin();
+    }
+
+    match /pushSubscriptions/{subscriptionId} {
+      allow read, delete: if isAdmin();
+      allow read, write: if signedIn()
+        && (
+          resource == null
+            ? request.resource.data.userId == request.auth.uid
+            : resource.data.userId == request.auth.uid
+        );
+    }
+
+    // ── FlowCraft ────────────────────────────────────────────────
+
+    // Helper: check if the current user has an access record for a flowchart
+    function hasFlowchartAccess(flowchartId) {
+      return exists(/databases/$(database)/documents/flowchartAccess/$(flowchartId + '_' + request.auth.uid));
+    }
+
+    // Helper: check if the current user has edit-level access
+    function hasEditAccess(flowchartId) {
+      return hasFlowchartAccess(flowchartId)
+        && get(/databases/$(database)/documents/flowchartAccess/$(flowchartId + '_' + request.auth.uid)).data.permission == 'edit';
+    }
+
+    match /flowcharts/{flowchartId} {
+      // Owner or anyone with an access record can read
+      allow read: if signedIn()
+        && (resource.data.ownerId == request.auth.uid || hasFlowchartAccess(flowchartId));
+
+      // Only the authenticated user can create their own flowcharts
+      allow create: if signedIn()
+        && request.resource.data.ownerId == request.auth.uid;
+
+      // Owner can update anything.
+      // Editors can update content (nodes, edges, title, updatedAt) but not ownership or grouping.
+      allow update: if signedIn()
+        && (
+          resource.data.ownerId == request.auth.uid
+          || (hasEditAccess(flowchartId)
+              && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['ownerId', 'groupId']))
+        );
+
+      // Only the owner can delete
+      allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    match /flowchartGroups/{groupId} {
+      // Only the owner of the group can access it
+      allow read: if signedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if signedIn() && resource.data.ownerId == request.auth.uid;
+      allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
+    }
+
+    match /flowchartShares/{code} {
+      // Any signed-in user can read a share by its code (needed for join-by-code).
+      // The code itself (6-char random) is the security — unguessable in practice.
+      allow read: if signedIn();
+
+      // Only the owner of the referenced flowchart can create share codes
+      allow create: if signedIn()
+        && get(/databases/$(database)/documents/flowcharts/$(request.resource.data.flowchartId)).data.ownerId == request.auth.uid;
+
+      // Owner of the flowchart (or the creator of the code) can revoke it
+      allow delete: if signedIn()
+        && (resource.data.createdBy == request.auth.uid
+            || get(/databases/$(database)/documents/flowcharts/$(resource.data.flowchartId)).data.ownerId == request.auth.uid);
+    }
+
+    match /flowchartAccess/{accessId} {
+      // User can read their own record; flowchart owner can read all access records for their charts
+      allow read: if signedIn()
+        && (resource.data.userId == request.auth.uid
+            || get(/databases/$(database)/documents/flowcharts/$(resource.data.flowchartId)).data.ownerId == request.auth.uid);
+
+      // User can create their own access record, but only if a valid matching share code exists.
+      // The stored inviteCode field ties this record to a real share.
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && exists(/databases/$(database)/documents/flowchartShares/$(request.resource.data.inviteCode))
+        && get(/databases/$(database)/documents/flowchartShares/$(request.resource.data.inviteCode)).data.flowchartId == request.resource.data.flowchartId
+        && get(/databases/$(database)/documents/flowchartShares/$(request.resource.data.inviteCode)).data.permission == request.resource.data.permission;
+
+      // Users can remove themselves from shared access; flowchart owner can remove anyone
+      allow delete: if signedIn()
+        && (resource.data.userId == request.auth.uid
+            || get(/databases/$(database)/documents/flowcharts/$(resource.data.flowchartId)).data.ownerId == request.auth.uid);
+    }
+  }
+}

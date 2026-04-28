@@ -1,0 +1,238 @@
+const { onCall, HttpsError } = require('firebase-functions/v2/https')
+const { onSchedule } = require('firebase-functions/v2/scheduler')
+const { defineSecret } = require('firebase-functions/params')
+const { v2: cloudinary } = require('cloudinary')
+const admin = require('firebase-admin')
+const webpush = require('web-push')
+
+admin.initializeApp()
+
+const VAPID_PRIVATE = defineSecret('VAPID_PRIVATE_KEY')
+const VAPID_PUBLIC = 'BMGKdp8QNMH0CXUHEcJc3PVSw6MXe45_ZafygoAZZF_fiFsG5Ufq3oCQrzVknLw7oG_VtQJYPxj8f9lddT_ce0A'
+
+const CLOUDINARY_KEY    = defineSecret('CLOUDINARY_API_KEY')
+const CLOUDINARY_SECRET = defineSecret('CLOUDINARY_API_SECRET')
+
+const ADMIN_UIDS = [
+  'QVLyCaNT5FgDDxXA95ZpHAiSCvy2',
+  'IhcEvknXK1OQ24PdA3UmwnyxzSq1',
+]
+
+/**
+ * Callable: deleteCloudinaryImage
+ * data: { publicId: string }
+ * Deletes an image from Cloudinary. Admin-only.
+ */
+exports.deleteCloudinaryImage = onCall(
+  { secrets: [CLOUDINARY_KEY, CLOUDINARY_SECRET] },
+  async (req) => {
+    if (!req.auth) {
+      throw new HttpsError('unauthenticated', 'You must be signed in.')
+    }
+    if (!ADMIN_UIDS.includes(req.auth.uid)) {
+      throw new HttpsError('permission-denied', 'Admin only.')
+    }
+
+    const { publicId } = req.data
+    if (!publicId || typeof publicId !== 'string') {
+      throw new HttpsError('invalid-argument', 'publicId is required.')
+    }
+
+    cloudinary.config({
+      cloud_name:  'db2ixn8zh',
+      api_key:     CLOUDINARY_KEY.value(),
+      api_secret:  CLOUDINARY_SECRET.value(),
+    })
+
+    try {
+      const result = await cloudinary.uploader.destroy(publicId)
+      return { result }
+    } catch (err) {
+      throw new HttpsError('internal', `Cloudinary delete failed: ${err.message}`)
+    }
+  }
+)
+
+// ── JSave reminder helpers ────────────────────────────────────────────────────
+
+async function sendJSaveReminders(hour) {
+  webpush.setVapidDetails(
+    'mailto:jeejunhong@gmail.com',
+    VAPID_PUBLIC,
+    VAPID_PRIVATE.value().trim()
+  )
+
+  const db = admin.firestore()
+  // Malaysia time = UTC+8
+  const now = new Date()
+  const myt = new Date(now.getTime() + 8 * 60 * 60 * 1000)
+  const today = myt.toISOString().split('T')[0]
+
+  const subsSnap = await db.collection('jsavePushSubs')
+    .where('dailyReminder', '==', true)
+    .get()
+
+  console.log(`[jsave-reminders] hour=${hour} today=${today} subscribers=${subsSnap.size}`)
+
+  const sends = subsSnap.docs.map(async subDoc => {
+    const { subscription, language } = subDoc.data()
+    const uid = subDoc.id
+
+    // Check if user already recorded transactions today
+    const txSnap = await db.collection('users').doc(uid)
+      .collection('jsave_transactions')
+      .where('date', '==', today)
+      .get()
+
+    const hasRecord = txSnap.docs.some(d => {
+      const tx = d.data()
+      return !tx.deleted && tx.type !== 'transfer'
+    })
+    if (hasRecord) {
+      console.log(`[jsave-reminders] uid=${uid} already has records — skip`)
+      return
+    }
+
+    const zh = language === 'zh'
+    const title = zh ? 'J省' : 'JSave'
+    const body = hour === 13
+      ? (zh ? '别忘了记录午餐消费！' : "Don't forget to log your lunch!")
+      : (zh ? '今日还未记账，记一下今天的消费吧！' : 'End of day — log your transactions!')
+
+    const payload = JSON.stringify({ title, body, tag: `jsave-reminder-${hour}` })
+
+    try {
+      await webpush.sendNotification(subscription, payload)
+      console.log(`[jsave-reminders] sent to uid=${uid}`)
+    } catch (err) {
+      console.error(`[jsave-reminders] push failed uid=${uid} status=${err.statusCode} msg=${err.message}`)
+      // 410 Gone or 404 = subscription expired, clean up
+      if (err.statusCode === 410 || err.statusCode === 404) {
+        await db.collection('jsavePushSubs').doc(uid).delete()
+        console.log(`[jsave-reminders] cleaned expired sub uid=${uid}`)
+      }
+    }
+  })
+
+  await Promise.allSettled(sends)
+  console.log(`[jsave-reminders] hour=${hour} done`)
+}
+
+// ── ToyyibPay bill proxy (sandbox) ────────────────────────────────────────────
+
+const TOYYIBPAY_BASE = 'https://toyyibpay.com'
+const TOYYIBPAY_KEY  = '3ogbb8p6-7ehp-xo5j-ie0b-djarxe1qhvio'
+
+exports.createToyyibPayBill = onCall(async (req) => {
+  if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in required.')
+
+  const { amountRM, returnUrl } = req.data
+  const amount = Number(amountRM)
+  if (!amount || amount <= 0 || amount > 10000) {
+    throw new HttpsError('invalid-argument', 'Invalid amount.')
+  }
+
+  const db = admin.firestore()
+  const cfgRef = db.collection('jsave_config').doc('toyyibpay_live')
+  const cfgSnap = await cfgRef.get()
+
+  let categoryCode = cfgSnap.exists ? cfgSnap.data().categoryCode : null
+  if (!categoryCode) {
+    const catRes = await fetch(`${TOYYIBPAY_BASE}/index.php/api/createCategory`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        userSecretKey: TOYYIBPAY_KEY,
+        catname: 'JSave Coffee',
+        catdescription: 'Support JSave development',
+      }).toString(),
+    })
+    const catData = await catRes.json()
+    categoryCode = catData[0]?.CategoryCode
+    if (!categoryCode) throw new HttpsError('internal', 'Failed to create ToyyibPay category')
+    await cfgRef.set({ categoryCode }, { merge: true })
+  }
+
+  const billRes = await fetch(`${TOYYIBPAY_BASE}/index.php/api/createBill`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      userSecretKey: TOYYIBPAY_KEY,
+      categoryCode,
+      billName: 'Treat Me a Coffee',
+      billDescription: 'Support JSave development',
+      billPriceSetting: '1',
+      billPayorInfo: '0',
+      billAmount: String(Math.round(amount * 100)),
+      billReturnUrl: returnUrl || 'https://www.jeeprod.com/jsave',
+      billCallbackUrl: returnUrl || 'https://www.jeeprod.com/jsave',
+      billExpiryDays: '1',
+    }).toString(),
+  })
+  const billData = await billRes.json()
+  const billCode = billData[0]?.BillCode
+  if (!billCode) throw new HttpsError('internal', 'Failed to create ToyyibPay bill')
+
+  return { url: `${TOYYIBPAY_BASE}/${billCode}`, billCode }
+})
+
+// ── JSave admin broadcast ─────────────────────────────────────────────────────
+
+exports.jsaveAdminBroadcast = onCall(
+  { secrets: [VAPID_PRIVATE] },
+  async (req) => {
+    if (!req.auth || !ADMIN_UIDS.includes(req.auth.uid)) {
+      throw new HttpsError('permission-denied', 'Admin only.')
+    }
+    const { title, body, uids } = req.data
+    if (!title || !body) throw new HttpsError('invalid-argument', 'title and body required.')
+
+    webpush.setVapidDetails(
+      'mailto:jeejunhong@gmail.com',
+      VAPID_PUBLIC,
+      VAPID_PRIVATE.value().trim()
+    )
+
+    const db = admin.firestore()
+    const subsSnap = await db.collection('jsavePushSubs').get()
+
+    // filter to specific uids if provided, otherwise send to all
+    const targetUids = Array.isArray(uids) && uids.length > 0 ? new Set(uids) : null
+    const targetDocs = targetUids
+      ? subsSnap.docs.filter(d => targetUids.has(d.id))
+      : subsSnap.docs
+
+    const results = { sent: 0, failed: 0, cleaned: 0 }
+
+    await Promise.allSettled(targetDocs.map(async subDoc => {
+      const { subscription } = subDoc.data()
+      const payload = JSON.stringify({ title, body, tag: 'jsave-admin-broadcast' })
+      try {
+        await webpush.sendNotification(subscription, payload)
+        results.sent++
+      } catch (err) {
+        results.failed++
+        if (err.statusCode === 410 || err.statusCode === 404) {
+          await db.collection('jsavePushSubs').doc(subDoc.id).delete()
+          results.cleaned++
+        }
+      }
+    }))
+
+    return results
+  }
+)
+
+// ── JSave reminders ───────────────────────────────────────────────────────────
+
+// 1PM MYT = 05:00 UTC
+exports.jsaveReminder1PM = onSchedule(
+  { schedule: '0 5 * * *', timeZone: 'UTC', secrets: [VAPID_PRIVATE] },
+  async () => sendJSaveReminders(13)
+)
+
+// 8PM MYT = 12:00 UTC
+exports.jsaveReminder8PM = onSchedule(
+  { schedule: '0 12 * * *', timeZone: 'UTC', secrets: [VAPID_PRIVATE] },
+  async () => sendJSaveReminders(20)
+)

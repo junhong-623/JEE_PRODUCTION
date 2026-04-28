@@ -1,0 +1,211 @@
+.login-page {
+  min-height: 100dvh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 28px 20px 40px;
+  position: relative;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: var(--sand);
+}
+
+@media (min-height: 800px) {
+  .login-page { align-items: center; }
+}
+.login-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.login-shape {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.12;
+}
+.login-shape.s1 {
+  width: 400px; height: 400px;
+  background: var(--terracotta);
+  top: -100px; right: -100px;
+  animation: drift 12s ease-in-out infinite;
+}
+.login-shape.s2 {
+  width: 300px; height: 300px;
+  background: var(--sage);
+  bottom: -80px; left: -80px;
+  animation: drift 10s ease-in-out infinite reverse;
+}
+.login-shape.s3 {
+  width: 200px; height: 200px;
+  background: var(--sky);
+  bottom: 30%; right: 10%;
+  animation: drift 15s ease-in-out infinite 2s;
+}
+@keyframes drift {
+  0%, 100% { transform: translate(0,0) scale(1); }
+  33% { transform: translate(20px,-20px) scale(1.05); }
+  66% { transform: translate(-10px,15px) scale(0.95); }
+}
+
+.login-card {
+  background: white;
+  border-radius: var(--radius-xl);
+  padding: 32px 36px 40px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: var(--shadow-xl);
+  position: relative;
+  z-index: 1;
+}
+
+/* Language Switcher */
+.lang-switcher {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+.lang-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1.5px solid var(--sand-dark);
+  background: white;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.lang-btn:hover { border-color: var(--sand-deep); color: var(--ink); }
+.lang-btn.active {
+  border-color: var(--terracotta);
+  background: var(--terracotta-pale);
+  color: var(--terracotta);
+}
+
+.login-header { text-align: center; margin-bottom: 24px; }
+.login-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  margin-bottom: 12px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+.login-title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--ink);
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  margin-bottom: 6px;
+}
+.login-subtitle {
+  font-size: 14px;
+  color: var(--ink-muted);
+}
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+  color: var(--ink-muted);
+  font-size: 13px;
+}
+.login-divider::before, .login-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--sand-dark);
+}
+.login-toggle {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 14px;
+  color: var(--ink-muted);
+}
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--terracotta);
+  font-weight: 500;
+  cursor: pointer;
+  font-size: inherit;
+  text-decoration: underline;
+}
+
+.login-title-zh {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--terracotta);
+}
+.login-slogan {
+  font-size: 12px;
+  color: var(--ink-muted);
+  margin-bottom: 0;
+  line-height: 1.5;
+}
+
+/* Guest section */
+.guest-section {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--sand-dark, #e8e0d4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.guest-section-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.guest-btn {
+  width: 100%;
+  border: 1.5px dashed var(--sand-deep, #c8bfb0) !important;
+  background: var(--sand, #f5f0e8) !important;
+  color: var(--ink, #2c2c2c) !important;
+  font-weight: 600 !important;
+}
+.guest-btn:hover {
+  border-color: var(--terracotta) !important;
+  background: var(--terracotta-pale, #fdf3ee) !important;
+  color: var(--terracotta) !important;
+}
+.guest-hint {
+  font-size: 12px;
+  color: var(--ink-muted);
+  text-align: center;
+  background: var(--sand, #f5f0e8);
+  border-radius: 8px;
+  padding: 10px 14px;
+  line-height: 1.6;
+  width: 100%;
+  box-sizing: border-box;
+}
+.guest-code {
+  font-family: monospace;
+  color: var(--terracotta);
+  background: var(--terracotta-pale, #fdf3ee);
+  padding: 1px 5px;
+  border-radius: 4px;
+}

@@ -1,0 +1,16 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isAdmin() {
+      return request.auth != null
+        && (request.auth.uid == "QVLyCaNT5FgDDxXA95ZpHAiSCvy2"
+            || request.auth.uid == "IhcEvknXK1OQ24PdA3UmwnyxzSq1");
+    }
+
+    match /{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

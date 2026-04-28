@@ -1,0 +1,1315 @@
+/* ── JSave Design System ── */
+:root {
+  --js-primary:       #10b981;
+  --js-primary-dim:   #059669;
+  --js-income:        #10b981;
+  --js-expense:       #f43f5e;
+  --js-glass-dark:    rgba(255,255,255,0.05);
+  --js-glass-light:   rgba(255,255,255,0.58);
+  --js-border-dark:   rgba(255,255,255,0.1);
+  --js-border-light:  rgba(255,255,255,0.75);
+  --js-nav-height:    64px;
+}
+
+/* ── Root ── */
+.jsave-root {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: linear-gradient(135deg, #050d1a 0%, #0a1628 45%, #071a12 100%);
+  color: #e2e8f0;
+  font-family: 'DM Sans', sans-serif;
+  overflow-x: hidden;
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.jsave-root.jsave-light {
+  background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 45%, #e8f5f0 100%);
+  color: #0f172a;
+}
+
+/* ── Glass Card ── */
+.glass-card {
+  background: var(--js-glass-dark);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--js-border-dark);
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+}
+
+.jsave-root.jsave-light .glass-card {
+  background: var(--js-glass-light);
+  border: 1px solid var(--js-border-light);
+  box-shadow: 0 4px 20px rgba(16,185,129,0.08);
+}
+
+.glass-glow {
+  box-shadow: 0 0 40px rgba(16,185,129,0.15), 0 4px 24px rgba(0,0,0,0.3);
+}
+
+/* ── Page layout ── */
+.jsave-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.jsave-page {
+  flex: 1;
+  padding: 16px 16px calc(var(--js-nav-height) + env(safe-area-inset-bottom, 0px) + 20px);
+  max-width: 480px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ── Colors ── */
+.txt-income   { color: var(--js-income); }
+.txt-expense  { color: var(--js-expense); }
+.txt-transfer { color: #818cf8; }
+
+/* ── Balance card ── */
+.jsave-balance-card {
+  padding: 24px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.jsave-balance-label {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.jsave-balance-amount {
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+}
+
+.jsave-savings-rate {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+/* ── Stat row ── */
+.jsave-stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.jsave-stat-card {
+  padding: 12px 10px;
+  text-align: center;
+}
+
+.jsave-stat-label {
+  font-size: 11px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+
+.jsave-stat-value {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ── Section header ── */
+.jsave-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.jsave-section-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.jsave-section-sub {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* ── Transactions ── */
+.jsave-tx-list { display: flex; flex-direction: column; gap: 8px; }
+
+.jsave-tx-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.jsave-tx-row:hover { opacity: 0.85; }
+
+.jsave-tx-left { display: flex; flex-direction: column; gap: 2px; }
+.jsave-tx-cat  { font-size: 14px; font-weight: 500; }
+.jsave-tx-note { font-size: 12px; color: #94a3b8; }
+.jsave-tx-amount { font-size: 15px; font-weight: 600; }
+
+/* ── Page transition ── */
+.jsave-page-anim {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  animation: jsavePageIn 0.22s ease;
+}
+@keyframes jsavePageIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── FAB ── */
+.jsave-fab {
+  position: fixed;
+  bottom: calc(var(--js-nav-height) + env(safe-area-inset-bottom, 0px) + 16px);
+  right: 20px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--js-primary);
+  color: #fff;
+  font-size: 26px;
+  font-weight: 300;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(16,185,129,0.5);
+  z-index: 100;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.jsave-fab:hover { transform: scale(1.08); box-shadow: 0 6px 28px rgba(16,185,129,0.6); }
+.jsave-fab:active { transform: scale(0.9); }
+.jsave-fab--open {
+  animation: jsaveFabPop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes jsaveFabPop {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(0.82); }
+  65%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+/* ── Bottom nav ── */
+.jsave-bottom-nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: calc(var(--js-nav-height) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  display: flex;
+  background: rgba(5, 13, 26, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255,255,255,0.08);
+  z-index: 200;
+}
+
+.jsave-root.jsave-light .jsave-bottom-nav {
+  background: rgba(240,253,244,0.88);
+  border-top: 1px solid rgba(16,185,129,0.15);
+}
+
+.jsave-nav-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #64748b;
+  padding: 8px 4px;
+  transition: color 0.15s;
+}
+.jsave-nav-btn.active { color: var(--js-primary); }
+.jsave-nav-icon  { font-size: 20px; line-height: 1; }
+.jsave-nav-label { font-size: 10px; font-weight: 500; }
+
+/* ── Offline banner ── */
+.jsave-offline-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(245,158,11,0.15);
+  border-bottom: 1px solid rgba(245,158,11,0.25);
+  color: #fbbf24;
+  font-size: 12px;
+  padding: 6px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 300;
+}
+
+.jsave-offline-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fbbf24;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* ── Modal ── */
+@keyframes jsaveOverlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes jsaveModalIn {
+  from { opacity: 0; transform: translateY(40px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.jsave-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  z-index: 500;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px;
+  animation: jsaveOverlayIn 0.18s ease;
+}
+.jsave-modal-overlay.centered {
+  align-items: center;
+}
+.jsave-modal-overlay.centered .jsave-modal {
+  border-radius: 20px;
+}
+
+.jsave-modal {
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 24px;
+  border-radius: 20px 20px 16px 16px;
+  animation: jsaveModalIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.jsave-modal-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+/* ── Install dialog ── */
+.jsave-install-dialog { text-align: center; }
+.jsave-install-dialog-icon { font-size: 44px; margin-bottom: 8px; }
+.jsave-install-dialog-desc { font-size: 14px; color: var(--jsave-muted, #94a3b8); margin: 0 0 20px; line-height: 1.6; }
+.jsave-install-guide-steps { text-align: left; padding-left: 20px; margin: 0 0 4px; }
+.jsave-install-guide-steps li { font-size: 14px; color: var(--jsave-muted, #94a3b8); line-height: 2; }
+.jsave-coffee-history { background: rgba(16,185,129,0.07); border: 1px solid rgba(16,185,129,0.18); border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; }
+.jsave-coffee-total { font-size: 13px; font-weight: 600; color: #10b981; margin-bottom: 6px; }
+.jsave-coffee-entries { display: flex; flex-direction: column; gap: 4px; }
+.jsave-coffee-entry { display: flex; justify-content: space-between; font-size: 12px; color: var(--jsave-muted, #94a3b8); }
+.jsave-coffee-qr-wrap { display: flex; flex-direction: column; align-items: center; padding: 4px 0; }
+.jsave-coffee-qr { border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); display: block; }
+.jsave-coffee-pay-divider { display: flex; align-items: center; gap: 10px; margin: 12px 0 10px; color: var(--jsave-muted, #94a3b8); font-size: 13px; }
+.jsave-coffee-pay-divider::before, .jsave-coffee-pay-divider::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.1); }
+.jsave-root.jsave-light .jsave-coffee-pay-divider::before, .jsave-root.jsave-light .jsave-coffee-pay-divider::after { background: rgba(0,0,0,0.1); }
+.jsave-coffee-pay-modal { width: 100%; max-width: 360px; background: #0d1f35; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 20px; box-shadow: 0 8px 40px rgba(0,0,0,0.5); }
+.jsave-root.jsave-light .jsave-coffee-pay-modal { background: #f0fdf4; border-color: rgba(16,185,129,0.2); }
+.jsave-coffee-pay-header { display: flex; align-items: center; justify-content: space-between; font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+
+/* ── Forms ── */
+.jsave-form { display: flex; flex-direction: column; gap: 12px; }
+
+.jsave-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: -6px;
+}
+
+.jsave-input {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+  color: inherit;
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Remove number spinners */
+input[type="number"].jsave-input { -moz-appearance: textfield; }
+input[type="number"].jsave-input::-webkit-inner-spin-button,
+input[type="number"].jsave-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+.jsave-root.jsave-light .jsave-input {
+  background: rgba(255,255,255,0.7);
+  border-color: rgba(0,0,0,0.12);
+  color: #0f172a;
+}
+
+.jsave-input:focus { border-color: var(--js-primary); }
+.jsave-input-sm { width: auto; min-width: 100px; }
+
+.jsave-type-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.jsave-type-btn {
+  flex: 1;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  color: #94a3b8;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.jsave-type-btn.active-income   { background: rgba(16,185,129,0.2); border-color: var(--js-income); color: var(--js-income); font-weight: 600; }
+.jsave-type-btn.active-expense  { background: rgba(244,63,94,0.2); border-color: var(--js-expense); color: var(--js-expense); font-weight: 600; }
+.jsave-type-btn.active-transfer { background: rgba(99,102,241,0.2); border-color: #818cf8; color: #818cf8; font-weight: 600; }
+.jsave-type-btn.active-split    { background: rgba(245,158,11,0.2); border-color: #f59e0b; color: #f59e0b; font-weight: 600; }
+.txt-split { color: #f59e0b; }
+
+/* ── Split transaction ── */
+.jsave-split-summary {
+  background: rgba(245,158,11,0.07);
+  border: 1px solid rgba(245,158,11,0.2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 4px;
+}
+.jsave-split-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+.jsave-split-friends { margin-bottom: 4px; }
+.jsave-split-friend-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  gap: 8px;
+}
+.jsave-split-friend-row:last-child { border-bottom: none; }
+.jsave-split-friend-left { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.jsave-split-friend-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jsave-split-friend-share { font-size: 12px; color: #94a3b8; }
+.jsave-split-friend-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.jsave-split-myshare-preview { font-size: 13px; color: #94a3b8; }
+
+/* People count stepper */
+.jsave-split-stepper-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.jsave-split-stepper {
+  display: flex;
+  align-items: center;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.jsave-root.jsave-light .jsave-split-stepper { border-color: rgba(0,0,0,0.12); }
+.jsave-split-step-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: rgba(255,255,255,0.05);
+  color: inherit;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.jsave-split-step-btn:hover:not(:disabled) { background: rgba(255,255,255,0.12); }
+.jsave-split-step-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.jsave-root.jsave-light .jsave-split-step-btn { background: rgba(0,0,0,0.04); }
+.jsave-split-step-val {
+  min-width: 44px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 700;
+  padding: 0 4px;
+  border-left: 1px solid rgba(255,255,255,0.1);
+  border-right: 1px solid rgba(255,255,255,0.1);
+}
+.jsave-root.jsave-light .jsave-split-step-val {
+  border-color: rgba(0,0,0,0.08);
+}
+
+/* Friends row header */
+.jsave-split-friends-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 2px;
+}
+
+/* Simplified name pills */
+.jsave-split-names-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 2px 0 4px;
+}
+.jsave-split-name-pill {
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: rgba(245,158,11,0.1);
+  border: 1px solid rgba(245,158,11,0.22);
+  color: #f59e0b;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.jsave-form-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+/* ── Buttons ── */
+.jsave-btn-primary {
+  padding: 10px 18px;
+  border-radius: 10px;
+  background: var(--js-primary);
+  color: #fff;
+  border: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.jsave-btn-primary:hover  { opacity: 0.88; }
+.jsave-btn-primary:active { transform: scale(0.97); }
+.jsave-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.jsave-btn-ghost {
+  padding: 10px 18px;
+  border-radius: 10px;
+  background: transparent;
+  color: #94a3b8;
+  border: 1px solid rgba(255,255,255,0.12);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.jsave-btn-ghost:hover { color: #e2e8f0; border-color: rgba(255,255,255,0.25); }
+.jsave-btn-link {
+  background: none; border: none; cursor: pointer;
+  color: #10b981; font-size: 13px; padding: 6px 0;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.jsave-btn-link:hover { color: #34d399; }
+
+.jsave-btn-danger {
+  padding: 10px 18px;
+  border-radius: 10px;
+  background: rgba(244,63,94,0.15);
+  color: var(--js-expense);
+  border: 1px solid rgba(244,63,94,0.3);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.jsave-btn-full { width: 100%; text-align: center; }
+
+/* ── Calendar ── */
+.jsave-cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.jsave-cal-month { font-size: 18px; font-weight: 600; }
+
+.jsave-icon-btn {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.05);
+  color: inherit;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.jsave-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.jsave-cal-dow {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: #64748b;
+  padding: 4px 0;
+}
+
+.jsave-cal-day {
+  aspect-ratio: 1;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.15s;
+  padding: 2px;
+}
+
+.jsave-cal-day:hover { background: rgba(255,255,255,0.06); }
+.jsave-cal-day.today { border-color: var(--js-primary); }
+.jsave-cal-day.selected { background: rgba(16,185,129,0.15); }
+.jsave-cal-day.has-income  { background: rgba(16,185,129,0.08); }
+.jsave-cal-day.has-expense { background: rgba(244,63,94,0.08); }
+
+.jsave-cal-day-num { font-size: 13px; font-weight: 500; }
+.jsave-cal-day-amt { font-size: 9px; font-weight: 600; }
+
+.jsave-day-detail { padding: 16px; margin-top: 4px; }
+.jsave-day-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.jsave-day-detail-header h3 { font-size: 15px; font-weight: 600; }
+
+/* ── Items ── */
+.jsave-items-list { display: flex; flex-direction: column; gap: 10px; }
+
+.jsave-item-card { padding: 14px 16px; cursor: pointer; }
+.jsave-item-top  { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
+.jsave-item-name { font-size: 15px; font-weight: 600; display: block; margin-bottom: 6px; }
+.jsave-item-cost { font-size: 15px; font-weight: 700; }
+.jsave-item-stats { display: flex; gap: 20px; }
+.jsave-item-stat  { display: flex; flex-direction: column; gap: 2px; }
+.jsave-stat-val   { font-size: 14px; font-weight: 600; }
+.jsave-item-note  { font-size: 12px; color: #94a3b8; margin-top: 8px; }
+
+.jsave-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  margin-right: 6px;
+}
+
+.jsave-badge-green { background: rgba(16,185,129,0.2); color: var(--js-income); }
+.jsave-badge-blue  { background: rgba(59,130,246,0.2); color: #60a5fa; }
+.jsave-badge-dim   { background: rgba(100,116,139,0.2); color: #94a3b8; }
+
+/* ── Reports ── */
+/* ── Report view tabs ── */
+.jsave-report-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.jsave-report-tab {
+  flex: 1;
+  padding: 8px 6px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+
+.jsave-report-tab.active {
+  background: rgba(16,185,129,0.18);
+  color: var(--js-primary);
+  font-weight: 600;
+}
+
+.jsave-range-pills {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.jsave-pill {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: transparent;
+  color: #94a3b8;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.jsave-pill.active {
+  background: rgba(16,185,129,0.2);
+  border-color: var(--js-primary);
+  color: var(--js-primary);
+  font-weight: 600;
+}
+
+.jsave-chart-card { padding: 16px; margin-bottom: 16px; }
+
+/* Account balances in reports */
+.jsave-acc-balances { display: flex; flex-direction: column; gap: 2px; }
+
+.jsave-acc-bal-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.jsave-acc-bal-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.jsave-acc-bal-amount { font-size: 14px; font-weight: 600; }
+
+.jsave-acc-bal-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0 2px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #94a3b8;
+}
+.jsave-chart-title { font-size: 14px; font-weight: 600; margin-bottom: 8px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* Pie chart card — allow SVG labels to overflow */
+.jsave-pie-card { overflow: visible !important; }
+
+/* Amount shown above pie on selection */
+.jsave-pie-top-amount {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+  font-size: 18px;
+  font-weight: 700;
+}
+.jsave-pie-hint { font-size: 12px; color: #475569; font-weight: 400; }
+
+/* Clear cache countdown */
+.jsave-cache-countdown {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 8px 0;
+}
+.jsave-cache-countdown-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── Settings ── */
+.jsave-settings-card { padding: 18px; margin-bottom: 14px; }
+.jsave-settings-section { font-size: 15px; font-weight: 600; margin-bottom: 0; }
+
+/* Accordion */
+.jsave-accordion-card { padding: 0; margin-bottom: 14px; overflow: hidden; }
+.jsave-accordion-btn {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; background: none; border: none; cursor: pointer;
+  padding: 16px 18px; color: inherit; text-align: left;
+}
+.jsave-chevron { color: #64748b; transition: transform 0.22s ease; flex-shrink: 0; }
+.jsave-chevron.open { transform: rotate(180deg); }
+.jsave-accordion-body { padding: 0 18px 18px; }
+
+/* Activity strip */
+.jsave-activity-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.jsave-streak-badge { font-size: 11px; font-weight: 600; color: #10b981; background: rgba(16,185,129,0.12); padding: 2px 10px; border-radius: 20px; }
+.jsave-activity-strip { display: flex; justify-content: space-between; gap: 2px; }
+.jsave-activity-col { display: flex; flex-direction: column; align-items: center; gap: 5px; flex: 1; }
+.jsave-activity-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.1); transition: background 0.2s; }
+.jsave-activity-dot.recorded { background: #10b981; }
+.jsave-activity-dot.today { box-shadow: 0 0 0 2px rgba(16,185,129,0.45); }
+.jsave-activity-day-num { font-size: 9px; color: #475569; }
+.jsave-activity-day-num.today { color: #10b981; font-weight: 600; }
+.jsave-setting-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 12px; }
+
+.jsave-acc-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  cursor: pointer;
+}
+.jsave-acc-row:last-child { border-bottom: none; }
+.jsave-acc-dot  { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.jsave-acc-info { display: flex; flex-direction: column; gap: 2px; }
+.jsave-acc-name { font-size: 14px; font-weight: 500; }
+.jsave-acc-type { font-size: 12px; color: #94a3b8; }
+
+.jsave-color-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.jsave-color-dot {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+.jsave-color-dot.selected { border-color: #fff; transform: scale(1.15); }
+
+.jsave-signout { margin-top: 8px; color: #f43f5e; border-color: rgba(244,63,94,0.3); }
+
+/* ── Login ── */
+.jsave-login {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  position: relative;
+}
+
+.jsave-login-bg {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at 30% 30%, rgba(16,185,129,0.15) 0%, transparent 60%),
+              radial-gradient(ellipse at 70% 70%, rgba(59,130,246,0.1) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.jsave-login-card {
+  width: 100%;
+  max-width: 380px;
+  padding: 32px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.jsave-login-icon { width: 72px; height: 72px; border-radius: 18px; }
+.jsave-login-title { font-size: 22px; font-weight: 700; margin: 0; }
+.jsave-login-slogan { font-size: 14px; color: #94a3b8; margin: -8px 0 0; text-align: center; }
+
+.jsave-btn-google {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 11px 18px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: inherit;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.jsave-btn-google:hover { background: rgba(255,255,255,0.13); }
+
+.jsave-lang-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #64748b;
+}
+.jsave-lang-toggle button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+  font-size: 13px;
+  padding: 2px 4px;
+  font-family: inherit;
+}
+.jsave-lang-toggle button.active { color: var(--js-primary); font-weight: 600; }
+
+.jsave-error {
+  color: var(--js-expense);
+  font-size: 13px;
+  text-align: center;
+  margin: 0;
+}
+
+/* ── Misc ── */
+.jsave-empty-msg {
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+  padding: 32px 0;
+}
+
+.jsave-center-msg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  color: #64748b;
+  font-size: 15px;
+}
+
+select.jsave-input option { background: #0a1628; color: #e2e8f0; }
+
+/* ── Toggle switch ── */
+.jsave-toggle { position: relative; display: inline-flex; cursor: pointer; }
+.jsave-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+
+.jsave-toggle-track {
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.15);
+  transition: background 0.2s, border-color 0.2s;
+  position: relative;
+}
+
+.jsave-toggle-track::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #64748b;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.jsave-toggle input:checked + .jsave-toggle-track {
+  background: rgba(16,185,129,0.3);
+  border-color: var(--js-primary);
+}
+
+.jsave-toggle input:checked + .jsave-toggle-track::after {
+  transform: translateX(20px);
+  background: var(--js-primary);
+}
+
+/* ── Salary preview ── */
+.jsave-salary-preview {
+  font-size: 12px;
+  color: var(--js-primary);
+  background: rgba(16,185,129,0.08);
+  border: 1px solid rgba(16,185,129,0.2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+/* ── Intro slides ── */
+.jsave-intro-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: linear-gradient(150deg, #050d1a 0%, #071e12 50%, #0a1628 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 28px;
+  padding-top: calc(48px + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px));
+  user-select: none;
+}
+.jsave-intro-skip {
+  position: absolute;
+  top: calc(16px + env(safe-area-inset-top, 0px));
+  right: 20px;
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 8px 4px;
+}
+.jsave-intro-slide {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  max-width: 340px;
+  width: 100%;
+  animation: jsaveSlideIn 0.3s ease;
+}
+@keyframes jsaveSlideIn {
+  from { opacity: 0; transform: translateX(28px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.jsave-intro-logo-wrap {
+  width: 104px;
+  height: 104px;
+  border-radius: 24px;
+  background: rgba(16,185,129,0.12);
+  border: 1px solid rgba(16,185,129,0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  box-shadow: 0 0 48px rgba(16,185,129,0.18);
+}
+.jsave-intro-logo {
+  width: 80px;
+  height: 80px;
+  border-radius: 18px;
+}
+.jsave-intro-brand {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.jsave-intro-brand-en {
+  font-size: 28px;
+  font-weight: 700;
+  color: #f1f5f9;
+  letter-spacing: -0.5px;
+}
+.jsave-intro-brand-zh {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--js-primary);
+}
+.jsave-intro-emoji {
+  font-size: 80px;
+  line-height: 1;
+  margin-bottom: 24px;
+}
+.jsave-intro-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0 0 12px;
+  line-height: 1.3;
+}
+.jsave-intro-sub {
+  font-size: 15px;
+  color: #94a3b8;
+  line-height: 1.65;
+  margin: 0;
+  white-space: pre-line;
+}
+.jsave-intro-dots {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.jsave-intro-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.18);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: width 0.25s ease, background 0.25s ease, border-radius 0.25s ease;
+}
+.jsave-intro-dot.active {
+  width: 24px;
+  border-radius: 4px;
+  background: var(--js-primary);
+}
+.jsave-intro-next {
+  width: 100%;
+  max-width: 320px;
+  padding: 15px;
+  border-radius: 14px;
+  background: var(--js-primary);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(16,185,129,0.35);
+  transition: opacity 0.15s, transform 0.15s;
+  letter-spacing: 0.01em;
+}
+.jsave-intro-next:active { transform: scale(0.97); opacity: 0.9; }
+
+/* ── PWA install card ── */
+.jsave-pwa-platform { margin-bottom: 16px; }
+.jsave-pwa-platform:last-child { margin-bottom: 0; }
+.jsave-pwa-platform-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #cbd5e1;
+  margin: 0 0 6px;
+}
+.jsave-pwa-steps {
+  margin: 0;
+  padding-left: 18px;
+}
+.jsave-pwa-steps li {
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.7;
+}
+.jsave-pwa-steps strong { color: #e2e8f0; }
+
+/* ── Release notes ── */
+.jsave-release-list { display: flex; flex-direction: column; gap: 18px; }
+.jsave-release-entry { }
+.jsave-release-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.jsave-release-version {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--js-primary);
+  font-family: monospace;
+}
+.jsave-release-badge {
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--js-primary);
+  color: #fff;
+  padding: 1px 7px;
+  border-radius: 99px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.jsave-release-date {
+  font-size: 11px;
+  color: #64748b;
+  margin-left: auto;
+}
+.jsave-release-items {
+  margin: 0;
+  padding-left: 16px;
+}
+.jsave-release-items li {
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.7;
+}
+
+/* ── Clear cache blocking overlay ── */
+.jsave-clearing-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: all;
+}
+.jsave-clearing-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  background: #0d1f35;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 32px 40px;
+  color: #e2e8f0;
+}
+.jsave-root.jsave-light .jsave-clearing-box {
+  background: #f0fdf4;
+  border-color: rgba(16,185,129,0.2);
+  color: #0f172a;
+}
+.jsave-clearing-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(255,255,255,0.15);
+  border-top-color: #10b981;
+  border-radius: 50%;
+  animation: jsaveSpin 0.7s linear infinite;
+}
+.jsave-root.jsave-light .jsave-clearing-spinner {
+  border-color: rgba(0,0,0,0.1);
+  border-top-color: #10b981;
+}
+@keyframes jsaveSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Admin page ── */
+.jsave-admin-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: linear-gradient(135deg, #050d1a 0%, #0a1628 45%, #071a12 100%);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.jsave-root.jsave-light .jsave-admin-overlay {
+  background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 45%, #e8f5f0 100%);
+}
+.jsave-admin-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px 12px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: inherit;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.jsave-root.jsave-light .jsave-admin-header {
+  border-bottom-color: rgba(0,0,0,0.08);
+}
+.jsave-admin-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.jsave-admin-stat-label {
+  font-size: 13px;
+  color: #94a3b8;
+}
+.jsave-admin-stat-value {
+  font-size: 15px;
+  font-weight: 600;
+}
+.jsave-admin-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.jsave-admin-list-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 8px;
+}
+.jsave-root.jsave-light .jsave-admin-list-row {
+  background: rgba(0,0,0,0.04);
+}
+.jsave-admin-textarea {
+  resize: vertical;
+  min-height: 72px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.jsave-admin-user-select {
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.jsave-root.jsave-light .jsave-admin-user-select {
+  border-color: rgba(0,0,0,0.1);
+}
+.jsave-admin-user-select-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.04);
+}
+.jsave-root.jsave-light .jsave-admin-user-select-header {
+  background: rgba(0,0,0,0.04);
+}
+.jsave-admin-select-all-btn {
+  font-size: 12px;
+  color: #10b981;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+.jsave-admin-user-row {
+  cursor: pointer;
+}
+.jsave-admin-user-row:hover {
+  background: rgba(16,185,129,0.08);
+}
+.jsave-admin-checkbox {
+  accent-color: #10b981;
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  flex-shrink: 0;
+}

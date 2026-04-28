@@ -1,0 +1,31 @@
+{
+  "name": "JeeProd Mall",
+  "short_name": "JP Mall",
+  "description": "Curated quality products, from the jungle to your doorstep.",
+  "start_url": "/mall/",
+  "scope": "/mall/",
+  "display": "standalone",
+  "background_color": "#060e06",
+  "theme_color": "#0d1f09",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon/logo-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon/logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

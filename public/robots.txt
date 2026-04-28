@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /matetrip-admin/
+Disallow: /h-agency/admin
+Disallow: /mall/admin/
+
+Sitemap: https://www.jeeprod.com/sitemap.xml

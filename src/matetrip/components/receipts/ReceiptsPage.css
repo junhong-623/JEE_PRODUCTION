@@ -1,0 +1,149 @@
+.receipts-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.receipts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.receipt-card { cursor: pointer; }
+.receipt-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.receipt-card-left { flex: 1; min-width: 0; }
+.receipt-card-name {
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--ink);
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.receipt-card-date {
+  font-size: 13px;
+  color: var(--ink-muted);
+  margin-bottom: 4px;
+}
+.receipt-map-link {
+  font-size: 12px;
+  color: var(--sky);
+  text-decoration: none;
+}
+.receipt-card-right { text-align: right; flex-shrink: 0; }
+.receipt-amount {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+.receipt-payer {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  justify-content: flex-end;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+.receipt-items-preview {
+  background: var(--sand);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.receipt-item-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.receipt-item-name {
+  flex: 1;
+  font-size: 13px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.receipt-item-price {
+  font-size: 13px;
+  color: var(--ink);
+  flex-shrink: 0;
+}
+.receipt-item-eaters {
+  display: flex;
+  flex-shrink: 0;
+}
+.receipt-more {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+.receipt-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.receipt-participants {
+  display: flex;
+  align-items: center;
+  padding-left: 6px;
+}
+
+/* Tag filter bar */
+.tag-filter-bar {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  flex-wrap: nowrap;
+}
+.tag-filter-bar::-webkit-scrollbar { display: none; }
+
+.tag-filter-chip {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1.5px solid var(--sand-dark);
+  background: white;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.tag-filter-chip.active {
+  background: var(--terracotta);
+  border-color: var(--terracotta);
+  color: white;
+  font-weight: 700;
+}
+
+/* Tag chips on receipt card */
+.receipt-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.receipt-tag-chip {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: var(--terracotta-pale);
+  color: var(--terracotta);
+  letter-spacing: 0.2px;
+}

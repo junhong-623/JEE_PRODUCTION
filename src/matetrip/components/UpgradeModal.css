@@ -1,0 +1,139 @@
+.upgrade-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+}
+
+@media (min-width: 480px) {
+  .upgrade-overlay { align-items: center; padding: 16px; }
+}
+
+.upgrade-modal {
+  background: var(--surface, #fff);
+  border-radius: 24px 24px 0 0;
+  padding: 28px 20px 32px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+@media (min-width: 480px) {
+  .upgrade-modal { border-radius: 20px; }
+}
+
+.upgrade-close {
+  position: absolute;
+  top: 16px; right: 16px;
+  background: var(--sand, #f5f0e8);
+  border: none;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--ink-muted, #888);
+  display: flex; align-items: center; justify-content: center;
+}
+
+.upgrade-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.upgrade-icon { font-size: 36px; margin-bottom: 8px; }
+
+.upgrade-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--ink, #1a1a1a);
+  margin: 0 0 6px;
+  font-family: var(--font-display, sans-serif);
+}
+
+.upgrade-reason {
+  font-size: 13px;
+  color: var(--terracotta, #c0532a);
+  background: var(--terracotta-pale, #fef3ed);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 8px 0;
+}
+
+.upgrade-current {
+  font-size: 13px;
+  color: var(--ink-muted, #888);
+  margin-top: 6px;
+}
+
+.upgrade-plans {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.upgrade-plan {
+  border: 2px solid var(--plan-color, #ccc);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.upgrade-plan-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.upgrade-plan-label {
+  font-size: 17px;
+  font-weight: 800;
+  font-family: var(--font-display, sans-serif);
+}
+
+.upgrade-plan-price {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-muted, #888);
+}
+
+.upgrade-plan-features {
+  list-style: none;
+  padding: 0; margin: 0 0 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.upgrade-plan-features li {
+  font-size: 13px;
+  color: var(--ink, #1a1a1a);
+}
+
+.upgrade-plan-btn {
+  display: block;
+  text-align: center;
+  padding: 11px;
+  border-radius: 10px;
+  color: white;
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+
+.upgrade-plan-btn:hover { opacity: 0.85; }
+
+.upgrade-note {
+  font-size: 12px;
+  color: var(--ink-muted, #888);
+  text-align: center;
+  line-height: 1.5;
+}
