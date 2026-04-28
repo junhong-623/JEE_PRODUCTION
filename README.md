@@ -1,6 +1,18 @@
-# Jee - Production (jeeprod.com)
+# JEE Production — www.jeeprod.com
 
-A personal portfolio hub — all projects live under `jeeprod.com/:folderName`.
+A personal portfolio hub and collection of mini-apps, all deployed as a single SPA at **[www.jeeprod.com](https://www.jeeprod.com)**.
+
+## Live Apps
+
+| App | URL | Description |
+|-----|-----|-------------|
+| Portfolio | [www.jeeprod.com](https://www.jeeprod.com) | Personal hub linking all projects |
+| **JSave** | [www.jeeprod.com/jsave](https://www.jeeprod.com/jsave) | Personal finance tracker — PWA with offline support, push reminders, AA split |
+| **MateTrip** | [www.jeeprod.com/matetrip](https://www.jeeprod.com/matetrip) | Trip expense tracker — split bills, track settlements, shared receipts |
+| H-Agency | [www.jeeprod.com/h-agency](https://www.jeeprod.com/h-agency) | Agency landing page |
+| Lucky Calc | [www.jeeprod.com/lucky-calc](https://www.jeeprod.com/lucky-calc) | Lucky number calculator |
+| Calculator | [www.jeeprod.com/calculator](https://www.jeeprod.com/calculator) | General calculator |
+| Unserialize | [www.jeeprod.com/unserialize](https://www.jeeprod.com/unserialize) | PHP unserialize tool |
 
 ## Stack
 
@@ -10,11 +22,20 @@ A personal portfolio hub — all projects live under `jeeprod.com/:folderName`.
 | React Router v6 | Client-side routing |
 | TailwindCSS | Styling |
 | Firebase Auth | Authentication |
-| Cloud Firestore | Project metadata (name, description, url, icon) |
-| Local `project/` folder | Generate buttons from physical subfolders when `VITE_LOCAL_PROJECTS=true` |
+| Cloud Firestore | Database |
 | Firebase Hosting | Deployment |
+| Firebase Functions | Server-side push notifications, payment proxy |
+| GitHub Actions | CI/CD — auto-deploy on push to `main` |
 
-## Quick Start
+## CI/CD
+
+Every push to `main` automatically builds and deploys to Firebase Hosting via GitHub Actions.
+
+```
+git push origin main  →  GitHub Actions builds  →  firebase deploy --only hosting
+```
+
+## Local Development
 
 ```bash
 # 1. Install dependencies
@@ -22,7 +43,6 @@ npm install
 
 # 2. Copy env and fill in your Firebase config
 cp .env.example .env.local
-#    If you want to use the local `project/` folder instead of Firestore, set `VITE_LOCAL_PROJECTS=true` in `.env.local`
 
 # 3. Dev server → http://localhost:3000
 npm run dev
@@ -30,54 +50,48 @@ npm run dev
 # 4. Build for production
 npm run build
 
-# 5. Deploy to Firebase Hosting
+# 5. Deploy manually (hosting + functions + rules)
 firebase deploy
 ```
+
+## Environment Variables
+
+Copy `.env.example` to `.env.local` and fill in:
+
+| Variable | Purpose |
+|----------|---------|
+| `VITE_FIREBASE_*` | Firebase project config |
+| `VITE_ADMIN_UID` | Firebase UID that gets admin access |
+| `VITE_MATETRIP_VAPID_PUBLIC_KEY` | Web Push public key for JSave reminders |
+| `VITE_EMAILJS_*` | EmailJS config for contact form |
+| `VITE_LOCAL_PROJECTS` | `true` to load projects from local JSON instead of Firestore |
+
+## GitHub Secrets Required
+
+For CI/CD to work, add these in **GitHub → Settings → Secrets**:
+
+- All `VITE_*` variables above
+- `FIREBASE_TOKEN` — from running `firebase login:ci` locally
 
 ## Project Structure
 
 ```
-jeeprod/
-├── public/
-│   └── favicon.svg
-├── src/
-│   ├── contexts/
-│   │   ├── AuthContext.jsx    # Firebase Auth state
-│   │   ├── ThemeContext.jsx   # Dark/light mode
-│   │   └── LangContext.jsx    # EN/ZH i18n
-│   ├── lib/
-│   │   └── firebase.js        # Firebase init
-│   ├── pages/
-│   │   ├── Home.jsx           # jeeprod.com/
-│   │   └── Redirect.jsx       # jeeprod.com/:folderName
-│   ├── components/            # Shared UI components (future)
-│   ├── hooks/                 # Custom hooks (future)
-│   ├── App.jsx                # Route definitions
-│   ├── main.jsx               # Entry point + providers
-│   └── index.css              # Tailwind base
-├── .env.example
-├── .firebaserc
-├── firebase.json
-├── tailwind.config.js
-├── vite.config.js
-└── package.json
+src/
+├── jsave/          # JSave finance tracker (PWA)
+├── matetrip/       # MateTrip trip expense tracker (PWA)
+├── h-agency/       # H-Agency landing page
+├── lucky-calc/     # Lucky number calculator
+├── pages/          # Top-level route pages
+├── contexts/       # Auth, Theme, Lang providers
+└── App.jsx         # Route definitions
+functions/
+└── index.js        # Firebase Cloud Functions (push notifications, payments)
 ```
 
-## Firestore Data Model (planned)
+## Deploying Functions
 
+Functions are deployed manually (they use Firebase Secrets like `VAPID_PRIVATE_KEY`):
+
+```bash
+firebase deploy --only functions
 ```
-/projects/{folderName}
-  name: string          // "MatéTrip"
-  nameZh: string        // "旅行伴侣"
-  description: string
-  descriptionZh: string
-  url: string           // external redirect URL
-  iconPath: string      // e.g. "matetrip/public/icons/icon-512.png"
-  order: number         // sort order on homepage
-  visible: boolean
-```
-
-## Admin
-
-Set `VITE_ADMIN_UID` in `.env.local` to your Firebase UID.
-When logged in as admin, an ⚙️ settings panel will appear.
