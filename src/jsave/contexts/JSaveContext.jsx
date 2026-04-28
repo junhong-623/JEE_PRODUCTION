@@ -29,6 +29,7 @@ export function JSaveProvider({ children, onLanguageChange }) {
   const [loading, setLoading] = useState(true)
   const unsubs = useRef([])
   const autoSalaryDone = useRef(new Set())
+  const autoRecurringDone = useRef(new Set())
 
   // Load from IDB immediately for offline-first feel
   useEffect(() => {
@@ -76,6 +77,62 @@ export function JSaveProvider({ children, onLanguageChange }) {
     unsubs.current = [unsubAccounts, unsubTx, unsubItems, unsubSettings]
     return () => unsubs.current.forEach(u => u())
   }, [user])
+
+  // Auto-recurring: runs once after initial data load, auto-adds this month's recurring expenses
+  useEffect(() => {
+    if (loading || !user) return
+
+    const now = new Date()
+    const year = now.getFullYear()
+    const mm = String(now.getMonth() + 1).padStart(2, '0')
+    const monthKey = `${year}-${mm}`
+    const day = String(now.getDate()).padStart(2, '0')
+    const lang = settings?.language || 'en'
+    const prefix = lang === 'zh'
+      ? `${now.getMonth() + 1}月`
+      : now.toLocaleString('en', { month: 'short' })
+
+    const recurringTxs = transactions.filter(t => t.recurring && t.type === 'expense' && !t.deleted)
+    if (!recurringTxs.length) return
+
+    // Group by signature — keep only the latest tx per unique recurring template
+    const latest = new Map()
+    recurringTxs.forEach(t => {
+      const sig = `${t.amount}|${t.category}|${t.accountId}|${t.recurringBaseNote ?? t.note}`
+      const prev = latest.get(sig)
+      if (!prev || t.date > prev.date) latest.set(sig, t)
+    })
+
+    latest.forEach((template, sig) => {
+      const sessionKey = sig + monthKey
+      if (autoRecurringDone.current.has(sessionKey)) return
+      autoRecurringDone.current.add(sessionKey)
+
+      // Already has a recurring tx this month with the same signature
+      const alreadyThisMonth = recurringTxs.some(
+        t => t.date.startsWith(monthKey) &&
+          `${t.amount}|${t.category}|${t.accountId}|${t.recurringBaseNote ?? t.note}` === sig
+      )
+      if (alreadyThisMonth) return
+
+      const baseNote = template.recurringBaseNote ?? template.note
+      const tx = {
+        ...template,
+        id: crypto.randomUUID(),
+        date: `${monthKey}-${day}`,
+        note: baseNote ? `${prefix} - ${baseNote}` : prefix,
+        recurringBaseNote: baseNote,
+        recurring: true,
+        autoAdded: true,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        deleted: false,
+        userId: user.uid,
+      }
+      setTransactions(prev => [tx, ...prev])
+      syncWrite(user.uid, 'transactions', tx, online)
+    })
+  }, [loading]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Flush sync queue when back online
   useEffect(() => {
