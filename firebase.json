@@ -9,6 +9,7 @@
     "rules": "storage.rules"
   },
   "hosting": {
+    "site": "jee-production",
     "public": "dist",
     "ignore": [
       "firebase.json",
