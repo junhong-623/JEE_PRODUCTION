@@ -36,9 +36,4 @@ jobs:
           VITE_EMAILJS_CONTACT_TEMPLATE_ID: ${{ secrets.VITE_EMAILJS_CONTACT_TEMPLATE_ID }}
 
       - name: Deploy to Firebase Hosting
-        env:
-          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: |
-          echo "$SA_JSON" > /tmp/sa.json
-          GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json npx --yes firebase-tools@latest deploy --only hosting --project jeeprod
-          rm /tmp/sa.json
+        run: npx --yes firebase-tools@latest deploy --only hosting --project jeeprod --token "${{ secrets.FIREBASE_TOKEN }}"
