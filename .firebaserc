@@ -1,5 +1,13 @@
 {
   "projects": {
     "default": "jee-production"
+  },
+  "targets": {
+    "jee-production": {
+      "hosting": {
+        "main":  ["jee-production"],
+        "jsave": ["jeeprod-jsave"]
+      }
+    }
   }
 }

@@ -1,7 +1,9 @@
 import { db } from '../../lib/firebase'
 import { doc, getDoc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
+import { JSAVE_BASE } from '../utils/basePath'
 
 const VAPID_KEY = import.meta.env.VITE_MATETRIP_VAPID_PUBLIC_KEY || ''
+const SW_SCOPE  = JSAVE_BASE ? `${JSAVE_BASE}/` : '/'
 
 function urlBase64ToUint8Array(b64) {
   const padding = '='.repeat((4 - (b64.length % 4)) % 4)
@@ -15,7 +17,7 @@ export const isPushSupported = !!(VAPID_KEY && 'PushManager' in window && 'servi
 export async function subscribePush(uid, language) {
   if (!isPushSupported) return false
   try {
-    const reg = await navigator.serviceWorker.getRegistration('/jsave/')
+    const reg = await navigator.serviceWorker.getRegistration(SW_SCOPE)
     if (!reg) throw new Error('SW not registered')
     let sub = await reg.pushManager.getSubscription()
     if (!sub) {
@@ -39,7 +41,7 @@ export async function subscribePush(uid, language) {
 
 export async function unsubscribePush(uid) {
   try {
-    const reg = await navigator.serviceWorker.getRegistration('/jsave/')
+    const reg = await navigator.serviceWorker.getRegistration(SW_SCOPE)
     if (!reg) return
     const sub = await reg.pushManager.getSubscription()
     if (sub) {
