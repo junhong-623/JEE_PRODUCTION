@@ -463,7 +463,7 @@ export default function SettingsPage({ onOpenAdmin }) {
         const reg = await navigator.serviceWorker.getRegistration('/jsave/')
         if (!reg) return
         const sub = await reg.pushManager.getSubscription()
-        if (sub) { setDailyReminder(true); setSubId(sub.endpoint.split('/').pop().slice(-8)) }
+        if (sub) { setDailyReminder(true); setSubId(sub.endpoint.split('/').pop().slice(0, 8)) }
       } catch {}
     }
     checkDevicePush()
@@ -496,7 +496,7 @@ export default function SettingsPage({ onOpenAdmin }) {
       if (perm !== 'granted') { setNotifBlocked(true); setDailyReminder(false); return }
       const endpoint = await subscribePush(user.uid, lang)
       if (!endpoint) { setNotifSubFailed(true); setDailyReminder(false); return }
-      setSubId(endpoint.split('/').pop().slice(-8))
+      setSubId(endpoint.split('/').pop().slice(0, 8))
     } else {
       await unsubscribePush(user.uid)
       setSubId(null)

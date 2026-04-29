@@ -39,6 +39,13 @@
       gtag('js', new Date());
       gtag('config', 'G-1GLX4TRJCF');
     </script>
+    <script>
+      // Set dark background immediately for JSave PWA to avoid white flash on iOS
+      if (location.pathname.startsWith('/jsave')) {
+        document.documentElement.style.background = '#050d1a'
+        document.documentElement.style.colorScheme = 'dark'
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
