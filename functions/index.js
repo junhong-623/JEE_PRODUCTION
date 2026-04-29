@@ -72,12 +72,18 @@ async function sendJSaveReminders(hour) {
     .where('dailyReminder', '==', true)
     .get()
 
-  console.log(`[jsave-reminders] hour=${hour} today=${today} subscribers=${subsSnap.size}`)
+  // Group devices by uid — check transactions once per user, send to all their devices
+  const byUid = {}
+  for (const d of subsSnap.docs) {
+    const { uid, subscription, language } = d.data()
+    if (!uid || !subscription) continue
+    if (!byUid[uid]) byUid[uid] = { language, devices: [] }
+    byUid[uid].devices.push({ docId: d.id, subscription })
+  }
 
-  const sends = subsSnap.docs.map(async subDoc => {
-    const { subscription, language } = subDoc.data()
-    const uid = subDoc.id
+  console.log(`[jsave-reminders] hour=${hour} today=${today} users=${Object.keys(byUid).length} devices=${subsSnap.size}`)
 
+  const sends = Object.entries(byUid).map(async ([uid, { language, devices }]) => {
     // Check if user already recorded transactions today
     const txSnap = await db.collection('users').doc(uid)
       .collection('jsave_transactions')
@@ -101,17 +107,19 @@ async function sendJSaveReminders(hour) {
 
     const payload = JSON.stringify({ title, body, tag: `jsave-reminder-${hour}` })
 
-    try {
-      await webpush.sendNotification(subscription, payload)
-      console.log(`[jsave-reminders] sent to uid=${uid}`)
-    } catch (err) {
-      console.error(`[jsave-reminders] push failed uid=${uid} status=${err.statusCode} msg=${err.message}`)
-      // 410 Gone or 404 = subscription expired, clean up
-      if (err.statusCode === 410 || err.statusCode === 404) {
-        await db.collection('jsavePushSubs').doc(uid).delete()
-        console.log(`[jsave-reminders] cleaned expired sub uid=${uid}`)
+    // Send to every subscribed device for this user
+    await Promise.allSettled(devices.map(async ({ docId, subscription }) => {
+      try {
+        await webpush.sendNotification(subscription, payload)
+        console.log(`[jsave-reminders] sent uid=${uid} doc=${docId}`)
+      } catch (err) {
+        console.error(`[jsave-reminders] push failed uid=${uid} doc=${docId} status=${err.statusCode}`)
+        if (err.statusCode === 410 || err.statusCode === 404) {
+          await db.collection('jsavePushSubs').doc(docId).delete()
+          console.log(`[jsave-reminders] cleaned expired sub doc=${docId}`)
+        }
       }
-    }
+    }))
   })
 
   await Promise.allSettled(sends)
@@ -199,7 +207,7 @@ exports.jsaveAdminBroadcast = onCall(
     // filter to specific uids if provided, otherwise send to all
     const targetUids = Array.isArray(uids) && uids.length > 0 ? new Set(uids) : null
     const targetDocs = targetUids
-      ? subsSnap.docs.filter(d => targetUids.has(d.id))
+      ? subsSnap.docs.filter(d => targetUids.has(d.data().uid))
       : subsSnap.docs
 
     const results = { sent: 0, failed: 0, cleaned: 0 }
