@@ -1,5 +1,5 @@
 import { db } from '../../lib/firebase'
-import { doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
 
 const VAPID_KEY = import.meta.env.VITE_MATETRIP_VAPID_PUBLIC_KEY || ''
 
@@ -10,10 +10,15 @@ function urlBase64ToUint8Array(b64) {
   return Uint8Array.from([...raw].map(c => c.charCodeAt(0)))
 }
 
+export const isPushSupported = !!(VAPID_KEY && 'PushManager' in window && 'serviceWorker' in navigator)
+
 export async function subscribePush(uid, language) {
-  if (!VAPID_KEY || !('PushManager' in window)) return false
+  if (!isPushSupported) return false
   try {
-    const reg = await navigator.serviceWorker.ready
+    const reg = await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise((_, rej) => setTimeout(() => rej(new Error('SW timeout')), 6000)),
+    ])
     let sub = await reg.pushManager.getSubscription()
     if (!sub) {
       sub = await reg.pushManager.subscribe({
@@ -38,10 +43,17 @@ export async function unsubscribePush(uid) {
   try {
     const reg = await navigator.serviceWorker.ready
     const sub = await reg.pushManager.getSubscription()
-    if (sub) await sub.unsubscribe()
-  } catch {}
-  try {
-    await deleteDoc(doc(db, 'jsavePushSubs', uid))
+    if (sub) {
+      // Only delete the Firestore doc if it stores THIS device's endpoint,
+      // so another device's active subscription is not wiped.
+      try {
+        const stored = await getDoc(doc(db, 'jsavePushSubs', uid))
+        if (stored.exists() && stored.data()?.subscription?.endpoint === sub.endpoint) {
+          await deleteDoc(doc(db, 'jsavePushSubs', uid))
+        }
+      } catch {}
+      await sub.unsubscribe()
+    }
   } catch {}
 }
 

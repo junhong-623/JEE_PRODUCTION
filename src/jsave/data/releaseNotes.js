@@ -1,8 +1,25 @@
 export const RELEASE_NOTES = [
   {
-    version: '2.7.1',
+    version: '2.7.2',
     date: '2026-04-29',
     isLatest: true,
+    items: [
+      'Fixed: reminder toggle now reflects per-device push state instead of account-wide setting',
+      'Fixed: clearing cache overlay now covers the full screen and locks background scroll',
+      'Fixed: toggling reminders no longer wipes another device\'s push subscription',
+      'Reminder section hidden on devices/environments where push is not supported',
+    ],
+    itemsZh: [
+      '修复：提醒开关现在基于本设备的推送状态，不再跨设备同步',
+      '修复：清除缓存遮罩层移至最外层，背景无法滚动',
+      '修复：关闭提醒时不再误删其他设备的推送订阅',
+      '不支持推送通知的设备/环境中自动隐藏提醒设置',
+    ],
+  },
+  {
+    version: '2.7.1',
+    date: '2026-04-29',
+    isLatest: false,
     items: [
       'Fixed: deleted transactions, items, and accounts now disappear immediately and stay gone after refresh',
       'Fixed: install guide on /jsave-intro now shows the correct language after switching EN/ZH',

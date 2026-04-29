@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { signOut } from 'firebase/auth'
 import { auth } from '../../lib/firebase'
 import { useLang } from '../contexts/LangContext'
@@ -6,7 +7,7 @@ import { useJSave } from '../hooks/useJSave'
 import { useAuth } from '../../contexts/AuthContext'
 import GlassCard from '../components/GlassCard'
 import { JSAVE_VERSION } from '../version'
-import { subscribePush, unsubscribePush, updatePushLanguage } from '../services/pushService'
+import { subscribePush, unsubscribePush, updatePushLanguage, isPushSupported } from '../services/pushService'
 import { RELEASE_NOTES } from '../data/releaseNotes'
 import { isStandalone, doInstall } from '../installPrompt'
 import { createCoffeeBill } from '../services/toyyibpay'
@@ -144,14 +145,22 @@ function ClearCacheButton({ t, online }) {
     setPhase('idle'); setProgress(0)
   }
 
+  useEffect(() => {
+    if (phase === 'clearing') {
+      document.body.style.overflow = 'hidden'
+      return () => { document.body.style.overflow = '' }
+    }
+  }, [phase])
+
   if (phase === 'clearing') {
-    return (
+    return createPortal(
       <div className="jsave-clearing-overlay">
         <div className="jsave-clearing-box">
           <div className="jsave-clearing-spinner" />
           <p style={{ margin: 0, fontWeight: 500 }}>{t('clearCacheWaiting')}</p>
         </div>
-      </div>
+      </div>,
+      document.body
     )
   }
 
@@ -443,12 +452,20 @@ export default function SettingsPage({ onOpenAdmin }) {
   const [autoSalary,     setAutoSalary]     = useState(settings?.autoSalary ?? false)
   const [salaryAccountId,setSalaryAccountId]= useState(settings?.salaryAccountId ?? '')
   const [salaryDay,      setSalaryDay]      = useState(settings?.salaryDay?.toString() ?? '1')
-  const [dailyReminder,  setDailyReminder]  = useState(settings?.dailyReminder ?? false)
+  const [dailyReminder,  setDailyReminder]  = useState(false)
 
-  // Sync toggle when settings load asynchronously from IDB/Firestore
+  // Init toggle from THIS device's actual push subscription state, not account-level settings
   useEffect(() => {
-    setDailyReminder(settings?.dailyReminder ?? false)
-  }, [settings?.dailyReminder])
+    async function checkDevicePush() {
+      if (!('PushManager' in window) || Notification.permission !== 'granted') return
+      try {
+        const reg = await navigator.serviceWorker.ready
+        const sub = await reg.pushManager.getSubscription()
+        if (sub) setDailyReminder(true)
+      } catch {}
+    }
+    checkDevicePush()
+  }, [])
 
   async function savePrefs() {
     await updateSettings({
@@ -468,19 +485,18 @@ export default function SettingsPage({ onOpenAdmin }) {
   async function toggleReminder(on) {
     setNotifBlocked(false)
     setNotifSubFailed(false)
+    setDailyReminder(on) // optimistic — revert below on any failure
     if (on) {
-      if (typeof Notification === 'undefined') return
+      if (typeof Notification === 'undefined') { setDailyReminder(false); return }
       const perm = Notification.permission === 'default'
         ? await Notification.requestPermission()
         : Notification.permission
-      if (perm !== 'granted') { setNotifBlocked(true); return }
+      if (perm !== 'granted') { setNotifBlocked(true); setDailyReminder(false); return }
       const ok = await subscribePush(user.uid, lang)
-      if (!ok) { setNotifSubFailed(true); return }
+      if (!ok) { setNotifSubFailed(true); setDailyReminder(false); return }
     } else {
       await unsubscribePush(user.uid)
     }
-    setDailyReminder(on)
-    updateSettings({ dailyReminder: on })
   }
 
   // Keep push language in sync when user changes language
@@ -523,28 +539,39 @@ export default function SettingsPage({ onOpenAdmin }) {
       </Accordion>
 
       {/* Reminders */}
-      <Accordion title={t('reminderSection')}>
-        <div className="jsave-setting-row">
-          <div>
-            <span className="jsave-label">{t('dailyReminderLabel')}</span>
-            <p className="jsave-section-sub" style={{ marginTop: 2 }}>{t('reminderDesc')}</p>
+      {isPushSupported && (
+        <Accordion title={t('reminderSection')}>
+          <div className="jsave-setting-row">
+            <div>
+              <span className="jsave-label">{t('dailyReminderLabel')}</span>
+              <p className="jsave-section-sub" style={{ marginTop: 2 }}>{t('reminderDesc')}</p>
+            </div>
+            <label className="jsave-toggle">
+              <input type="checkbox" checked={dailyReminder} onChange={e => toggleReminder(e.target.checked)} />
+              <span className="jsave-toggle-track" />
+            </label>
           </div>
-          <label className="jsave-toggle">
-            <input type="checkbox" checked={dailyReminder} onChange={e => toggleReminder(e.target.checked)} />
-            <span className="jsave-toggle-track" />
-          </label>
-        </div>
-        {notifBlocked && (
-          <p className="jsave-error" style={{ marginTop: 8 }}>{t('reminderPermissionDenied')}</p>
-        )}
-        {notifSubFailed && (
-          <p className="jsave-error" style={{ marginTop: 8 }}>
-            {lang === 'zh'
-              ? '订阅推送通知失败，请检查浏览器设置后重试。'
-              : 'Failed to register push subscription. Check your browser settings and try again.'}
-          </p>
-        )}
-      </Accordion>
+          {notifBlocked && (
+            <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <p className="jsave-error" style={{ margin: 0 }}>{t('reminderPermissionDenied')}</p>
+              <button
+                className="jsave-btn-ghost"
+                style={{ alignSelf: 'flex-start', padding: '4px 12px', fontSize: 13 }}
+                onClick={() => window.location.reload()}
+              >
+                {lang === 'zh' ? '刷新页面重试' : 'Reload page to retry'}
+              </button>
+            </div>
+          )}
+          {notifSubFailed && (
+            <p className="jsave-error" style={{ marginTop: 8 }}>
+              {lang === 'zh'
+                ? '订阅推送通知失败，请检查浏览器设置后重试。'
+                : 'Failed to register push subscription. Check your browser settings and try again.'}
+            </p>
+          )}
+        </Accordion>
+      )}
 
       {/* Auto Salary */}
       <Accordion title={t('salarySection')}>
