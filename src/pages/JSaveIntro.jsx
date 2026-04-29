@@ -117,6 +117,12 @@ export default function JSaveIntro() {
     }
   }
 
+  useEffect(() => {
+    if (pwaInstallRef.current) {
+      pwaInstallRef.current.setAttribute('description', zh ? 'J样省钱，J样享受！' : 'J-Save, J-Joy — personal finance PWA')
+    }
+  }, [zh])
+
   const CHANGELOG_PREVIEW = 5
   const visibleNotes = showAllChangelog ? RELEASE_NOTES : RELEASE_NOTES.slice(0, CHANGELOG_PREVIEW)
 
@@ -395,40 +401,26 @@ export default function JSaveIntro() {
       </footer>
 
       {/* ── Install guide modal (Android / Desktop) ── */}
-      {installGuide && (
-        <div className="ji-overlay" onClick={() => setInstallGuide(null)}>
-          <div className="ji-install-modal" onClick={e => e.stopPropagation()}>
-            <button className="ji-install-modal-close" onClick={() => setInstallGuide(null)}>✕</button>
-            {installGuide === 'android' ? (
-              <>
-                <div className="ji-install-modal-icon">🤖</div>
-                <h3 className="ji-install-modal-title">{zh ? 'Android 安装' : 'Install on Android'}</h3>
-                <ol className="ji-install-modal-steps">
-                  {(zh
-                    ? ['点击右上角 ⋮ 菜单', '选择「添加到主屏幕」或「安装应用」', '点击「添加」确认']
-                    : ['Tap the ⋮ menu (top-right of Chrome)', 'Tap "Add to Home screen" or "Install app"', 'Tap "Add" to confirm']
-                  ).map((s, i) => <li key={i}>{s}</li>)}
-                </ol>
-              </>
-            ) : (
-              <>
-                <div className="ji-install-modal-icon">💻</div>
-                <h3 className="ji-install-modal-title">{zh ? '桌面端安装' : 'Install on Desktop'}</h3>
-                <ol className="ji-install-modal-steps">
-                  {(zh
-                    ? ['点击地址栏右侧的安装图标（⊕）', '点击「安装」即可']
-                    : ['Click the install icon (⊕) in the address bar', 'Click "Install"']
-                  ).map((s, i) => <li key={i}>{s}</li>)}
-                </ol>
-              </>
-            )}
-            <p className="ji-install-modal-hint">
-              {zh ? '📌 如未看到安装图标，请先访问应用页面再尝试。' : '📌 No install icon? Visit the app page first.'}
-              {' '}<Link to="/jsave" style={{ color: 'var(--ji-primary)' }}>jeeprod.com/jsave</Link>
-            </p>
+      {installGuide && (() => {
+        const langKey = zh ? 'zh' : 'en'
+        const step = installGuide === 'android' ? PWA_STEPS[langKey][0] : PWA_STEPS[langKey][2]
+        return (
+          <div className="ji-overlay" onClick={() => setInstallGuide(null)}>
+            <div className="ji-install-modal" onClick={e => e.stopPropagation()}>
+              <button className="ji-install-modal-close" onClick={() => setInstallGuide(null)}>✕</button>
+              <div className="ji-install-modal-icon">{step.icon}</div>
+              <h3 className="ji-install-modal-title">{step.platform}</h3>
+              <ol className="ji-install-modal-steps">
+                {step.steps.map((s, i) => <li key={i}>{s}</li>)}
+              </ol>
+              <p className="ji-install-modal-hint">
+                {zh ? '📌 如未看到安装图标，请先访问应用页面再尝试。' : '📌 No install icon? Visit the app page first.'}
+                {' '}<Link to="/jsave" style={{ color: 'var(--ji-primary)' }}>jeeprod.com/jsave</Link>
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
     </div>
   )
 }

@@ -1,8 +1,21 @@
 export const RELEASE_NOTES = [
   {
+    version: '2.7.1',
+    date: '2026-04-29',
+    isLatest: true,
+    items: [
+      'Fixed: deleted transactions, items, and accounts now disappear immediately and stay gone after refresh',
+      'Fixed: install guide on /jsave-intro now shows the correct language after switching EN/ZH',
+    ],
+    itemsZh: [
+      '修复：删除交易、物品或账户后，刷新页面不再重新出现',
+      '修复：/jsave-intro 安装指南切换中英文后，弹窗内容正确更新',
+    ],
+  },
+  {
     version: '2.7.0',
     date: '2026-04-28',
-    isLatest: true,
+    isLatest: false,
     items: [
       'Expense transactions can now be marked as monthly recurring — note auto-prefixed with current month (e.g. "Apr - Netflix")',
       'Recurring expenses are auto-added every month when you open the app',
