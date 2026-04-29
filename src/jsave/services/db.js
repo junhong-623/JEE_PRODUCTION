@@ -53,7 +53,7 @@ export async function dbClear(store) {
 
 export async function enqueueSync(entry) {
   const db = await getDB()
-  return db.put('syncQueue', entry)
+  return db.add('syncQueue', entry)
 }
 
 export async function getSyncQueue() {

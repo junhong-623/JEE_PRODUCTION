@@ -1,4 +1,4 @@
-import { dbPut, enqueueSync, getSyncQueue, dequeueSync } from './db'
+import { dbPut, dbDelete, enqueueSync, getSyncQueue, dequeueSync } from './db'
 import {
   fsWriteAccount, fsWriteTransaction, fsWriteItem, fsWriteSettings,
   fsDeleteAccount, fsDeleteTransaction, fsDeleteItem,
@@ -31,6 +31,7 @@ export async function syncWrite(uid, store, data, online) {
 }
 
 export async function syncDelete(uid, store, id, online) {
+  await dbDelete(store, id)
   if (online) {
     try {
       await DELETERS[store]?.(uid, id)

@@ -1,8 +1,61 @@
 export const RELEASE_NOTES = [
   {
+    version: '2.7.3',
+    date: '2026-04-29',
+    isLatest: true,
+    items: [
+      'Fixed: iOS PWA white screen on launch — manifest scope corrected from /jsave/ to /jsave',
+      'Fixed: dark background applied immediately on iOS before React mounts, preventing white flash',
+      'Fixed: reminder toggle now reflects per-device push state instead of account-wide setting',
+      'Fixed: clearing cache overlay now covers the full screen and locks background scroll',
+      'Fixed: toggling reminders no longer wipes another device\'s push subscription',
+      'Reminder section hidden on devices/environments where push is not supported',
+      'Push subscription ID shown after enabling reminders',
+    ],
+    itemsZh: [
+      '修复：iOS PWA 启动白屏 — manifest scope 从 /jsave/ 修正为 /jsave',
+      '修复：React 挂载前立即设置深色背景，消除 iOS 启动时的白色闪烁',
+      '修复：提醒开关现在基于本设备的推送状态，不再跨设备同步',
+      '修复：清除缓存遮罩层移至最外层，背景无法滚动',
+      '修复：关闭提醒时不再误删其他设备的推送订阅',
+      '不支持推送通知的设备/环境中自动隐藏提醒设置',
+      '开启��醒后显示推送订阅 ID',
+    ],
+  },
+  {
+    version: '2.7.2',
+    date: '2026-04-29',
+    isLatest: false,
+    items: [
+      'Fixed: reminder toggle now reflects per-device push state instead of account-wide setting',
+      'Fixed: clearing cache overlay now covers the full screen and locks background scroll',
+      'Fixed: toggling reminders no longer wipes another device\'s push subscription',
+      'Reminder section hidden on devices/environments where push is not supported',
+    ],
+    itemsZh: [
+      '修复：提醒开关现在基于本设备的推送状态，不再跨设备同步',
+      '修复：清除缓存遮罩层移至最外层，背景无法滚动',
+      '修复：关闭提醒时不再误删其他设备的推送订阅',
+      '不支持推送通知的设备/环境中自动隐藏提醒设置',
+    ],
+  },
+  {
+    version: '2.7.1',
+    date: '2026-04-29',
+    isLatest: false,
+    items: [
+      'Fixed: deleted transactions, items, and accounts now disappear immediately and stay gone after refresh',
+      'Fixed: install guide on /jsave-intro now shows the correct language after switching EN/ZH',
+    ],
+    itemsZh: [
+      '修复：删除交易、物品或账户后，刷新页面不再重新出现',
+      '修复：/jsave-intro 安装指南切换中英文后，弹窗内容正确更新',
+    ],
+  },
+  {
     version: '2.7.0',
     date: '2026-04-28',
-    isLatest: true,
+    isLatest: false,
     items: [
       'Expense transactions can now be marked as monthly recurring — note auto-prefixed with current month (e.g. "Apr - Netflix")',
       'Recurring expenses are auto-added every month when you open the app',
