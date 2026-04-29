@@ -459,7 +459,8 @@ export default function SettingsPage({ onOpenAdmin }) {
     async function checkDevicePush() {
       if (!('PushManager' in window) || Notification.permission !== 'granted') return
       try {
-        const reg = await navigator.serviceWorker.ready
+        const reg = await navigator.serviceWorker.getRegistration('/jsave/')
+        if (!reg) return
         const sub = await reg.pushManager.getSubscription()
         if (sub) setDailyReminder(true)
       } catch {}
