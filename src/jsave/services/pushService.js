@@ -15,10 +15,8 @@ export const isPushSupported = !!(VAPID_KEY && 'PushManager' in window && 'servi
 export async function subscribePush(uid, language) {
   if (!isPushSupported) return false
   try {
-    const reg = await Promise.race([
-      navigator.serviceWorker.ready,
-      new Promise((_, rej) => setTimeout(() => rej(new Error('SW timeout')), 6000)),
-    ])
+    const reg = await navigator.serviceWorker.getRegistration('/jsave/')
+    if (!reg) throw new Error('SW not registered')
     let sub = await reg.pushManager.getSubscription()
     if (!sub) {
       sub = await reg.pushManager.subscribe({
@@ -32,16 +30,17 @@ export async function subscribePush(uid, language) {
       language: language || 'en',
       updatedAt: serverTimestamp(),
     })
-    return true
+    return sub.endpoint
   } catch (e) {
     console.warn('JSave push subscribe failed:', e.name, e.message, e)
-    return false
+    return null
   }
 }
 
 export async function unsubscribePush(uid) {
   try {
-    const reg = await navigator.serviceWorker.ready
+    const reg = await navigator.serviceWorker.getRegistration('/jsave/')
+    if (!reg) return
     const sub = await reg.pushManager.getSubscription()
     if (sub) {
       // Only delete the Firestore doc if it stores THIS device's endpoint,
