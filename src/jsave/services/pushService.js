@@ -30,10 +30,10 @@ export async function subscribePush(uid, language) {
       language: language || 'en',
       updatedAt: serverTimestamp(),
     })
-    return true
+    return sub.endpoint
   } catch (e) {
     console.warn('JSave push subscribe failed:', e.name, e.message, e)
-    return false
+    return null
   }
 }
 

@@ -453,6 +453,7 @@ export default function SettingsPage({ onOpenAdmin }) {
   const [salaryAccountId,setSalaryAccountId]= useState(settings?.salaryAccountId ?? '')
   const [salaryDay,      setSalaryDay]      = useState(settings?.salaryDay?.toString() ?? '1')
   const [dailyReminder,  setDailyReminder]  = useState(false)
+  const [subId,          setSubId]          = useState(null)
 
   // Init toggle from THIS device's actual push subscription state, not account-level settings
   useEffect(() => {
@@ -462,7 +463,7 @@ export default function SettingsPage({ onOpenAdmin }) {
         const reg = await navigator.serviceWorker.getRegistration('/jsave/')
         if (!reg) return
         const sub = await reg.pushManager.getSubscription()
-        if (sub) setDailyReminder(true)
+        if (sub) { setDailyReminder(true); setSubId(sub.endpoint.split('/').pop().slice(-8)) }
       } catch {}
     }
     checkDevicePush()
@@ -493,10 +494,12 @@ export default function SettingsPage({ onOpenAdmin }) {
         ? await Notification.requestPermission()
         : Notification.permission
       if (perm !== 'granted') { setNotifBlocked(true); setDailyReminder(false); return }
-      const ok = await subscribePush(user.uid, lang)
-      if (!ok) { setNotifSubFailed(true); setDailyReminder(false); return }
+      const endpoint = await subscribePush(user.uid, lang)
+      if (!endpoint) { setNotifSubFailed(true); setDailyReminder(false); return }
+      setSubId(endpoint.split('/').pop().slice(-8))
     } else {
       await unsubscribePush(user.uid)
+      setSubId(null)
     }
   }
 
@@ -552,6 +555,11 @@ export default function SettingsPage({ onOpenAdmin }) {
               <span className="jsave-toggle-track" />
             </label>
           </div>
+          {dailyReminder && subId && (
+            <p className="jsave-section-sub" style={{ marginTop: 6, fontFamily: 'monospace', fontSize: 11, opacity: 0.6 }}>
+              {lang === 'zh' ? '订阅 ID' : 'Sub ID'}: …{subId}
+            </p>
+          )}
           {notifBlocked && (
             <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
               <p className="jsave-error" style={{ margin: 0 }}>{t('reminderPermissionDenied')}</p>
