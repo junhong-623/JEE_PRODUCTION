@@ -113,6 +113,7 @@ function ClearCacheButton({ t, online }) {
     setPhase('checking')
     try {
       const res = await fetch(`${JSAVE_BASE}/version.json?_=${Date.now()}`, { cache: 'no-store' })
+      if (!res.ok) { startCountdown(); return }
       const { version: remote } = await res.json()
       if (remote === JSAVE_VERSION) { setPhase('uptodate'); return }
     } catch {}
