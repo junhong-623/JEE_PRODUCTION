@@ -35,8 +35,8 @@ export const manualPortfolioEntries = [
     descriptionZh: '一个给多人旅行使用的协作工具，整合分账、相册、行程和旅途聊天。',
     visible: true,
     order: -120,
-    iconUrl: '/matetrip/icons/icon-192.png',
-    internalPath: '/matetrip',
+    url: 'https://matetrip.jeeprod.com',
+    iconUrl: 'https://matetrip.jeeprod.com/icons/icon-192.png',
   },
   {
     id: 'portfolio__calculator',

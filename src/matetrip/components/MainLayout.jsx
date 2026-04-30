@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { MATETRIP_BASE } from "../utils/basePath";
 import { useTrip } from "../contexts/TripContext";
 import { useLang, LANGUAGES } from "../contexts/LangContext";
 import { useMember, MEMBER_LEVELS } from "../contexts/MemberContext";
@@ -76,7 +77,7 @@ export default function MainLayout() {
             onClick={() => setTab("trips")}
             style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
           >
-            <img src="/matetrip/icons/icon-192.png" alt="" className="app-brand-icon-img" />
+            <img src={`${MATETRIP_BASE}/icons/icon-192.png`} alt="" className="app-brand-icon-img" />
             <div className="app-brand-text">
               <span className="app-brand-name">{tr.appName}</span>
               <span className="app-brand-slogan">{tr.appSubtitle}</span>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { collection, doc, getDocs, getDoc } from "firebase/firestore";
+import { MATETRIP_BASE } from "../../utils/basePath";
 import { db } from "../../services/firebase";
 import { useTrip } from "../../contexts/TripContext";
 import { useAuth } from "../../contexts/AuthContext";
@@ -205,7 +206,7 @@ export default function TripsPage({ toast, onNavigate }) {
         </div>
       ) : trips.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-state-icon"><img src="/matetrip/icons/icon-192.png" alt="MateTrip" style={{width:64,height:64,borderRadius:16,opacity:0.85}} /></div>
+          <div className="empty-state-icon"><img src={`${MATETRIP_BASE}/icons/icon-192.png`} alt="MateTrip" style={{width:64,height:64,borderRadius:16,opacity:0.85}} /></div>
           <div className="empty-state-title">{tr.noTripsYet}</div>
           <div className="empty-state-text">{tr.createFirstTrip}</div>
           <button className="btn btn-primary" style={{marginTop:16}} onClick={() => setShowModal(true)}>

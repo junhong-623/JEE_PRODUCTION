@@ -1,8 +1,10 @@
 // pushService.js — Web Push subscription management
 import { db } from "./firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { MATETRIP_BASE } from "../utils/basePath";
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_MATETRIP_VAPID_PUBLIC_KEY || "";
+const SW_SCOPE = MATETRIP_BASE ? `${MATETRIP_BASE}/` : "/";
 
 function urlBase64ToUint8Array(base64String) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -14,7 +16,8 @@ function urlBase64ToUint8Array(base64String) {
 export async function registerSW() {
   if (!("serviceWorker" in navigator)) return null;
   try {
-    const reg = await navigator.serviceWorker.register("/matetrip/sw.js");
+    const swPath = `${MATETRIP_BASE}/sw.js`;
+    const reg = await navigator.serviceWorker.register(swPath, { scope: SW_SCOPE });
     return reg;
   } catch (e) {
     console.warn("SW register failed:", e);
@@ -25,7 +28,8 @@ export async function registerSW() {
 export async function subscribePush(tripId, userId) {
   if (!VAPID_PUBLIC_KEY) { console.warn("No VAPID key"); return null; }
   try {
-    const reg = await navigator.serviceWorker.ready;
+    const reg = await navigator.serviceWorker.getRegistration(SW_SCOPE);
+    if (!reg) { console.warn("SW not registered"); return null; }
     let sub = await reg.pushManager.getSubscription();
     if (!sub) {
       sub = await reg.pushManager.subscribe({
@@ -33,14 +37,12 @@ export async function subscribePush(tripId, userId) {
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
       });
     }
-    // Save directly to Firestore from frontend — no backend needed
     await setDoc(doc(db, "pushSubscriptions", `${tripId}_${userId}`), {
       tripId,
       userId,
       subscription: JSON.parse(JSON.stringify(sub)),
       updatedAt: serverTimestamp(),
     });
-    console.log("Push subscription saved to Firestore");
     return sub;
   } catch (e) {
     console.warn("Push subscribe failed:", e);
@@ -50,7 +52,8 @@ export async function subscribePush(tripId, userId) {
 
 export async function unsubscribePush(tripId, userId) {
   try {
-    const reg = await navigator.serviceWorker.ready;
+    const reg = await navigator.serviceWorker.getRegistration(SW_SCOPE);
+    if (!reg) return;
     const sub = await reg.pushManager.getSubscription();
     if (sub) await sub.unsubscribe();
   } catch {}

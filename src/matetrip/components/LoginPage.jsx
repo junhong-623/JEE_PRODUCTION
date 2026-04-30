@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import { MATETRIP_BASE } from "../utils/basePath";
 import { useLang, LANGUAGES } from "../contexts/LangContext";
 import "./LoginPage.css";
 
@@ -108,7 +109,7 @@ export default function LoginPage() {
         </div>
 
         <div className="login-header">
-          <img src="/matetrip/icons/icon-192.png" alt="MateTrip" className="login-logo" />
+          <img src={`${MATETRIP_BASE}/icons/icon-192.png`} alt="MateTrip" className="login-logo" />
           <h1 className="login-title">
             MateTrip <span className="login-title-zh">伴旅</span>
           </h1>

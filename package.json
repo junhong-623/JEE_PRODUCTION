@@ -9,6 +9,9 @@
     "build": "vite build && node scripts/gen-app-html.mjs",
     "build:prod": "vite build && node scripts/prerender.mjs && node scripts/gen-app-html.mjs",
     "build:jsave": "node scripts/prepare-jsave.mjs && vite build --config vite.jsave.config.js",
+    "dev:matetrip": "vite --config vite.matetrip.config.js",
+    "build:matetrip": "node scripts/prepare-matetrip.mjs && vite build --config vite.matetrip.config.js",
+    "preview:matetrip": "vite preview --config vite.matetrip.config.js --outDir dist-matetrip",
     "preview": "vite preview",
     "preview:jsave": "vite preview --config vite.jsave.config.js --outDir dist-jsave"
   },
