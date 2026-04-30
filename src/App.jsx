@@ -167,7 +167,6 @@ export default function App() {
         <Route path="/unserialize" element={<UnserializeTool />} />
         <Route path="/portfolio/:slug" element={<Redirect type="portfolio" />} />
         <Route path="/bookmarks/:slug" element={<Redirect type="bookmark" />} />
-        <Route path="/matetrip" element={<ExternalRedirect to="https://matetrip.jeeprod.com" />} />
         <Route path="/matetrip-admin/*" element={admin ? <MatetripAdminPage /> : <Navigate to="/" replace />} />
         <Route path="/h-agency" element={<HAgencyPage />} />
         <Route path="/h-agency/admin" element={admin ? <HAgencyAdminPage /> : <Navigate to="/" replace />} />
