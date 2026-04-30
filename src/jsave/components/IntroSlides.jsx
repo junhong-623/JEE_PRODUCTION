@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { useLang } from '../contexts/LangContext'
+import { JSAVE_BASE } from '../utils/basePath'
 
 const STORAGE_KEY = 'jsave-intro-seen'
 
@@ -98,7 +99,7 @@ export default function IntroSlides({ onDone }) {
         {slide.isLogo ? (
           <>
             <div className="jsave-intro-logo-wrap">
-              <img src="/jsave/icons/icon-192.png" alt="JSave" className="jsave-intro-logo" />
+              <img src={`${JSAVE_BASE}/icons/icon-192.png`} alt="JSave" className="jsave-intro-logo" />
             </div>
             <div className="jsave-intro-brand">
               <span className="jsave-intro-brand-en">JSave</span>

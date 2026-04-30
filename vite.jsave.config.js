@@ -3,7 +3,18 @@ import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      name: 'jsave-root-rewrite',
+      configureServer(server) {
+        server.middlewares.use((req, _res, next) => {
+          if (req.url === '/' || req.url === '/index.html') req.url = '/jsave.html'
+          next()
+        })
+      },
+    },
+  ],
   publicDir: 'public-jsave',
   build: {
     outDir: 'dist-jsave',
