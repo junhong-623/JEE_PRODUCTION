@@ -39,5 +39,8 @@ jobs:
       - name: Build JSave standalone
         run: npm run build:jsave
 
+      - name: Build MateTrip standalone
+        run: npm run build:matetrip
+
       - name: Deploy to Firebase Hosting
         run: npx --yes firebase-tools@latest deploy --only hosting --project jee-production --token "${{ secrets.FIREBASE_TOKEN }}"

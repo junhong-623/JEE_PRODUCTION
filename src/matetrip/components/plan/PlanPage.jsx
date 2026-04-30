@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useTrip } from "../../contexts/TripContext";
+import { MATETRIP_BASE } from "../../utils/basePath";
 import { useAuth } from "../../contexts/AuthContext";
 import { useLang } from "../../contexts/LangContext";
 import { useMember } from "../../contexts/MemberContext";
@@ -66,7 +67,7 @@ async function requestNotifPermission() {
   return result === "granted";
 }
 
-function sendNotif(title, body, icon = "/matetrip/icons/icon-192.png") {
+function sendNotif(title, body, icon = `${MATETRIP_BASE}/icons/icon-192.png`) {
   if (Notification.permission !== "granted") return;
   try { new Notification(title, { body, icon, badge: icon }); } catch {}
 }
@@ -392,7 +393,7 @@ export default function PlanPage({ toast, chatLocked, readOnly }) {
   if (!activeTrip) return (
     <div className="empty-state">
       <div className="empty-state-icon">
-        <img src="/matetrip/icons/icon-192.png" alt="MateTrip"
+        <img src={`${MATETRIP_BASE}/icons/icon-192.png`} alt="MateTrip"
           style={{width:64,height:64,borderRadius:16,opacity:0.85}} />
       </div>
       <div className="empty-state-title">{tr.noTripSelected}</div>

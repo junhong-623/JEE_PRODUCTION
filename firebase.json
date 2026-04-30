@@ -25,6 +25,12 @@
       ]
     },
     {
+      "target": "matetrip",
+      "public": "dist-matetrip",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "rewrites": [{ "source": "**", "destination": "/matetrip.html" }]
+    },
+    {
       "target": "jsave",
       "public": "dist-jsave",
       "ignore": [

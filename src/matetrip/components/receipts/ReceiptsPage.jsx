@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useTrip } from "../../contexts/TripContext";
 import { useLang } from "../../contexts/LangContext";
+import { MATETRIP_BASE } from "../../utils/basePath";
 import { useMember } from "../../contexts/MemberContext";
 import { subscribeReceipts, subscribePeople, deleteReceipt } from "../../services/firestore";
 import { formatAmount } from "../../utils/utils";
@@ -49,7 +50,7 @@ export default function ReceiptsPage({ toast, readOnly }) {
 
   if (!activeTrip) return (
     <div className="empty-state">
-      <div className="empty-state-icon"><img src="/matetrip/icons/icon-192.png" alt="MateTrip" style={{width:64,height:64,borderRadius:16,opacity:0.85}} /></div>
+      <div className="empty-state-icon"><img src={`${MATETRIP_BASE}/icons/icon-192.png`} alt="MateTrip" style={{width:64,height:64,borderRadius:16,opacity:0.85}} /></div>
       <div className="empty-state-title">{tr.noTripSelected}</div>
     </div>
   );

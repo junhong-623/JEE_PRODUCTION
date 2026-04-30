@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
+import { MATETRIP_BASE } from "../../utils/basePath";
 import { useTrip } from "../../contexts/TripContext";
 import { useLang, LANGUAGES } from "../../contexts/LangContext";
 import { useMember, MEMBER_LEVELS, UPGRADE_PLANS } from "../../contexts/MemberContext";
@@ -310,7 +311,7 @@ export default function SettingsPage({ toast }) {
       <div className="card">
         <div className="section-title" style={{marginBottom:12}}>{tr.about}</div>
         <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:8,marginBottom:14}}>
-          <img src="/matetrip/icons/icon-192.png" alt="MateTrip"
+          <img src={`${MATETRIP_BASE}/icons/icon-192.png`} alt="MateTrip"
             style={{width:64,height:64,borderRadius:16,boxShadow:"0 4px 16px rgba(0,0,0,0.1)"}} />
           <div style={{textAlign:"center"}}>
             <div style={{fontFamily:"var(--font-display)",fontSize:18,fontWeight:800,color:"var(--ink)"}}>

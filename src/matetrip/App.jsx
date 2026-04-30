@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useViewport } from "./hooks/useViewport";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { MATETRIP_BASE } from "./utils/basePath";
 import { TripProvider } from "./contexts/TripContext";
 import { LangProvider } from "./contexts/LangContext";
 import { MemberProvider } from "./contexts/MemberContext";
@@ -18,7 +19,7 @@ function AppContent() {
     return (
       <div className="loading-screen">
         <div className="splash-logo-wrap">
-          <img src="/matetrip/icons/icon-192.png" alt="MateTrip" className="splash-logo" />
+          <img src={`${MATETRIP_BASE}/icons/icon-192.png`} alt="MateTrip" className="splash-logo" />
         </div>
         <div className="splash-name">
           <span className="splash-name-en">MateTrip</span>
