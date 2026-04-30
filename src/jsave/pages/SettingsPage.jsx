@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { signOut } from 'firebase/auth'
 import { auth } from '../../lib/firebase'
 import { useLang } from '../contexts/LangContext'
+import { JSAVE_BASE } from '../utils/basePath'
 import { useJSave } from '../hooks/useJSave'
 import { useAuth } from '../../contexts/AuthContext'
 import GlassCard from '../components/GlassCard'
@@ -111,7 +112,7 @@ function ClearCacheButton({ t, online }) {
   async function handleClick() {
     setPhase('checking')
     try {
-      const res = await fetch(`/jsave/version.json?_=${Date.now()}`, { cache: 'no-store' })
+      const res = await fetch(`${JSAVE_BASE}/version.json?_=${Date.now()}`, { cache: 'no-store' })
       const { version: remote } = await res.json()
       if (remote === JSAVE_VERSION) { setPhase('uptodate'); return }
     } catch {}
