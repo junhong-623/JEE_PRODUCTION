@@ -205,7 +205,7 @@ function BroadcastCard({ zh, users }) {
                     <div>
                       <span style={{ fontFamily: 'monospace', fontSize: 12 }}>{u.uid.slice(0, 14)}…</span>
                       <span className="jsave-section-sub" style={{ fontSize: 11, marginLeft: 6 }}>
-                        {u.language === 'zh' ? '中文' : 'EN'} · {u.checkedIn ? '✅' : '⬜'}
+                        {u.language === 'zh' ? '中文' : 'EN'} · {u.checkedIn ? '✅' : '⬜'} · 📱×{u.devices}
                       </span>
                     </div>
                   </div>
@@ -247,8 +247,17 @@ export default function AdminPage({ zh, onClose }) {
     async function loadUsers() {
       try {
         const snap = await getDocs(collection(db, 'jsavePushSubs'))
-        const docs = snap.docs.map(d => ({ uid: d.id, ...d.data() }))
-        const withActivity = await Promise.all(docs.map(async u => {
+        // Group device docs by uid
+        const byUid = {}
+        for (const d of snap.docs) {
+          const data = d.data()
+          const uid = data.uid || d.id // fallback for old single-device docs
+          if (!byUid[uid]) byUid[uid] = { uid, language: data.language, devices: 0 }
+          byUid[uid].devices++
+          byUid[uid].language = data.language // last device's language
+        }
+        const users = Object.values(byUid)
+        const withActivity = await Promise.all(users.map(async u => {
           try {
             const txSnap = await getDocs(
               query(collection(db, 'users', u.uid, 'jsave_transactions'), where('date', '==', today))

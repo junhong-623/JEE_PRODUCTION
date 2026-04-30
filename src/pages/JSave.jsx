@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Helmet } from 'react-helmet-async'
 import JSaveApp from '../jsave/App'
+import { JSAVE_BASE } from '../jsave/utils/basePath'
 
 export default function JSavePage() {
   useEffect(() => {
@@ -8,7 +9,9 @@ export default function JSavePage() {
     document.body.classList.add('jsave-body')
 
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/jsave/sw.js', { scope: '/jsave/' }).catch(() => {})
+      const swPath  = `${JSAVE_BASE}/sw.js`
+      const scope   = JSAVE_BASE ? `${JSAVE_BASE}/` : '/'
+      navigator.serviceWorker.register(swPath, { scope }).catch(() => {})
     }
 
     return () => {

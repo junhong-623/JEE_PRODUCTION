@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '../../lib/firebase'
 import { useLang } from '../contexts/LangContext'
+import { JSAVE_BASE } from '../utils/basePath'
 
 export default function LoginPage() {
   const { t, lang, setLanguage } = useLang()
@@ -50,7 +51,7 @@ export default function LoginPage() {
       <div className="jsave-login-bg" />
 
       <div className="jsave-login-card glass-card">
-        <img src="/jsave/icons/icon-192.png" alt="JSave" className="jsave-login-icon" />
+        <img src={`${JSAVE_BASE}/icons/icon-192.png`} alt="JSave" className="jsave-login-icon" />
         <h1 className="jsave-login-title">{t('loginTitle')}</h1>
         <p className="jsave-login-slogan">{t('loginSubtitle')}</p>
 
