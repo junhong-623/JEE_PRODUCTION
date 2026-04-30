@@ -15,11 +15,15 @@ const LuckyCalc        = lazy(() => import('./pages/LuckyCalc'))
 const MallPage         = lazy(() => import('./pages/Mall'))
 const MallAdminPage    = lazy(() => import('./pages/MallAdmin'))
 const FlowchartPage    = lazy(() => import('./pages/Flowchart'))
-const JSavePage        = lazy(() => import('./pages/JSave'))
 const JSaveIntroPage   = lazy(() => import('./pages/JSaveIntro'))
 
 function NotFound() {
   useEffect(() => { window.location.replace('/404.html') }, [])
+  return null
+}
+
+function ExternalRedirect({ to }) {
+  useEffect(() => { window.location.replace(to) }, [to])
   return null
 }
 
@@ -171,7 +175,7 @@ export default function App() {
         <Route path="/mall/*" element={<MallPage />} />
         <Route path="/flowchart/*" element={<FlowchartPage />} />
         <Route path="/jsave-intro" element={<JSaveIntroPage />} />
-        <Route path="/jsave/*" element={<JSavePage />} />
+        <Route path="/jsave/*" element={<ExternalRedirect to="https://jsave.jeeprod.com" />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
