@@ -1,7 +1,9 @@
 import { db } from '../../lib/firebase'
-import { doc, getDoc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, collection, query, where, getDocs, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
+import { JSAVE_BASE } from '../utils/basePath'
 
 const VAPID_KEY = import.meta.env.VITE_MATETRIP_VAPID_PUBLIC_KEY || ''
+const SW_SCOPE  = JSAVE_BASE ? `${JSAVE_BASE}/` : '/'
 
 function urlBase64ToUint8Array(b64) {
   const padding = '='.repeat((4 - (b64.length % 4)) % 4)
@@ -10,12 +12,17 @@ function urlBase64ToUint8Array(b64) {
   return Uint8Array.from([...raw].map(c => c.charCodeAt(0)))
 }
 
+// Stable 12-char device ID derived from the subscription endpoint
+function deviceId(endpoint) {
+  return endpoint.split('/').pop().slice(0, 12)
+}
+
 export const isPushSupported = !!(VAPID_KEY && 'PushManager' in window && 'serviceWorker' in navigator)
 
 export async function subscribePush(uid, language) {
-  if (!isPushSupported) return false
+  if (!isPushSupported) return null
   try {
-    const reg = await navigator.serviceWorker.getRegistration('/jsave/')
+    const reg = await navigator.serviceWorker.getRegistration(SW_SCOPE)
     if (!reg) throw new Error('SW not registered')
     let sub = await reg.pushManager.getSubscription()
     if (!sub) {
@@ -24,7 +31,9 @@ export async function subscribePush(uid, language) {
         applicationServerKey: urlBase64ToUint8Array(VAPID_KEY),
       })
     }
-    await setDoc(doc(db, 'jsavePushSubs', uid), {
+    const did = deviceId(sub.endpoint)
+    await setDoc(doc(db, 'jsavePushSubs', `${uid}_${did}`), {
+      uid,
       subscription: JSON.parse(JSON.stringify(sub)),
       dailyReminder: true,
       language: language || 'en',
@@ -39,18 +48,12 @@ export async function subscribePush(uid, language) {
 
 export async function unsubscribePush(uid) {
   try {
-    const reg = await navigator.serviceWorker.getRegistration('/jsave/')
+    const reg = await navigator.serviceWorker.getRegistration(SW_SCOPE)
     if (!reg) return
     const sub = await reg.pushManager.getSubscription()
     if (sub) {
-      // Only delete the Firestore doc if it stores THIS device's endpoint,
-      // so another device's active subscription is not wiped.
-      try {
-        const stored = await getDoc(doc(db, 'jsavePushSubs', uid))
-        if (stored.exists() && stored.data()?.subscription?.endpoint === sub.endpoint) {
-          await deleteDoc(doc(db, 'jsavePushSubs', uid))
-        }
-      } catch {}
+      const did = deviceId(sub.endpoint)
+      try { await deleteDoc(doc(db, 'jsavePushSubs', `${uid}_${did}`)) } catch {}
       await sub.unsubscribe()
     }
   } catch {}
@@ -58,6 +61,9 @@ export async function unsubscribePush(uid) {
 
 export async function updatePushLanguage(uid, language) {
   try {
-    await setDoc(doc(db, 'jsavePushSubs', uid), { language, updatedAt: serverTimestamp() }, { merge: true })
+    const snap = await getDocs(query(collection(db, 'jsavePushSubs'), where('uid', '==', uid)))
+    await Promise.all(snap.docs.map(d =>
+      setDoc(d.ref, { language, updatedAt: serverTimestamp() }, { merge: true })
+    ))
   } catch {}
 }

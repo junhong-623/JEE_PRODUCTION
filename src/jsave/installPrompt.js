@@ -1,3 +1,5 @@
+import { JSAVE_BASE } from './utils/basePath'
+
 export const installState = { deferredPrompt: null, pwaEl: null }
 
 export const isStandalone = () =>
@@ -14,9 +16,9 @@ export async function setupPwaInstall() {
     await customElements.whenDefined('pwa-install')
   }
   const el = document.createElement('pwa-install')
-  el.setAttribute('manifest-url', '/jsave/manifest.json')
+  el.setAttribute('manifest-url', `${JSAVE_BASE}/manifest.json`)
   el.setAttribute('name', 'JSave')
-  el.setAttribute('icon', '/jsave/icons/icon-192.png')
+  el.setAttribute('icon', `${JSAVE_BASE}/icons/icon-192.png`)
   el.setAttribute('manual-apple', '')
   document.body.appendChild(el)
   installState.pwaEl = el

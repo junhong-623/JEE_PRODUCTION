@@ -1,8 +1,21 @@
 export const RELEASE_NOTES = [
   {
+    version: '2.7.4',
+    date: '2026-04-30',
+    isLatest: true,
+    items: [
+      'Multi-device push: each device now has its own subscription — reminders reach all your devices',
+      'Fixed: admin broadcast now correctly targets selected users across all their devices',
+    ],
+    itemsZh: [
+      '多设备推送：每台设备独立订阅，提醒会发送到你的所有设备',
+      '修复：管理员广播现在可正确向所有设备发送通知',
+    ],
+  },
+  {
     version: '2.7.3',
     date: '2026-04-29',
-    isLatest: true,
+    isLatest: false,
     items: [
       'Fixed: iOS PWA white screen on launch — manifest scope corrected from /jsave/ to /jsave',
       'Fixed: dark background applied immediately on iOS before React mounts, preventing white flash',

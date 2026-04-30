@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { JSAVE_BASE } from '../utils/basePath'
 
 function msUntil(hour) {
   const now = new Date()
@@ -33,11 +34,11 @@ export function useReminders(transactions, settings) {
             const reg = await navigator.serviceWorker.ready
             reg.showNotification('JSave', {
               body,
-              icon: '/jsave/icons/icon-192.png',
+              icon: `${JSAVE_BASE}/icons/icon-192.png`,
               tag: `jsave-reminder-${hour}`,
             })
           } catch {
-            new Notification('JSave', { body, icon: '/jsave/icons/icon-192.png', tag: `jsave-reminder-${hour}` })
+            new Notification('JSave', { body, icon: `${JSAVE_BASE}/icons/icon-192.png`, tag: `jsave-reminder-${hour}` })
           }
         }
       }, ms))

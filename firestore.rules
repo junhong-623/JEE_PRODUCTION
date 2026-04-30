@@ -128,9 +128,9 @@ service cloud.firestore {
       allow read, delete: if isAdmin();
     }
 
-    // jsavePushSubs — doc ID is uid; owner manages their own; admin reads all
-    match /jsavePushSubs/{uid} {
-      allow read, write: if signedIn() && request.auth.uid == uid;
+    // jsavePushSubs — doc ID is {uid}_{deviceId}; owner manages their own devices; admin reads all
+    match /jsavePushSubs/{docId} {
+      allow read, write: if signedIn() && docId.matches(request.auth.uid + '(_.*)?');
       allow read: if isAdmin();
     }
 

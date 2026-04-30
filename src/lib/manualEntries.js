@@ -9,8 +9,8 @@ export const manualPortfolioEntries = [
     descriptionZh: '个人财务 PWA — 记录收支、储蓄和物品日均成本。支持离线使用与自动发薪。',
     visible: true,
     order: -119,
-    iconUrl: '/jsave/icons/icon-192.png',
-    internalPath: '/jsave',
+    url: 'https://jsave.jeeprod.com',
+    iconUrl: 'https://jsave.jeeprod.com/icons/icon-192.png',
   },
   {
     id: 'portfolio__mall',
