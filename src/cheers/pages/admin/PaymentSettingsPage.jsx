@@ -1,11 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore'
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 import app from '../../../lib/firebase'
 import { useLang } from '../../contexts/LangContext'
+import { uploadPaymentQr } from '../../lib/cloudinary'
 
 const db = getFirestore(app)
-const storage = getStorage(app)
 
 export default function PaymentSettingsPage() {
   const { t } = useLang()
@@ -39,9 +38,7 @@ export default function PaymentSettingsPage() {
     if (!file) return
     setUploading(true)
     try {
-      const ref = storageRef(storage, 'cheers/settings/payment-qr')
-      await uploadBytes(ref, file)
-      const url = await getDownloadURL(ref)
+      const url = await uploadPaymentQr(file)
       setForm(f => ({ ...f, paymentQrUrl: url }))
     } finally {
       setUploading(false)
