@@ -29,7 +29,7 @@ export default function Navbar() {
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 flex-shrink-0" onClick={() => setMenuOpen(false)}>
-          <span className="font-serif text-cheers-brown text-xl font-semibold tracking-tight">Cheers.co</span>
+          <img src="/logo-300.png" alt="Cheers.co" className="h-9 w-9 rounded-lg object-cover" />
           <span className="text-xs text-cheers-brown/50 hidden sm:block">🇯🇵</span>
         </Link>
 
