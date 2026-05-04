@@ -8,6 +8,14 @@ import { useAuth } from '../contexts/AuthContext'
 
 const db = getFirestore(app)
 
+function detectRegion(postcode) {
+  const n = parseInt(postcode, 10)
+  if (!postcode || postcode.length < 5 || isNaN(n)) return null
+  if (n >= 87000 && n <= 98999) return 'east'
+  if (n >= 1000  && n <= 86999) return 'west'
+  return null
+}
+
 function generateOrderId() {
   const date = new Date().toISOString().slice(0, 10).replace(/-/g, '')
   const rand = Math.floor(Math.random() * 9000) + 1000
@@ -22,7 +30,6 @@ export default function CheckoutPage() {
 
   const [settings, setSettings] = useState(null)
   const [deliveryType, setDeliveryType] = useState('shipping')
-  const [region, setRegion] = useState('west')
   const [location, setLocation] = useState('')
   const [form, setForm] = useState({ name: '', phone: '', address: '', postcode: '', city: '', state: '' })
   const [loading, setLoading] = useState(false)
@@ -47,6 +54,7 @@ export default function CheckoutPage() {
     }
   }, [user])
 
+  const region = detectRegion(form.postcode)
   const shippingFee = deliveryType === 'face-to-face' ? 0
     : region === 'east' ? (settings?.shippingFeeEast || 0)
     : (settings?.shippingFeeWest ?? settings?.shippingFee ?? 0)
@@ -124,30 +132,11 @@ export default function CheckoutPage() {
                     {lang === 'zh' ? '西马' : 'West MY'} RM {(settings.shippingFeeWest ?? settings.shippingFee ?? 0).toFixed(2)}
                     {' · '}
                     {lang === 'zh' ? '东马' : 'East MY'} RM {(settings.shippingFeeEast || 0).toFixed(2)}
+                    {' · '}{lang === 'zh' ? '根据邮编自动判断' : 'auto-detected from postcode'}
                   </p>
                 </div>
               </label>
             </div>
-
-            {/* Region selector — only shown for shipping */}
-            {deliveryType === 'shipping' && (
-              <div className="mt-3">
-                <p className="text-xs font-medium text-cheers-brown mb-2">{lang === 'zh' ? '配送地区' : 'Delivery Region'}</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { value: 'west', zh: '🇲🇾 西马', en: '🇲🇾 West Malaysia' },
-                    { value: 'east', zh: '🏝️ 东马 (沙巴/砂拉越)', en: '🏝️ East Malaysia (Sabah/Sarawak)' },
-                  ].map(opt => (
-                    <label key={opt.value} className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-colors text-sm ${region === opt.value ? 'border-cheers-brown bg-cheers-cream/30' : 'border-cheers-cream hover:border-cheers-brown/40'}`}>
-                      <input type="radio" name="region" value={opt.value}
-                        checked={region === opt.value} onChange={() => setRegion(opt.value)}
-                        className="text-cheers-brown" />
-                      <span className="text-cheers-dark-brown font-medium">{lang === 'zh' ? opt.zh : opt.en}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* Face-to-face location select */}
             {deliveryType === 'face-to-face' && (
@@ -189,7 +178,15 @@ export default function CheckoutPage() {
                 <div className="grid sm:grid-cols-3 gap-3">
                   <div>
                     <label className="label">{t('checkout.postcode')}</label>
-                    <input className="input" value={form.postcode} onChange={e => setForm(f => ({ ...f, postcode: e.target.value }))} required />
+                    <input className="input" value={form.postcode} maxLength={5}
+                      onChange={e => setForm(f => ({ ...f, postcode: e.target.value.replace(/\D/g, '') }))} required />
+                    {form.postcode.length === 5 && (
+                      <p className={`text-xs mt-1 font-medium ${region ? 'text-green-600' : 'text-red-400'}`}>
+                        {region === 'east' ? (lang === 'zh' ? '🏝️ 东马邮费' : '🏝️ East Malaysia rate')
+                          : region === 'west' ? (lang === 'zh' ? '🇲🇾 西马邮费' : '🇲🇾 West Malaysia rate')
+                          : (lang === 'zh' ? '无效邮编' : 'Invalid postcode')}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="label">{t('checkout.city')}</label>
