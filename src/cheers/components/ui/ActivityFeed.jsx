@@ -1,0 +1,111 @@
+import React, { useState, useEffect, useCallback } from 'react'
+import { getFirestore, collection, query, where, getDocs, limit } from 'firebase/firestore'
+import { Link } from 'react-router-dom'
+import app from '../../../lib/firebase'
+import { useLang } from '../../contexts/LangContext'
+
+const db = getFirestore(app)
+
+const NAMES = [
+  'Wei Ling', 'Xiao Mei', 'Ahmad', 'Nurul', 'Chong Kai', 'Sarah',
+  'Hui Fen', 'Razif', 'Jing Yi', 'Amirah', 'Kah Mun', 'Syafiq',
+  'Li Yan', 'Fatin', 'Zhi Xuan', 'Hafiz', 'Xin Ying', 'Dayana',
+  'Ming Jun', 'Siti', 'Jia Wen', 'Azrul', 'Shi Han', 'Nadia',
+]
+
+const ACTIONS = ['addedToCart', 'purchased', 'watching']
+
+function randomName() { return NAMES[Math.floor(Math.random() * NAMES.length)] }
+function randomAction() { return ACTIONS[Math.floor(Math.random() * ACTIONS.length)] }
+
+export default function ActivityFeed() {
+  const { t } = useLang()
+  const [enabled, setEnabled] = useState(false)
+  const [products, setProducts] = useState([])
+  const [current, setCurrent] = useState(null)
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const settingsSnap = await getDocs(query(collection(db, 'cheers_settings')))
+        const settings = {}
+        settingsSnap.forEach(d => Object.assign(settings, d.data()))
+        if (!settings.activityFeedEnabled) return
+        if (!cancelled) setEnabled(true)
+
+        const activeTrip = settings.activeTripId
+        if (!activeTrip) return
+
+        const snap = await getDocs(
+          query(collection(db, 'cheers_products'),
+            where('tripId', '==', activeTrip),
+            where('inStock', '==', true),
+            limit(30))
+        )
+        if (!cancelled) {
+          setProducts(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+        }
+      } catch {}
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
+
+  const showNext = useCallback(() => {
+    if (!products.length) return
+    const product = products[Math.floor(Math.random() * products.length)]
+    const action = randomAction()
+    const name = randomName()
+    const minutesAgo = Math.floor(Math.random() * 10)
+
+    setCurrent({ product, action, name, minutesAgo })
+    setVisible(true)
+
+    setTimeout(() => setVisible(false), 4000)
+  }, [products])
+
+  useEffect(() => {
+    if (!enabled || !products.length) return
+    const initial = setTimeout(showNext, 3000)
+    const interval = setInterval(showNext, 8000 + Math.random() * 4000)
+    return () => { clearTimeout(initial); clearInterval(interval) }
+  }, [enabled, products, showNext])
+
+  if (!enabled || !current || !visible) return null
+
+  const { product, action, name, minutesAgo } = current
+
+  const icon = action === 'addedToCart' ? '🛒'
+    : action === 'purchased' ? '✅' : '👀'
+
+  const watchingCount = Math.floor(Math.random() * 12) + 2
+
+  return (
+    <div
+      className={`fixed bottom-4 left-4 z-50 max-w-xs transition-all duration-500 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+    >
+      <Link to={`/products/${product.id}`} className="block">
+        <div className="activity-feed-item bg-white/95 backdrop-blur-sm border border-cheers-cream rounded-xl shadow-lg px-4 py-3 flex items-center gap-3">
+          <span className="text-2xl flex-shrink-0">{icon}</span>
+          <div className="min-w-0">
+            <p className="text-xs text-cheers-dark-brown leading-snug">
+              {action === 'watching' ? (
+                <><span className="font-semibold">{watchingCount}</span> {t('activity.watching')} <span className="font-medium text-cheers-brown">{product.name?.zh || product.name}</span></>
+              ) : (
+                <><span className="font-semibold">{name}</span> {t(`activity.${action}`)} <span className="font-medium text-cheers-brown">{product.name?.zh || product.name}</span></>
+              )}
+            </p>
+            <p className="text-[10px] text-cheers-brown/60 mt-0.5">
+              {minutesAgo === 0 ? t('activity.justNow') : `${minutesAgo} ${t('activity.minutesAgo')}`}
+            </p>
+          </div>
+          {product.imageUrl && (
+            <img src={product.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+          )}
+        </div>
+      </Link>
+    </div>
+  )
+}
