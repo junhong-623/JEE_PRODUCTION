@@ -7,10 +7,10 @@ import { useLang } from '../../contexts/LangContext'
 const db = getFirestore(app)
 
 const NAMES = [
-  'Wei Ling', 'Xiao Mei', 'Ahmad', 'Nurul', 'Chong Kai', 'Sarah',
-  'Hui Fen', 'Razif', 'Jing Yi', 'Amirah', 'Kah Mun', 'Syafiq',
-  'Li Yan', 'Fatin', 'Zhi Xuan', 'Hafiz', 'Xin Ying', 'Dayana',
-  'Ming Jun', 'Siti', 'Jia Wen', 'Azrul', 'Shi Han', 'Nadia',
+  'W********', 'X*********', 'A*****', 'N*******', 'C***', 'S********',
+  'H*****', 'R********', 'J*****', 'A**', 'K***', 'S********',
+  'L*******', 'F******', 'Z********', 'H*******', 'X******', 'D*****',
+  'M**', 'S****', 'J*********', 'A*******', 'S***', 'N*****',
 ]
 
 const ACTIONS = ['addedToCart', 'purchased', 'watching']
@@ -84,7 +84,9 @@ export default function ActivityFeed() {
 
   return (
     <div
-      className={`fixed bottom-4 left-4 z-50 max-w-xs transition-all duration-500 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+      className={`fixed z-50 transition-all duration-500
+        left-4 right-4 top-16 sm:top-auto sm:bottom-4 sm:left-4 sm:right-auto sm:max-w-xs
+        ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 sm:translate-y-4'}`}
     >
       <Link to={`/products/${product.id}`} className="block">
         <div className="activity-feed-item bg-white/95 backdrop-blur-sm border border-cheers-cream rounded-xl shadow-lg px-4 py-3 flex items-center gap-3">
