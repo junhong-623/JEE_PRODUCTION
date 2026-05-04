@@ -1,12 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getFirestore, doc, getDoc, setDoc, addDoc, collection, getDocs, query, orderBy } from 'firebase/firestore'
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
 import app from '../../../lib/firebase'
 import { useLang } from '../../contexts/LangContext'
+import { uploadProductImage } from '../../lib/cloudinary'
 
 const db = getFirestore(app)
-const storage = getStorage(app)
 
 export default function ProductEditPage() {
   const { id } = useParams()
@@ -81,10 +80,7 @@ export default function ProductEditPage() {
     if (!file) return
     setUploading(true)
     try {
-      const path = `cheers/products/${Date.now()}_${file.name}`
-      const ref = storageRef(storage, path)
-      await uploadBytes(ref, file)
-      const url = await getDownloadURL(ref)
+      const url = await uploadProductImage(file)
       setForm(f => ({ ...f, imageUrl: url }))
     } finally {
       setUploading(false)

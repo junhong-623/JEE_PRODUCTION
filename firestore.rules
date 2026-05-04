@@ -93,6 +93,38 @@ service cloud.firestore {
       }
     }
 
+    // ── Cheers ──────────────────────────────────────────────────
+    match /cheers_settings/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /cheers_trips/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /cheers_categories/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /cheers_products/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /cheers_orders/{doc} {
+      allow create: if signedIn();
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.userId == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+    match /cheers_carts/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+      allow read: if isAdmin();
+    }
+    match /cheers_wishlists/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+      allow read: if isAdmin();
+    }
+
     // ── Mall ────────────────────────────────────────────────────
     match /mall_config/{doc} {
       allow read: if true;

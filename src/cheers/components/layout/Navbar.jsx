@@ -21,6 +21,9 @@ export default function Navbar() {
   const navLinkClass = ({ isActive }) =>
     `text-sm transition-colors ${isActive ? 'text-cheers-brown font-semibold' : 'text-cheers-dark-brown/70 hover:text-cheers-brown'}`
 
+  const mobileNavLinkClass = ({ isActive }) =>
+    `block text-sm py-1 transition-colors ${isActive ? 'text-cheers-brown font-semibold' : 'text-cheers-dark-brown/70 hover:text-cheers-brown'}`
+
   return (
     <nav className="sticky top-0 z-40 bg-cheers-light-cream/95 backdrop-blur-md border-b border-cheers-cream shadow-sm">
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
@@ -87,11 +90,11 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden border-t border-cheers-cream bg-cheers-light-cream px-4 py-4 space-y-3">
-          <NavLink to="/products" className={navLinkClass} onClick={() => setMenuOpen(false)}>{t('nav.products')}</NavLink>
-          {user && <NavLink to="/wishlist" className={navLinkClass} onClick={() => setMenuOpen(false)}>{t('nav.wishlist')}</NavLink>}
-          {user && <NavLink to="/orders" className={navLinkClass} onClick={() => setMenuOpen(false)}>{t('nav.orders')}</NavLink>}
-          {isAdmin && <NavLink to="/admin" className={navLinkClass} onClick={() => setMenuOpen(false)}>{t('nav.admin')}</NavLink>}
+        <div className="md:hidden border-t border-cheers-cream bg-cheers-light-cream px-4 py-4 flex flex-col gap-1">
+          <NavLink to="/products" className={mobileNavLinkClass} onClick={() => setMenuOpen(false)}>{t('nav.products')}</NavLink>
+          {user && <NavLink to="/wishlist" className={mobileNavLinkClass} onClick={() => setMenuOpen(false)}>{t('nav.wishlist')}</NavLink>}
+          {user && <NavLink to="/orders" className={mobileNavLinkClass} onClick={() => setMenuOpen(false)}>{t('nav.orders')}</NavLink>}
+          {isAdmin && <NavLink to="/admin" className={mobileNavLinkClass} onClick={() => setMenuOpen(false)}>{t('nav.admin')}</NavLink>}
           <div className="pt-2 border-t border-cheers-cream flex flex-col gap-2">
             {user ? (
               <>
