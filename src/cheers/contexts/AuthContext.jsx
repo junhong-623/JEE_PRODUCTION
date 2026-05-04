@@ -4,19 +4,41 @@ import {
   createUserWithEmailAndPassword, signOut, GoogleAuthProvider,
   signInWithPopup, updateProfile,
 } from 'firebase/auth'
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
 import app from '../../lib/firebase'
 
 const auth = getAuth(app)
+const db = getFirestore(app)
 const AuthContext = createContext(null)
-const ADMIN_UID = import.meta.env.VITE_ADMIN_UID
+const SUPER_ADMIN_UID = import.meta.env.VITE_ADMIN_UID
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    return onAuthStateChanged(auth, (u) => {
+    return onAuthStateChanged(auth, async (u) => {
       setUser(u)
+      if (u) {
+        // Register user profile for admin lookup
+        setDoc(doc(db, 'cheers_users', u.uid), {
+          email: u.email,
+          displayName: u.displayName || '',
+          lastSeen: serverTimestamp(),
+        }, { merge: true }).catch(() => {})
+
+        // Check admin status: super admin UID or in cheers_admins collection
+        const isSuperAdmin = u.uid === SUPER_ADMIN_UID
+        if (isSuperAdmin) {
+          setIsAdmin(true)
+        } else {
+          const snap = await getDoc(doc(db, 'cheers_admins', u.uid)).catch(() => null)
+          setIsAdmin(snap?.exists() ?? false)
+        }
+      } else {
+        setIsAdmin(false)
+      }
       setLoading(false)
     })
   }, [])
@@ -34,8 +56,6 @@ export function AuthProvider({ children }) {
     signInWithPopup(auth, new GoogleAuthProvider())
 
   const logout = () => signOut(auth)
-
-  const isAdmin = user?.uid === ADMIN_UID
 
   return (
     <AuthContext.Provider value={{ user, loading, isAdmin, login, register, loginWithGoogle, logout }}>
