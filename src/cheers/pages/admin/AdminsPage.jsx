@@ -13,8 +13,9 @@ export default function AdminsPage() {
   const { user } = useAuth()
   const [admins, setAdmins] = useState([])
   const [searchEmail, setSearchEmail] = useState('')
-  const [searchResult, setSearchResult] = useState(null) // { uid, email, displayName } | 'not_found' | null
+  const [searchResult, setSearchResult] = useState(null)
   const [searching, setSearching] = useState(false)
+  const [uidInput, setUidInput] = useState('')
   const [loading, setLoading] = useState(true)
   const [msg, setMsg] = useState('')
 
@@ -26,6 +27,11 @@ export default function AdminsPage() {
 
   useEffect(() => { loadAdmins() }, [])
 
+  function flash(text) {
+    setMsg(text)
+    setTimeout(() => setMsg(''), 3000)
+  }
+
   async function handleSearch(e) {
     e.preventDefault()
     const email = searchEmail.trim().toLowerCase()
@@ -36,42 +42,51 @@ export default function AdminsPage() {
       const snap = await getDocs(
         query(collection(db, 'cheers_users'), where('email', '==', email), limit(1))
       )
-      if (snap.empty) {
-        setSearchResult('not_found')
-      } else {
-        const d = snap.docs[0]
-        setSearchResult({ uid: d.id, ...d.data() })
-      }
+      setSearchResult(snap.empty ? 'not_found' : { uid: snap.docs[0].id, ...snap.docs[0].data() })
     } finally {
       setSearching(false)
     }
   }
 
   async function handleAdd(found) {
-    if (admins.find(a => a.uid === found.uid)) {
-      setMsg('该用户已是管理员')
-      return
-    }
+    if (admins.find(a => a.uid === found.uid)) { flash('该用户已是管理员'); return }
     await setDoc(doc(db, 'cheers_admins', found.uid), {
       email: found.email,
       displayName: found.displayName || '',
       addedBy: user.uid,
       addedAt: serverTimestamp(),
     })
-    setMsg(`已将 ${found.email} 加为管理员`)
+    flash(`已将 ${found.email} 加为管理员`)
     setSearchEmail('')
     setSearchResult(null)
     loadAdmins()
-    setTimeout(() => setMsg(''), 3000)
+  }
+
+  async function handleAddByUid(e) {
+    e.preventDefault()
+    const uid = uidInput.trim()
+    if (!uid) return
+    if (admins.find(a => a.uid === uid)) { flash('该用户已是管理员'); return }
+    // Try to get user profile from cheers_users, fall back to uid-only
+    const userSnap = await getDoc(doc(db, 'cheers_users', uid)).catch(() => null)
+    const profile = userSnap?.exists() ? userSnap.data() : {}
+    await setDoc(doc(db, 'cheers_admins', uid), {
+      email: profile.email || '（未知）',
+      displayName: profile.displayName || '（未知）',
+      addedBy: user.uid,
+      addedAt: serverTimestamp(),
+    })
+    flash('已添加，对方重新登录后生效')
+    setUidInput('')
+    loadAdmins()
   }
 
   async function handleRemove(uid) {
     if (uid === SUPER_ADMIN_UID) return
     if (!confirm('确认移除此管理员权限？')) return
     await deleteDoc(doc(db, 'cheers_admins', uid))
-    setMsg('已移除管理员权限')
+    flash('已移除管理员权限')
     loadAdmins()
-    setTimeout(() => setMsg(''), 3000)
   }
 
   return (
@@ -82,9 +97,9 @@ export default function AdminsPage() {
         <div className="mb-4 px-4 py-2 bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg">{msg}</div>
       )}
 
-      {/* Search */}
-      <div className="card p-4 mb-6">
-        <h2 className="font-medium text-cheers-dark-brown mb-3">添加管理员</h2>
+      {/* Search by email */}
+      <div className="card p-4 mb-4">
+        <h2 className="font-medium text-cheers-dark-brown mb-3">按电子邮件搜索</h2>
         <form onSubmit={handleSearch} className="flex gap-2">
           <input
             className="input flex-1"
@@ -99,7 +114,10 @@ export default function AdminsPage() {
         </form>
 
         {searchResult === 'not_found' && (
-          <p className="mt-3 text-sm text-cheers-brown/60">找不到该用户，他们需要先登录过一次才能被找到。</p>
+          <div className="mt-3 text-sm text-cheers-brown/70 bg-cheers-cream/30 rounded-lg px-3 py-2">
+            <p className="font-medium mb-0.5">找不到该用户</p>
+            <p className="text-xs text-cheers-brown/50">该用户需要先通过 Cheers 网站登录一次，或使用下方 UID 方式手动添加。</p>
+          </div>
         )}
 
         {searchResult && searchResult !== 'not_found' && (
@@ -117,6 +135,21 @@ export default function AdminsPage() {
             )}
           </div>
         )}
+      </div>
+
+      {/* Add by UID */}
+      <div className="card p-4 mb-6">
+        <h2 className="font-medium text-cheers-dark-brown mb-1">按 UID 直接添加</h2>
+        <p className="text-xs text-cheers-brown/50 mb-3">如搜索不到用户，可从 Firebase Console → Authentication 复制 UID</p>
+        <form onSubmit={handleAddByUid} className="flex gap-2">
+          <input
+            className="input flex-1 font-mono text-sm"
+            placeholder="User UID"
+            value={uidInput}
+            onChange={e => setUidInput(e.target.value)}
+          />
+          <button type="submit" className="btn-secondary px-4 text-sm">添加</button>
+        </form>
       </div>
 
       {/* Current admins */}
@@ -137,10 +170,8 @@ export default function AdminsPage() {
                   <p className="text-xs text-cheers-brown/50 truncate">{a.email}</p>
                 </div>
                 {a.uid !== SUPER_ADMIN_UID && (
-                  <button
-                    onClick={() => handleRemove(a.uid)}
-                    className="text-xs text-red-400 hover:text-red-600 flex-shrink-0"
-                  >
+                  <button onClick={() => handleRemove(a.uid)}
+                    className="text-xs text-red-400 hover:text-red-600 flex-shrink-0">
                     移除
                   </button>
                 )}

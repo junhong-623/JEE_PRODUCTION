@@ -17,18 +17,21 @@ export function AuthProvider({ children }) {
   const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
 
+  async function writeUserProfile(u) {
+    try {
+      await setDoc(doc(db, 'cheers_users', u.uid), {
+        email: (u.email || '').toLowerCase(),
+        displayName: u.displayName || '',
+        lastSeen: serverTimestamp(),
+      }, { merge: true })
+    } catch (_) {}
+  }
+
   useEffect(() => {
     return onAuthStateChanged(auth, async (u) => {
       setUser(u)
       if (u) {
-        // Register user profile for admin lookup
-        setDoc(doc(db, 'cheers_users', u.uid), {
-          email: u.email,
-          displayName: u.displayName || '',
-          lastSeen: serverTimestamp(),
-        }, { merge: true }).catch(() => {})
-
-        // Check admin status: super admin UID or in cheers_admins collection
+        writeUserProfile(u)
         const isSuperAdmin = u.uid === SUPER_ADMIN_UID
         if (isSuperAdmin) {
           setIsAdmin(true)
@@ -43,17 +46,24 @@ export function AuthProvider({ children }) {
     })
   }, [])
 
-  const login = (email, password) =>
-    signInWithEmailAndPassword(auth, email, password)
+  const login = async (email, password) => {
+    const cred = await signInWithEmailAndPassword(auth, email, password)
+    writeUserProfile(cred.user)
+    return cred
+  }
 
   const register = async (email, password, name) => {
     const cred = await createUserWithEmailAndPassword(auth, email, password)
     await updateProfile(cred.user, { displayName: name })
+    writeUserProfile(cred.user)
     return cred
   }
 
-  const loginWithGoogle = () =>
-    signInWithPopup(auth, new GoogleAuthProvider())
+  const loginWithGoogle = async () => {
+    const cred = await signInWithPopup(auth, new GoogleAuthProvider())
+    writeUserProfile(cred.user)
+    return cred
+  }
 
   const logout = () => signOut(auth)
 
