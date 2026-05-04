@@ -21,6 +21,14 @@ export default {
           muted: '#d9d5cc',
         },
         accent: '#e8440a',
+        cheers: {
+          cream: '#F5F0A0',
+          'light-cream': '#FDFAE8',
+          brown: '#6B2D2D',
+          'dark-brown': '#4A1F1F',
+          red: '#BC002D',
+          snow: '#F8F8FF',
+        },
       },
       animation: {
         'fade-up': 'fadeUp 0.5s ease forwards',

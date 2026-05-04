@@ -13,7 +13,10 @@
     "build:matetrip": "node scripts/prepare-matetrip.mjs && vite build --config vite.matetrip.config.js",
     "preview:matetrip": "vite preview --config vite.matetrip.config.js --outDir dist-matetrip",
     "preview": "vite preview",
-    "preview:jsave": "vite preview --config vite.jsave.config.js --outDir dist-jsave"
+    "preview:jsave": "vite preview --config vite.jsave.config.js --outDir dist-jsave",
+    "dev:cheers": "vite --config vite.cheers.config.js",
+    "build:cheers": "node scripts/prepare-cheers.mjs && vite build --config vite.cheers.config.js",
+    "preview:cheers": "vite preview --config vite.cheers.config.js --outDir dist-cheers"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",

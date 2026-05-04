@@ -44,6 +44,12 @@
           "destination": "/jsave.html"
         }
       ]
+    },
+    {
+      "target": "cheers",
+      "public": "dist-cheers",
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "rewrites": [{ "source": "**", "destination": "/cheers.html" }]
     }
   ]
 }
