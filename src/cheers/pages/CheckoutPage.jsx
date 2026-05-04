@@ -8,6 +8,14 @@ import { useAuth } from '../contexts/AuthContext'
 
 const db = getFirestore(app)
 
+function detectRegion(postcode) {
+  const n = parseInt(postcode, 10)
+  if (!postcode || postcode.length < 5 || isNaN(n)) return null
+  if (n >= 87000 && n <= 98999) return 'east'
+  if (n >= 1000  && n <= 86999) return 'west'
+  return null
+}
+
 function generateOrderId() {
   const date = new Date().toISOString().slice(0, 10).replace(/-/g, '')
   const rand = Math.floor(Math.random() * 9000) + 1000
@@ -46,7 +54,10 @@ export default function CheckoutPage() {
     }
   }, [user])
 
-  const shippingFee = deliveryType === 'face-to-face' ? 0 : (settings?.shippingFee || 0)
+  const region = detectRegion(form.postcode)
+  const shippingFee = deliveryType === 'face-to-face' ? 0
+    : region === 'east' ? (settings?.shippingFeeEast || 0)
+    : (settings?.shippingFeeWest ?? settings?.shippingFee ?? 0)
   const total = subtotal + shippingFee
 
   async function handleSubmit(e) {
@@ -64,7 +75,7 @@ export default function CheckoutPage() {
         items: items.map(i => ({ ...i })),
         delivery: deliveryType === 'face-to-face'
           ? { type: 'face-to-face', location }
-          : { type: 'shipping', ...form },
+          : { type: 'shipping', region, ...form },
         subtotal,
         shippingFee,
         total,
@@ -117,7 +128,12 @@ export default function CheckoutPage() {
                   className="text-cheers-brown" />
                 <div>
                   <p className="text-sm font-medium text-cheers-dark-brown">{t('checkout.shipping')}</p>
-                  <p className="text-xs text-cheers-brown/60">{t('common.rmPrefix')} {settings.shippingFee?.toFixed(2)}</p>
+                  <p className="text-xs text-cheers-brown/60">
+                    {lang === 'zh' ? '西马' : 'West MY'} RM {(settings.shippingFeeWest ?? settings.shippingFee ?? 0).toFixed(2)}
+                    {' · '}
+                    {lang === 'zh' ? '东马' : 'East MY'} RM {(settings.shippingFeeEast || 0).toFixed(2)}
+                    {' · '}{lang === 'zh' ? '根据邮编自动判断' : 'auto-detected from postcode'}
+                  </p>
                 </div>
               </label>
             </div>
@@ -162,7 +178,15 @@ export default function CheckoutPage() {
                 <div className="grid sm:grid-cols-3 gap-3">
                   <div>
                     <label className="label">{t('checkout.postcode')}</label>
-                    <input className="input" value={form.postcode} onChange={e => setForm(f => ({ ...f, postcode: e.target.value }))} required />
+                    <input className="input" value={form.postcode} maxLength={5}
+                      onChange={e => setForm(f => ({ ...f, postcode: e.target.value.replace(/\D/g, '') }))} required />
+                    {form.postcode.length === 5 && (
+                      <p className={`text-xs mt-1 font-medium ${region ? 'text-green-600' : 'text-red-400'}`}>
+                        {region === 'east' ? (lang === 'zh' ? '🏝️ 东马邮费' : '🏝️ East Malaysia rate')
+                          : region === 'west' ? (lang === 'zh' ? '🇲🇾 西马邮费' : '🇲🇾 West Malaysia rate')
+                          : (lang === 'zh' ? '无效邮编' : 'Invalid postcode')}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="label">{t('checkout.city')}</label>
