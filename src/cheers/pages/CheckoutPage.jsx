@@ -22,6 +22,7 @@ export default function CheckoutPage() {
 
   const [settings, setSettings] = useState(null)
   const [deliveryType, setDeliveryType] = useState('shipping')
+  const [region, setRegion] = useState('west')
   const [location, setLocation] = useState('')
   const [form, setForm] = useState({ name: '', phone: '', address: '', postcode: '', city: '', state: '' })
   const [loading, setLoading] = useState(false)
@@ -46,7 +47,9 @@ export default function CheckoutPage() {
     }
   }, [user])
 
-  const shippingFee = deliveryType === 'face-to-face' ? 0 : (settings?.shippingFee || 0)
+  const shippingFee = deliveryType === 'face-to-face' ? 0
+    : region === 'east' ? (settings?.shippingFeeEast || 0)
+    : (settings?.shippingFeeWest ?? settings?.shippingFee ?? 0)
   const total = subtotal + shippingFee
 
   async function handleSubmit(e) {
@@ -64,7 +67,7 @@ export default function CheckoutPage() {
         items: items.map(i => ({ ...i })),
         delivery: deliveryType === 'face-to-face'
           ? { type: 'face-to-face', location }
-          : { type: 'shipping', ...form },
+          : { type: 'shipping', region, ...form },
         subtotal,
         shippingFee,
         total,
@@ -117,10 +120,34 @@ export default function CheckoutPage() {
                   className="text-cheers-brown" />
                 <div>
                   <p className="text-sm font-medium text-cheers-dark-brown">{t('checkout.shipping')}</p>
-                  <p className="text-xs text-cheers-brown/60">{t('common.rmPrefix')} {settings.shippingFee?.toFixed(2)}</p>
+                  <p className="text-xs text-cheers-brown/60">
+                    {lang === 'zh' ? '西马' : 'West MY'} RM {(settings.shippingFeeWest ?? settings.shippingFee ?? 0).toFixed(2)}
+                    {' · '}
+                    {lang === 'zh' ? '东马' : 'East MY'} RM {(settings.shippingFeeEast || 0).toFixed(2)}
+                  </p>
                 </div>
               </label>
             </div>
+
+            {/* Region selector — only shown for shipping */}
+            {deliveryType === 'shipping' && (
+              <div className="mt-3">
+                <p className="text-xs font-medium text-cheers-brown mb-2">{lang === 'zh' ? '配送地区' : 'Delivery Region'}</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { value: 'west', zh: '🇲🇾 西马', en: '🇲🇾 West Malaysia' },
+                    { value: 'east', zh: '🏝️ 东马 (沙巴/砂拉越)', en: '🏝️ East Malaysia (Sabah/Sarawak)' },
+                  ].map(opt => (
+                    <label key={opt.value} className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-colors text-sm ${region === opt.value ? 'border-cheers-brown bg-cheers-cream/30' : 'border-cheers-cream hover:border-cheers-brown/40'}`}>
+                      <input type="radio" name="region" value={opt.value}
+                        checked={region === opt.value} onChange={() => setRegion(opt.value)}
+                        className="text-cheers-brown" />
+                      <span className="text-cheers-dark-brown font-medium">{lang === 'zh' ? opt.zh : opt.en}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Face-to-face location select */}
             {deliveryType === 'face-to-face' && (

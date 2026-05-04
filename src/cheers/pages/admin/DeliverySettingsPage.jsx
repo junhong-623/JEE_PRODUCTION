@@ -7,7 +7,8 @@ const db = getFirestore(app)
 
 export default function DeliverySettingsPage() {
   const { t } = useLang()
-  const [shippingFee, setShippingFee] = useState('')
+  const [shippingFeeWest, setShippingFeeWest] = useState('')
+  const [shippingFeeEast, setShippingFeeEast] = useState('')
   const [faceToFaceEnabled, setFaceToFaceEnabled] = useState(true)
   const [locations, setLocations] = useState([])
   const [newLoc, setNewLoc] = useState({ zh: '', en: '' })
@@ -18,7 +19,8 @@ export default function DeliverySettingsPage() {
     getDoc(doc(db, 'cheers_settings', 'global')).then(snap => {
       if (snap.exists()) {
         const d = snap.data()
-        setShippingFee(d.shippingFee?.toString() || '')
+        setShippingFeeWest(d.shippingFeeWest?.toString() ?? d.shippingFee?.toString() ?? '')
+        setShippingFeeEast(d.shippingFeeEast?.toString() || '')
         setFaceToFaceEnabled(d.faceToFaceEnabled ?? true)
         setLocations(d.faceToFaceLocations || [])
       }
@@ -40,7 +42,8 @@ export default function DeliverySettingsPage() {
     e.preventDefault()
     setSaving(true)
     await setDoc(doc(db, 'cheers_settings', 'global'), {
-      shippingFee: shippingFee ? parseFloat(shippingFee) : 0,
+      shippingFeeWest: shippingFeeWest ? parseFloat(shippingFeeWest) : 0,
+      shippingFeeEast: shippingFeeEast ? parseFloat(shippingFeeEast) : 0,
       faceToFaceEnabled,
       faceToFaceLocations: locations,
     }, { merge: true })
@@ -55,12 +58,21 @@ export default function DeliverySettingsPage() {
 
       <form onSubmit={handleSave} className="space-y-5">
         {/* Shipping fee */}
-        <div className="card p-4">
-          <h2 className="font-medium text-cheers-dark-brown mb-3">邮费</h2>
-          <label className="label">统一邮费 (RM)</label>
-          <input type="number" step="0.01" min="0" className="input" value={shippingFee}
-            onChange={e => setShippingFee(e.target.value)} placeholder="例：10" />
-          <p className="text-xs text-cheers-brown/50 mt-1">面交订单不收邮费</p>
+        <div className="card p-4 space-y-3">
+          <h2 className="font-medium text-cheers-dark-brown">邮费</h2>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">西马邮费 (RM)</label>
+              <input type="number" step="0.01" min="0" className="input" value={shippingFeeWest}
+                onChange={e => setShippingFeeWest(e.target.value)} placeholder="例：10" />
+            </div>
+            <div>
+              <label className="label">东马邮费 (RM)</label>
+              <input type="number" step="0.01" min="0" className="input" value={shippingFeeEast}
+                onChange={e => setShippingFeeEast(e.target.value)} placeholder="例：20" />
+            </div>
+          </div>
+          <p className="text-xs text-cheers-brown/50">面交订单不收邮费</p>
         </div>
 
         {/* Face-to-face */}
