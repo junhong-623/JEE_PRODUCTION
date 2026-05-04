@@ -65,9 +65,9 @@ export function CartProvider({ children }) {
     }
   }, [user])
 
-  const addToCart = useCallback(async (product, quantity = 1) => {
+  const addToCart = useCallback(async (product, quantity = 1, size = undefined) => {
     setItems(prev => {
-      const idx = prev.findIndex(i => i.productId === product.id)
+      const idx = prev.findIndex(i => i.productId === product.id && i.size === size)
       let next
       if (idx >= 0) {
         next = prev.map((i, index) =>
@@ -80,6 +80,7 @@ export function CartProvider({ children }) {
           price: product.price,
           imageUrl: product.imageUrl || '',
           quantity,
+          ...(size !== undefined && { size }),
         }]
       }
       if (user) {

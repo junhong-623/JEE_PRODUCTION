@@ -1,18 +1,21 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLang } from '../../contexts/LangContext'
 import { useCart } from '../../contexts/CartContext'
 import { useWishlist } from '../../contexts/WishlistContext'
 import { useAuth } from '../../contexts/AuthContext'
+import SizePickerModal from './SizePickerModal'
 
 export default function ProductCard({ product }) {
   const { t, lang } = useLang()
   const { addToCart } = useCart()
   const { isWishlisted, addToWishlist, removeFromWishlist } = useWishlist()
   const { user } = useAuth()
+  const [sizeModal, setSizeModal] = useState(false)
 
   const name = product.name?.[lang] || product.name?.zh || product.name || ''
   const wishlisted = isWishlisted(product.id)
+  const hasSizes = product.sizes?.length > 0
 
   function handleWishlist(e) {
     e.preventDefault()
@@ -23,10 +26,13 @@ export default function ProductCard({ product }) {
   function handleAddToCart(e) {
     e.preventDefault()
     if (!product.inStock) return
+    if (hasSizes) { setSizeModal(true); return }
     addToCart({ ...product, name: product.name?.[lang] || product.name?.zh || product.name || '' })
   }
 
   return (
+    <>
+    {sizeModal && <SizePickerModal product={product} onClose={() => setSizeModal(false)} />}
     <Link to={`/products/${product.id}`} className="group block card hover:shadow-md transition-shadow duration-200">
       <div className="relative aspect-square overflow-hidden bg-cheers-cream/20">
         {product.imageUrl ? (
@@ -73,5 +79,6 @@ export default function ProductCard({ product }) {
         </div>
       </div>
     </Link>
+    </>
   )
 }

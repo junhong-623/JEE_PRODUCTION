@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getFirestore, doc, getDoc, setDoc, addDoc, collection, getDocs, query, orderBy } from 'firebase/firestore'
 import app from '../../../lib/firebase'
@@ -25,7 +25,9 @@ export default function ProductEditPage() {
     inStock: true,
     featured: false,
     imageUrl: '',
+    sizes: [],
   })
+  const [sizeInput, setSizeInput] = useState('')
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [activeTrip, setActiveTrip] = useState(null)
@@ -54,6 +56,7 @@ export default function ProductEditPage() {
             inStock: data.inStock ?? true,
             featured: data.featured ?? false,
             imageUrl: data.imageUrl || '',
+            sizes: data.sizes || [],
           })
           if (data.tripId) {
             const catSnap = await getDocs(query(collection(db, 'cheers_categories'), orderBy('order')))
@@ -99,6 +102,7 @@ export default function ProductEditPage() {
       inStock: form.inStock,
       featured: form.featured,
       imageUrl: form.imageUrl,
+      sizes: form.sizes,
     }
     try {
       if (isNew) {
@@ -194,6 +198,44 @@ export default function ProductEditPage() {
             <textarea className="input resize-none" rows={3}
               value={form.description.en} onChange={e => setForm(f => ({ ...f, description: { ...f.description, en: e.target.value } }))} />
           </div>
+        </div>
+
+        {/* Sizes */}
+        <div className="card p-4 space-y-3">
+          <label className="label mb-0">尺码（可选）</label>
+          <p className="text-xs text-cheers-brown/50">留空表示无需选码，适用于食品、日用品等</p>
+          <div className="flex gap-2">
+            <input
+              className="input flex-1"
+              placeholder="如：S / M / L / 37 / 38"
+              value={sizeInput}
+              onChange={e => setSizeInput(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  const v = sizeInput.trim()
+                  if (v && !form.sizes.includes(v)) setForm(f => ({ ...f, sizes: [...f.sizes, v] }))
+                  setSizeInput('')
+                }
+              }}
+            />
+            <button type="button" className="btn-secondary px-4" onClick={() => {
+              const v = sizeInput.trim()
+              if (v && !form.sizes.includes(v)) setForm(f => ({ ...f, sizes: [...f.sizes, v] }))
+              setSizeInput('')
+            }}>添加</button>
+          </div>
+          {form.sizes.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {form.sizes.map(size => (
+                <span key={size} className="inline-flex items-center gap-1.5 bg-cheers-cream text-cheers-dark-brown text-sm px-3 py-1 rounded-full">
+                  {size}
+                  <button type="button" onClick={() => setForm(f => ({ ...f, sizes: f.sizes.filter(s => s !== size) }))}
+                    className="text-cheers-brown/50 hover:text-cheers-brown leading-none">×</button>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Options */}

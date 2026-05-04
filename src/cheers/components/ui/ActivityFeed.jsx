@@ -85,26 +85,25 @@ export default function ActivityFeed() {
   return (
     <div
       className={`fixed z-50 transition-all duration-500
-        left-4 right-4 top-16 sm:top-auto sm:bottom-4 sm:left-4 sm:right-auto sm:max-w-xs
-        ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 sm:translate-y-4'}`}
+        left-1/2 -translate-x-1/2 top-16 w-max max-w-[calc(100vw-2rem)]
+        sm:translate-x-0 sm:left-4 sm:top-auto sm:bottom-4 sm:max-w-xs sm:w-auto
+        ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3 sm:translate-y-3'}`}
     >
       <Link to={`/products/${product.id}`} className="block">
-        <div className="activity-feed-item bg-white/95 backdrop-blur-sm border border-cheers-cream rounded-xl shadow-lg px-4 py-3 flex items-center gap-3">
-          <span className="text-2xl flex-shrink-0">{icon}</span>
-          <div className="min-w-0">
-            <p className="text-xs text-cheers-dark-brown leading-snug">
-              {action === 'watching' ? (
-                <><span className="font-semibold">{watchingCount}</span> {t('activity.watching')} <span className="font-medium text-cheers-brown">{product.name?.zh || product.name}</span></>
-              ) : (
-                <><span className="font-semibold">{name}</span> {t(`activity.${action}`)} <span className="font-medium text-cheers-brown">{product.name?.zh || product.name}</span></>
-              )}
-            </p>
-            <p className="text-[10px] text-cheers-brown/60 mt-0.5">
-              {minutesAgo === 0 ? t('activity.justNow') : `${minutesAgo} ${t('activity.minutesAgo')}`}
-            </p>
-          </div>
+        <div className="activity-feed-item bg-white/95 backdrop-blur-sm border border-cheers-cream rounded-full shadow-lg
+          px-3 py-1.5 flex items-center gap-2
+          sm:rounded-xl sm:px-4 sm:py-3 sm:gap-3">
+          <span className="text-base sm:text-2xl flex-shrink-0">{icon}</span>
+          <p className="text-[11px] sm:text-xs text-cheers-dark-brown leading-snug whitespace-nowrap">
+            {action === 'watching' ? (
+              <><span className="font-semibold">{watchingCount}</span> {t('activity.watching')} <span className="font-medium text-cheers-brown">{product.name?.zh || product.name}</span></>
+            ) : (
+              <><span className="font-semibold">{name}</span> {t(`activity.${action}`)} <span className="font-medium text-cheers-brown">{product.name?.zh || product.name}</span></>
+            )}
+            <span className="text-cheers-brown/50 ml-1">· {minutesAgo === 0 ? t('activity.justNow') : `${minutesAgo}${t('activity.minutesAgo')}`}</span>
+          </p>
           {product.imageUrl && (
-            <img src={product.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+            <img src={product.imageUrl} alt="" className="w-6 h-6 sm:w-10 sm:h-10 rounded-full sm:rounded-lg object-cover flex-shrink-0" />
           )}
         </div>
       </Link>

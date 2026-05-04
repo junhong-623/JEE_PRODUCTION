@@ -9,7 +9,8 @@ service cloud.firestore {
     function isAdmin() {
       return signedIn()
         && (request.auth.uid == "QVLyCaNT5FgDDxXA95ZpHAiSCvy2"
-            || request.auth.uid == "IhcEvknXK1OQ24PdA3UmwnyxzSq1");
+            || request.auth.uid == "IhcEvknXK1OQ24PdA3UmwnyxzSq1"
+            || exists(/databases/$(database)/documents/cheers_admins/$(request.auth.uid)));
     }
 
     function canAccessTrip(tripId) {
@@ -91,6 +92,15 @@ service cloud.firestore {
         allow read: if canAccessTrip(tripId) || isAdmin();
         allow write: if canAccessTrip(tripId);
       }
+    }
+
+    // ── Cheers admins & users ────────────────────────────────────
+    match /cheers_admins/{uid} {
+      allow read, write: if isAdmin();
+    }
+    match /cheers_users/{uid} {
+      allow read: if isAdmin();
+      allow create, update: if signedIn() && request.auth.uid == uid;
     }
 
     // ── Cheers ──────────────────────────────────────────────────

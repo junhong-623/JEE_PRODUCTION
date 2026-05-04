@@ -19,6 +19,8 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
   const [qty, setQty] = useState(1)
+  const [selectedSize, setSelectedSize] = useState(null)
+  const [sizeError, setSizeError] = useState(false)
   const [added, setAdded] = useState(false)
 
   useEffect(() => {
@@ -43,8 +45,11 @@ export default function ProductDetailPage() {
   const description = product.description?.[lang] || product.description?.zh || ''
   const wishlisted = isWishlisted(product.id)
 
+  const hasSizes = product?.sizes?.length > 0
+
   function handleAddToCart() {
-    addToCart({ ...product, name }, qty)
+    if (hasSizes && !selectedSize) { setSizeError(true); return }
+    addToCart({ ...product, name }, qty, selectedSize ?? undefined)
     setAdded(true)
     setTimeout(() => setAdded(false), 2000)
   }
@@ -84,6 +89,30 @@ export default function ProductDetailPage() {
           {description && (
             <div className="prose prose-sm text-cheers-dark-brown/70 mb-6 leading-relaxed whitespace-pre-line">
               {description}
+            </div>
+          )}
+
+          {hasSizes && product.inStock && (
+            <div className="mb-4">
+              <p className="label mb-2">
+                {lang === 'zh' ? '选择尺码' : 'Select Size'}
+                {sizeError && <span className="text-red-400 ml-2 text-xs">{lang === 'zh' ? '请选择尺码' : 'Please select a size'}</span>}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {product.sizes.map(size => (
+                  <button
+                    key={size}
+                    onClick={() => { setSelectedSize(size); setSizeError(false) }}
+                    className={`min-w-[3.5rem] px-4 py-2 rounded-lg border font-medium transition-colors ${
+                      selectedSize === size
+                        ? 'border-cheers-brown bg-cheers-brown text-cheers-cream'
+                        : 'border-cheers-cream text-cheers-dark-brown hover:border-cheers-brown/50'
+                    }`}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
