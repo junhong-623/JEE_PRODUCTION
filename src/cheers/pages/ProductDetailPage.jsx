@@ -22,6 +22,7 @@ export default function ProductDetailPage() {
   const [selectedSize, setSelectedSize] = useState(null)
   const [sizeError, setSizeError] = useState(false)
   const [added, setAdded] = useState(false)
+  const [selectedImg, setSelectedImg] = useState(0)
 
   useEffect(() => {
     getDoc(doc(db, 'cheers_products', id))
@@ -65,14 +66,29 @@ export default function ProductDetailPage() {
       </Link>
 
       <div className="grid md:grid-cols-2 gap-8 mt-4">
-        {/* Image */}
-        <div className="aspect-square rounded-2xl overflow-hidden bg-cheers-cream/20">
-          {product.imageUrl ? (
-            <img src={product.imageUrl} alt={name} className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-8xl">🛍</div>
-          )}
-        </div>
+        {/* Images */}
+        {(() => {
+          const imgs = product.imageUrls?.length ? product.imageUrls : product.imageUrl ? [product.imageUrl] : []
+          return (
+            <div className="flex flex-col gap-3">
+              <div className="aspect-square rounded-2xl overflow-hidden bg-cheers-cream/20">
+                {imgs.length > 0
+                  ? <img src={imgs[selectedImg] || imgs[0]} alt={name} className="w-full h-full object-cover" />
+                  : <div className="w-full h-full flex items-center justify-center text-8xl">🛍</div>}
+              </div>
+              {imgs.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {imgs.map((url, i) => (
+                    <button key={i} onClick={() => setSelectedImg(i)}
+                      className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-colors ${selectedImg === i ? 'border-cheers-brown' : 'border-transparent'}`}>
+                      <img src={url} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )
+        })()}
 
         {/* Info */}
         <div className="flex flex-col">

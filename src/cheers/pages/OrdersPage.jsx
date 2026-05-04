@@ -19,6 +19,7 @@ export default function OrdersPage() {
   const { user } = useAuth()
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
+  const [expanded, setExpanded] = useState(null)
 
   useEffect(() => {
     if (!user) return
@@ -47,42 +48,103 @@ export default function OrdersPage() {
           <p>{t('orders.empty')}</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {orders.map(order => (
-            <div key={order.id} className="card p-4">
-              <div className="flex items-start justify-between gap-4 mb-3">
-                <div>
-                  <p className="font-medium text-cheers-dark-brown text-sm">{order.orderId || order.id}</p>
-                  <p className="text-xs text-cheers-brown/50 mt-0.5">
-                    {order.createdAt?.toDate?.()?.toLocaleDateString(lang === 'zh' ? 'zh-MY' : 'en-MY') || '—'}
-                  </p>
-                </div>
-                <span className={`badge-status ${STATUS_COLORS[order.status] || 'bg-gray-100 text-gray-600'}`}>
-                  {t(`orders.status.${order.status}`) || order.status}
-                </span>
-              </div>
-
-              <div className="space-y-1 mb-3">
-                {order.items?.map((item, i) => (
-                  <div key={i} className="flex justify-between text-sm text-cheers-dark-brown/70">
-                    <span className="truncate flex-1 mr-2">{item.name} × {item.quantity}</span>
-                    <span className="flex-shrink-0">{t('common.rmPrefix')} {(item.price * item.quantity).toFixed(2)}</span>
+        <div className="space-y-3">
+          {orders.map(order => {
+            const isOpen = expanded === order.id
+            const isFaceToFace = order.delivery?.type === 'face-to-face'
+            return (
+              <div key={order.id} className="card overflow-hidden">
+                {/* Header row — always visible */}
+                <div
+                  className="p-4 flex items-start justify-between gap-4 cursor-pointer select-none"
+                  onClick={() => setExpanded(isOpen ? null : order.id)}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-medium text-cheers-dark-brown text-sm">{order.orderId || order.id}</p>
+                      <span className={`badge-status ${STATUS_COLORS[order.status] || 'bg-gray-100 text-gray-600'}`}>
+                        {t(`orders.status.${order.status}`) || order.status}
+                      </span>
+                    </div>
+                    <p className="text-xs text-cheers-brown/50 mt-0.5">
+                      {order.createdAt?.toDate?.()?.toLocaleDateString(lang === 'zh' ? 'zh-MY' : 'en-MY') || '—'}
+                      {' · '}
+                      {order.items?.length} {lang === 'zh' ? '件' : 'items'}
+                    </p>
                   </div>
-                ))}
-              </div>
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <span className="font-semibold text-cheers-brown text-sm">
+                      {t('common.rmPrefix')} {order.total?.toFixed(2)}
+                    </span>
+                    <span className="text-cheers-brown/40 text-xs">{isOpen ? '▲' : '▼'}</span>
+                  </div>
+                </div>
 
-              <div className="flex items-center justify-between pt-3 border-t border-cheers-cream">
-                <span className="text-xs text-cheers-brown/50">
-                  {order.delivery?.type === 'face-to-face'
-                    ? `${t('checkout.faceToFace')} · ${order.delivery.location}`
-                    : t('checkout.shipping')}
-                </span>
-                <span className="font-semibold text-cheers-brown">
-                  {t('common.rmPrefix')} {order.total?.toFixed(2)}
-                </span>
+                {/* Expanded detail */}
+                {isOpen && (
+                  <div className="border-t border-cheers-cream px-4 pb-4 pt-3 space-y-4">
+                    {/* Items */}
+                    <div>
+                      <p className="text-xs font-medium text-cheers-brown mb-2">{lang === 'zh' ? '商品明细' : 'Items'}</p>
+                      <div className="space-y-1.5">
+                        {order.items?.map((item, i) => (
+                          <div key={i} className="flex justify-between text-sm">
+                            <span className="text-cheers-dark-brown/80 truncate flex-1 mr-2">
+                              {item.name}
+                              {item.size && <span className="text-cheers-brown/60 ml-1">({item.size})</span>}
+                              {' × '}{item.quantity}
+                            </span>
+                            <span className="text-cheers-dark-brown flex-shrink-0">
+                              {t('common.rmPrefix')} {(item.price * item.quantity).toFixed(2)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Delivery */}
+                    <div>
+                      <p className="text-xs font-medium text-cheers-brown mb-1">{lang === 'zh' ? '配送方式' : 'Delivery'}</p>
+                      {isFaceToFace ? (
+                        <p className="text-sm text-cheers-dark-brown/80">
+                          {t('checkout.faceToFace')} · {order.delivery.location}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-cheers-dark-brown/80">
+                          {t('checkout.shipping')}
+                          {order.delivery?.region && (
+                            <span className="text-cheers-brown/60 ml-1">
+                              ({order.delivery.region === 'east' ? (lang === 'zh' ? '东马' : 'East MY') : (lang === 'zh' ? '西马' : 'West MY')})
+                            </span>
+                          )}
+                          <br />
+                          <span className="text-cheers-brown/60 text-xs">
+                            {[order.delivery?.address, order.delivery?.city, order.delivery?.state, order.delivery?.postcode].filter(Boolean).join(', ')}
+                          </span>
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Totals */}
+                    <div className="border-t border-cheers-cream pt-3 space-y-1">
+                      <div className="flex justify-between text-sm text-cheers-brown/70">
+                        <span>{t('cart.subtotal')}</span>
+                        <span>{t('common.rmPrefix')} {order.subtotal?.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm text-cheers-brown/70">
+                        <span>{t('cart.shipping')}</span>
+                        <span>{order.shippingFee === 0 ? t('cart.free') : `${t('common.rmPrefix')} ${order.shippingFee?.toFixed(2)}`}</span>
+                      </div>
+                      <div className="flex justify-between font-semibold text-cheers-dark-brown pt-1 border-t border-cheers-cream">
+                        <span>{t('cart.total')}</span>
+                        <span>{t('common.rmPrefix')} {order.total?.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>

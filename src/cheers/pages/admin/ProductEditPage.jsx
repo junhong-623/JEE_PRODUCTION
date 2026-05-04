@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getFirestore, doc, getDoc, setDoc, addDoc, collection, getDocs, query, orderBy } from 'firebase/firestore'
 import app from '../../../lib/firebase'
@@ -6,6 +6,7 @@ import { useLang } from '../../contexts/LangContext'
 import { uploadProductImage } from '../../lib/cloudinary'
 
 const db = getFirestore(app)
+const MAX_IMAGES = 8
 
 export default function ProductEditPage() {
   const { id } = useParams()
@@ -24,13 +25,12 @@ export default function ProductEditPage() {
     tripId: '',
     inStock: true,
     featured: false,
-    imageUrl: '',
+    imageUrls: [],
     sizes: [],
   })
   const [sizeInput, setSizeInput] = useState('')
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [activeTrip, setActiveTrip] = useState(null)
 
   useEffect(() => {
     async function load() {
@@ -38,15 +38,14 @@ export default function ProductEditPage() {
         getDocs(collection(db, 'cheers_trips')),
         getDoc(doc(db, 'cheers_settings', 'global')),
       ])
-      const tripList = tripSnap.docs.map(d => ({ id: d.id, ...d.data() }))
-      setTrips(tripList)
+      setTrips(tripSnap.docs.map(d => ({ id: d.id, ...d.data() })))
       const aid = settingsSnap.data()?.activeTripId
-      setActiveTrip(aid)
 
       if (!isNew) {
         const snap = await getDoc(doc(db, 'cheers_products', id))
         if (snap.exists()) {
           const data = snap.data()
+          const imageUrls = data.imageUrls?.length ? data.imageUrls : data.imageUrl ? [data.imageUrl] : []
           setForm({
             name: data.name || { zh: '', en: '' },
             description: data.description || { zh: '', en: '' },
@@ -55,7 +54,7 @@ export default function ProductEditPage() {
             tripId: data.tripId || '',
             inStock: data.inStock ?? true,
             featured: data.featured ?? false,
-            imageUrl: data.imageUrl || '',
+            imageUrls,
             sizes: data.sizes || [],
           })
           if (data.tripId) {
@@ -79,15 +78,20 @@ export default function ProductEditPage() {
   }
 
   async function handleImageUpload(e) {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
     setUploading(true)
     try {
-      const url = await uploadProductImage(file)
-      setForm(f => ({ ...f, imageUrl: url }))
+      const urls = await Promise.all(files.map(f => uploadProductImage(f)))
+      setForm(f => ({ ...f, imageUrls: [...f.imageUrls, ...urls].slice(0, MAX_IMAGES) }))
     } finally {
       setUploading(false)
+      e.target.value = ''
     }
+  }
+
+  function removeImage(idx) {
+    setForm(f => ({ ...f, imageUrls: f.imageUrls.filter((_, i) => i !== idx) }))
   }
 
   async function handleSubmit(e) {
@@ -101,7 +105,8 @@ export default function ProductEditPage() {
       tripId: form.tripId,
       inStock: form.inStock,
       featured: form.featured,
-      imageUrl: form.imageUrl,
+      imageUrls: form.imageUrls,
+      imageUrl: form.imageUrls[0] || '',
       sizes: form.sizes,
     }
     try {
@@ -120,33 +125,36 @@ export default function ProductEditPage() {
     <div className="max-w-2xl">
       <div className="flex items-center gap-3 mb-6">
         <button onClick={() => navigate('/admin/products')} className="text-cheers-brown/60 hover:text-cheers-brown text-sm">← 返回</button>
-        <h1 className="font-serif text-2xl text-cheers-dark-brown">
-          {isNew ? '新增商品' : '编辑商品'}
-        </h1>
+        <h1 className="font-serif text-2xl text-cheers-dark-brown">{isNew ? '新增商品' : '编辑商品'}</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Image */}
+        {/* Images */}
         <div className="card p-4">
-          <label className="label">商品图片</label>
-          <div className="flex items-center gap-4">
-            {form.imageUrl ? (
-              <img src={form.imageUrl} alt="" className="w-24 h-24 object-cover rounded-xl border border-cheers-cream" />
-            ) : (
-              <div className="w-24 h-24 rounded-xl border-2 border-dashed border-cheers-cream flex items-center justify-center text-3xl">📷</div>
-            )}
-            <div>
-              <input ref={fileRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-              <button type="button" onClick={() => fileRef.current?.click()}
-                disabled={uploading} className="btn-secondary text-sm">
-                {uploading ? '上传中…' : t('admin.upload')}
-              </button>
-              {form.imageUrl && (
-                <button type="button" onClick={() => setForm(f => ({ ...f, imageUrl: '' }))}
-                  className="block text-xs text-red-400 mt-1">移除图片</button>
-              )}
-            </div>
+          <div className="flex items-center justify-between mb-3">
+            <label className="label mb-0">商品图片</label>
+            <span className="text-xs text-cheers-brown/50">{form.imageUrls.length}/{MAX_IMAGES} 张 · 第一张为主图</span>
           </div>
+          <div className="grid grid-cols-4 gap-2">
+            {form.imageUrls.map((url, idx) => (
+              <div key={idx} className="relative aspect-square">
+                <img src={url} alt="" className="w-full h-full object-cover rounded-xl border border-cheers-cream" />
+                {idx === 0 && (
+                  <span className="absolute bottom-1 left-1 text-[10px] bg-cheers-brown text-cheers-cream px-1.5 py-0.5 rounded-full">主图</span>
+                )}
+                <button type="button" onClick={() => removeImage(idx)}
+                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center hover:bg-red-600">×</button>
+              </div>
+            ))}
+            {form.imageUrls.length < MAX_IMAGES && (
+              <button type="button" onClick={() => fileRef.current?.click()}
+                disabled={uploading}
+                className="aspect-square rounded-xl border-2 border-dashed border-cheers-cream flex flex-col items-center justify-center text-cheers-brown/40 hover:border-cheers-brown/40 hover:text-cheers-brown/60 transition-colors">
+                {uploading ? <div className="w-5 h-5 border-2 border-cheers-brown/30 border-t-cheers-brown rounded-full animate-spin" /> : <><span className="text-2xl">+</span><span className="text-[10px] mt-0.5">上传</span></>}
+              </button>
+            )}
+          </div>
+          <input ref={fileRef} type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" />
         </div>
 
         {/* Basic info */}
@@ -173,7 +181,7 @@ export default function ProductEditPage() {
               <label className="label">行程</label>
               <select className="input" value={form.tripId} onChange={e => handleTripChange(e.target.value)} required>
                 <option value="">请选择行程</option>
-                {trips.map(t => <option key={t.id} value={t.id}>{t.country?.zh}</option>)}
+                {trips.map(tr => <option key={tr.id} value={tr.id}>{tr.country?.zh}</option>)}
               </select>
             </div>
             <div>
@@ -205,10 +213,7 @@ export default function ProductEditPage() {
           <label className="label mb-0">尺码（可选）</label>
           <p className="text-xs text-cheers-brown/50">留空表示无需选码，适用于食品、日用品等</p>
           <div className="flex gap-2">
-            <input
-              className="input flex-1"
-              placeholder="如：S / M / L / 37 / 38"
-              value={sizeInput}
+            <input className="input flex-1" placeholder="如：S / M / L / 37 / 38" value={sizeInput}
               onChange={e => setSizeInput(e.target.value)}
               onKeyDown={e => {
                 if (e.key === 'Enter') {
@@ -217,8 +222,7 @@ export default function ProductEditPage() {
                   if (v && !form.sizes.includes(v)) setForm(f => ({ ...f, sizes: [...f.sizes, v] }))
                   setSizeInput('')
                 }
-              }}
-            />
+              }} />
             <button type="button" className="btn-secondary px-4" onClick={() => {
               const v = sizeInput.trim()
               if (v && !form.sizes.includes(v)) setForm(f => ({ ...f, sizes: [...f.sizes, v] }))
