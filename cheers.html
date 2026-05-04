@@ -19,15 +19,39 @@
     <meta name="twitter:image" content="https://cheers-co.jeeprod.com/og-image.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;700&family=Noto+Sans+SC:wght@300;400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;700&family=Noto+Sans+SC:wght@300;400;500&family=Inter:wght@300;400;500;600&display=swap" onload="this.rel='stylesheet'" />
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;700&family=Noto+Sans+SC:wght@300;400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" /></noscript>
     <style>
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       body { -webkit-font-smoothing: antialiased; background: #FDFAE8; }
       #root { min-height: 100vh; }
+
+      #splash {
+        position: fixed; inset: 0;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        background: #FDFAE8; gap: 20px; z-index: 9999;
+      }
+      #splash img { width: 80px; height: 80px; border-radius: 16px; object-fit: cover; }
+      #splash-name { font-family: Georgia, serif; font-size: 22px; color: #6B2D2D; letter-spacing: 0.01em; }
+      #splash-spinner {
+        width: 26px; height: 26px;
+        border: 2px solid #F5F0A0;
+        border-top-color: #6B2D2D;
+        border-radius: 50%;
+        animation: splash-spin 0.8s linear infinite;
+      }
+      @keyframes splash-spin { to { transform: rotate(360deg); } }
     </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="splash">
+        <img src="/logo-300.png" alt="Cheers.co" />
+        <div id="splash-name">Cheers.co</div>
+        <div id="splash-spinner"></div>
+      </div>
+    </div>
     <script type="module" src="/src/cheers-entry.jsx"></script>
   </body>
 </html>
