@@ -21,8 +21,11 @@ const STATUS_ZH = {
 }
 
 function buildWhatsApp(order) {
-  const phone = (order.delivery?.phone || '').replace(/\D/g, '')
+  let phone = (order.delivery?.phone || '').replace(/\D/g, '')
   if (!phone) return null
+  // Normalise to Malaysian E.164 (no +): 012x → 6012x, already 60x stays
+  if (phone.startsWith('0')) phone = '60' + phone.slice(1)
+  else if (!phone.startsWith('60')) phone = '60' + phone
   const items = (order.items || []).map(i =>
     `• ${i.name}${i.size ? ` (${i.size})` : ''} × ${i.quantity}  RM${(i.price * i.quantity).toFixed(2)}`
   ).join('\n')
