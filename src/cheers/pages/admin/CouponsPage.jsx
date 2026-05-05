@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react'
-import { getFirestore, collection, getDocs, doc, addDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
+import { getFirestore, collection, getDocs, doc, addDoc, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore'
 import app from '../../../lib/firebase'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -8,6 +8,7 @@ const db = getFirestore(app)
 const TAB = { personal: 'personal', promo: 'promo' }
 
 function formatDiscount(discount, type) {
+  if (type === 'free_shipping') return '免运费'
   return type === 'fixed' ? `RM ${Number(discount).toFixed(2)} OFF` : `${discount}% OFF`
 }
 
@@ -17,7 +18,7 @@ function PersonalTab({ adminUid }) {
   const [coupons, setCoupons] = useState({}) // uid → coupon data
   const [selected, setSelected] = useState(new Set())
   const [search, setSearch] = useState('')
-  const [form, setForm] = useState({ title: '', discountType: 'percentage', discount: '10' })
+  const [form, setForm] = useState({ title: '', discountType: 'percentage', discount: '10', minSpend: '0', expiresAt: '' })
   const [loading, setLoading] = useState(true)
   const [issuing, setIssuing] = useState(false)
   const [msg, setMsg] = useState('')
@@ -60,18 +61,26 @@ function PersonalTab({ adminUid }) {
 
   async function handleIssue() {
     if (!selected.size) { flash('请先选择用户'); return }
-    const d = parseFloat(form.discount)
-    if (isNaN(d) || d <= 0) { flash('请输入有效折扣'); return }
-    if (form.discountType === 'percentage' && d > 100) { flash('百分比不能超过100'); return }
+    let discountValue = 0
+    let d = 0
+    if (form.discountType !== 'free_shipping') {
+      d = parseFloat(form.discount)
+      if (isNaN(d) || d <= 0) { flash('请输入有效折扣'); return }
+      if (form.discountType === 'percentage' && d > 100) { flash('百分比不能超过100'); return }
+      discountValue = form.discountType === 'percentage' ? d / 100 : d
+    }
     setIssuing(true)
-    const discountValue = form.discountType === 'percentage' ? d / 100 : d
+    const autoTitle = form.discountType === 'free_shipping' ? '免运费券'
+      : form.discountType === 'percentage' ? `${d}% 折扣` : `RM${d} 减免`
     await Promise.all([...selected].map(uid =>
       addDoc(collection(db, 'cheers_user_coupons'), {
         userId: uid,
         code: `ADMIN${Math.floor(Math.random() * 9000 + 1000)}`,
-        title: form.title || (form.discountType === 'percentage' ? `${d}% 折扣` : `RM${d} 减免`),
+        title: form.title || autoTitle,
         discount: discountValue,
         discountType: form.discountType,
+        minSpend: parseFloat(form.minSpend) || 0,
+        expiresAt: form.expiresAt ? new Date(form.expiresAt + 'T23:59:59') : null,
         used: false,
         grantedAt: serverTimestamp(),
         usedAt: null,
@@ -114,12 +123,27 @@ function PersonalTab({ adminUid }) {
             <select className="input" value={form.discountType} onChange={e => setForm(f => ({ ...f, discountType: e.target.value }))}>
               <option value="percentage">百分比 (%)</option>
               <option value="fixed">固定金额 (RM)</option>
+              <option value="free_shipping">免运费</option>
             </select>
           </div>
+          {form.discountType !== 'free_shipping' && (
+            <div>
+              <label className="label">{form.discountType === 'percentage' ? '折扣 (%)' : '金额 (RM)'}</label>
+              <input type="number" min="1" max={form.discountType === 'percentage' ? 100 : undefined}
+                className="input" value={form.discount} onChange={e => setForm(f => ({ ...f, discount: e.target.value }))} />
+            </div>
+          )}
+        </div>
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">{form.discountType === 'percentage' ? '折扣 (%)' : '金额 (RM)'}</label>
-            <input type="number" min="1" max={form.discountType === 'percentage' ? 100 : undefined}
-              className="input" value={form.discount} onChange={e => setForm(f => ({ ...f, discount: e.target.value }))} />
+            <label className="label">最低消费 (RM，0 = 无限制)</label>
+            <input type="number" min="0" step="0.01" className="input" value={form.minSpend}
+              onChange={e => setForm(f => ({ ...f, minSpend: e.target.value }))} />
+          </div>
+          <div>
+            <label className="label">到期日（可选）</label>
+            <input type="date" className="input" value={form.expiresAt}
+              onChange={e => setForm(f => ({ ...f, expiresAt: e.target.value }))} />
           </div>
         </div>
         <button onClick={handleIssue} disabled={issuing || !selected.size}
@@ -181,7 +205,7 @@ function PersonalTab({ adminUid }) {
 function PromoTab({ adminUid }) {
   const [codes, setCodes] = useState([])
   const [loading, setLoading] = useState(true)
-  const [form, setForm] = useState({ code: '', title: '', discountType: 'percentage', discount: '10', maxUses: '' })
+  const [form, setForm] = useState({ code: '', title: '', discountType: 'percentage', discount: '10', maxUses: '', minSpend: '0', expiresAt: '' })
   const [creating, setCreating] = useState(false)
   const [msg, setMsg] = useState('')
 
@@ -200,16 +224,22 @@ function PromoTab({ adminUid }) {
     e.preventDefault()
     const code = form.code.trim().toUpperCase()
     if (!code) { flash('请填写优惠码'); return }
-    const d = parseFloat(form.discount)
-    if (isNaN(d) || d <= 0) { flash('请输入有效折扣'); return }
+    let discountValue = 0
+    let d = 0
+    if (form.discountType !== 'free_shipping') {
+      d = parseFloat(form.discount)
+      if (isNaN(d) || d <= 0) { flash('请输入有效折扣'); return }
+      discountValue = form.discountType === 'percentage' ? d / 100 : d
+    }
     setCreating(true)
-    const discountValue = form.discountType === 'percentage' ? d / 100 : d
     await setDoc(doc(db, 'cheers_promo_codes', code), {
       code,
       title: form.title || code,
       discount: discountValue,
       discountType: form.discountType,
       maxUses: form.maxUses ? parseInt(form.maxUses) : null,
+      minSpend: parseFloat(form.minSpend) || 0,
+      expiresAt: form.expiresAt ? new Date(form.expiresAt + 'T23:59:59') : null,
       usedCount: 0,
       active: true,
       createdAt: serverTimestamp(),
@@ -251,17 +281,32 @@ function PromoTab({ adminUid }) {
               <select className="input" value={form.discountType} onChange={e => setForm(f => ({ ...f, discountType: e.target.value }))}>
                 <option value="percentage">百分比</option>
                 <option value="fixed">固定 RM</option>
+                <option value="free_shipping">免运费</option>
               </select>
             </div>
-            <div>
-              <label className="label">{form.discountType === 'percentage' ? '折扣 (%)' : '金额 (RM)'}</label>
-              <input type="number" min="1" className="input" value={form.discount}
-                onChange={e => setForm(f => ({ ...f, discount: e.target.value }))} required />
-            </div>
+            {form.discountType !== 'free_shipping' ? (
+              <div>
+                <label className="label">{form.discountType === 'percentage' ? '折扣 (%)' : '金额 (RM)'}</label>
+                <input type="number" min="1" className="input" value={form.discount}
+                  onChange={e => setForm(f => ({ ...f, discount: e.target.value }))} required />
+              </div>
+            ) : <div />}
             <div>
               <label className="label">最多使用次数</label>
               <input type="number" min="1" className="input" placeholder="不限" value={form.maxUses}
                 onChange={e => setForm(f => ({ ...f, maxUses: e.target.value }))} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">最低消费 (RM，0 = 无限制)</label>
+              <input type="number" min="0" step="0.01" className="input" value={form.minSpend}
+                onChange={e => setForm(f => ({ ...f, minSpend: e.target.value }))} />
+            </div>
+            <div>
+              <label className="label">到期日（可选）</label>
+              <input type="date" className="input" value={form.expiresAt}
+                onChange={e => setForm(f => ({ ...f, expiresAt: e.target.value }))} />
             </div>
           </div>
           <button type="submit" disabled={creating} className="btn-primary w-full py-2">
@@ -288,8 +333,10 @@ function PromoTab({ adminUid }) {
                     <span className="text-xs text-cheers-dark-brown">{c.title}</span>
                     <span className="text-xs font-medium text-cheers-brown">{formatDiscount(c.discountType === 'percentage' ? Math.round(c.discount * 100) : c.discount, c.discountType)}</span>
                   </div>
-                  <p className="text-xs text-cheers-brown/50 mt-0.5">
-                    已使用 {c.usedCount || 0}{c.maxUses ? ` / ${c.maxUses}` : ''} 次
+                  <p className="text-xs text-cheers-brown/50 mt-0.5 flex items-center gap-2 flex-wrap">
+                    <span>已使用 {c.usedCount || 0}{c.maxUses ? ` / ${c.maxUses}` : ''} 次</span>
+                    {c.minSpend > 0 && <span className="text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded text-[10px]">满 RM {Number(c.minSpend).toFixed(2)}</span>}
+                    {c.expiresAt && <span className="text-cheers-brown/40 text-[10px]">至 {(c.expiresAt?.toDate?.() || new Date(c.expiresAt)).toLocaleDateString('zh-MY')}</span>}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
