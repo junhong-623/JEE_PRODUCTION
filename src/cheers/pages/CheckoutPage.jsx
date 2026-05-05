@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getFirestore, doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore'
+import emailjs from '@emailjs/browser'
 import app from '../../lib/firebase'
 import { useLang } from '../contexts/LangContext'
 import { useCart } from '../contexts/CartContext'
@@ -85,6 +86,31 @@ export default function CheckoutPage() {
       }
       const ref = await addDoc(collection(db, 'cheers_orders'), orderData)
       await clearCart()
+
+      // Fire-and-forget admin notification (temporarily disabled)
+      const { notificationEmail, emailjsTemplateId } = settings || {}
+      if (false && notificationEmail && emailjsTemplateId) {
+        const deliveryInfo = deliveryType === 'face-to-face'
+          ? `面交 · ${location}`
+          : `邮寄 · ${region === 'east' ? '东马' : '西马'} · ${form.postcode} ${form.city}, ${form.state}`
+        emailjs.send(
+          import.meta.env.VITE_EMAILJS_SERVICE_ID,
+          emailjsTemplateId,
+          {
+            to_email:      notificationEmail,
+            order_id:      orderId,
+            customer_name: form.name,
+            customer_email: user.email,
+            customer_phone: form.phone || '—',
+            order_items:   items.map(i => `${i.name}${i.size ? ` (${i.size})` : ''} × ${i.quantity}  RM${(i.price * i.quantity).toFixed(2)}`).join('\n'),
+            order_total:   `RM ${total.toFixed(2)}`,
+            delivery_info: deliveryInfo,
+            order_date:    new Date().toLocaleString('zh-MY'),
+          },
+          import.meta.env.VITE_EMAILJS_PUBLIC_KEY
+        ).catch(() => {})
+      }
+
       navigate(`/payment/${ref.id}`, { state: { orderId, total, paymentMode: settings?.paymentMode } })
     } catch (err) {
       setError(err.message)

@@ -11,6 +11,8 @@ export default function ContactSettingsPage() {
     chatTool: 'whatsapp',
     whatsappNumber: '',
     telegramLink: '',
+    notificationEmail: '',
+    emailjsTemplateId: '',
   })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -23,6 +25,8 @@ export default function ContactSettingsPage() {
           chatTool: d.chatTool || 'whatsapp',
           whatsappNumber: d.whatsappNumber || '',
           telegramLink: d.telegramLink || '',
+          notificationEmail: d.notificationEmail || '',
+          emailjsTemplateId: d.emailjsTemplateId || '',
         })
       }
     })
@@ -35,6 +39,8 @@ export default function ContactSettingsPage() {
       chatTool: form.chatTool,
       whatsappNumber: form.whatsappNumber,
       telegramLink: form.telegramLink,
+      notificationEmail: form.notificationEmail,
+      emailjsTemplateId: form.emailjsTemplateId,
     }, { merge: true })
     setSaving(false)
     setSaved(true)
@@ -81,6 +87,24 @@ export default function ContactSettingsPage() {
               placeholder="例：@yourname 或 https://t.me/yourname" />
           </div>
         )}
+
+        {/* EmailJS notification */}
+        <div className="card p-4 space-y-3">
+          <h2 className="font-medium text-cheers-dark-brown">新订单邮件通知</h2>
+          <div>
+            <label className="label">通知邮箱</label>
+            <input className="input" type="email" value={form.notificationEmail}
+              onChange={e => setForm(f => ({ ...f, notificationEmail: e.target.value }))}
+              placeholder="例：you@email.com" />
+          </div>
+          <div>
+            <label className="label">EmailJS Template ID</label>
+            <input className="input font-mono text-sm" value={form.emailjsTemplateId}
+              onChange={e => setForm(f => ({ ...f, emailjsTemplateId: e.target.value }))}
+              placeholder="例：template_xxxxxxx" />
+            <p className="text-xs text-cheers-brown/50 mt-1">在 EmailJS 后台创建模板后填入 ID，模板参数参考 scripts/cheers-emailjs-template.txt</p>
+          </div>
+        </div>
 
         <button type="submit" disabled={saving} className="btn-primary w-full py-3">
           {saving ? t('admin.saving') : saved ? '✓ ' + t('admin.saved') : t('admin.save')}

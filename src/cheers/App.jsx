@@ -36,6 +36,7 @@ const AdminContact         = lazy(() => import('./pages/admin/ContactSettingsPag
 const AdminPolicies        = lazy(() => import('./pages/admin/PoliciesPage'))
 const AdminActivity        = lazy(() => import('./pages/admin/ActivitySettingsPage'))
 const AdminAdmins          = lazy(() => import('./pages/admin/AdminsPage'))
+const AdminCreateOrder     = lazy(() => import('./pages/admin/CreateOrderPage'))
 
 function PageLoader() {
   return (
@@ -89,6 +90,7 @@ export default function CheersApp() {
                         <Route path="settings/policies" element={<AdminPolicies />} />
                         <Route path="settings/activity" element={<AdminActivity />} />
                         <Route path="admins" element={<AdminAdmins />} />
+                        <Route path="orders/new" element={<AdminCreateOrder />} />
                       </Route>
 
                       <Route path="*" element={<Navigate to="/" replace />} />

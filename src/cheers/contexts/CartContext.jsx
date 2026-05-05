@@ -92,9 +92,9 @@ export function CartProvider({ children }) {
     })
   }, [user])
 
-  const removeFromCart = useCallback(async (productId) => {
+  const removeFromCart = useCallback(async (productId, size = undefined) => {
     setItems(prev => {
-      const next = prev.filter(i => i.productId !== productId)
+      const next = prev.filter(i => !(i.productId === productId && i.size === size))
       if (user) {
         setDoc(doc(db, 'cheers_carts', user.uid), { items: next }, { merge: true })
       } else {
@@ -104,10 +104,10 @@ export function CartProvider({ children }) {
     })
   }, [user])
 
-  const updateQuantity = useCallback(async (productId, quantity) => {
-    if (quantity < 1) return removeFromCart(productId)
+  const updateQuantity = useCallback(async (productId, quantity, size = undefined) => {
+    if (quantity < 1) return removeFromCart(productId, size)
     setItems(prev => {
-      const next = prev.map(i => i.productId === productId ? { ...i, quantity } : i)
+      const next = prev.map(i => i.productId === productId && i.size === size ? { ...i, quantity } : i)
       if (user) {
         setDoc(doc(db, 'cheers_carts', user.uid), { items: next }, { merge: true })
       } else {
