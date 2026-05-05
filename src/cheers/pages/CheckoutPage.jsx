@@ -37,7 +37,7 @@ function CouponModal({ coupon, savings, subtotal, lang, onApply, onSkip }) {
         <p className="text-xs text-cheers-brown/50 mb-4">
           {lang === 'zh' ? `可省 RM ${savings.toFixed(2)}` : `Save RM ${savings.toFixed(2)}`}
         </p>
-        <CouponTicket coupon={coupon} lang={lang} subtotal={effectiveSubtotal} />
+        <CouponTicket coupon={coupon} lang={lang} subtotal={subtotal} />
         <div className="flex gap-3 mt-4">
           <button onClick={onSkip} className="btn-secondary flex-1 py-2">{lang === 'zh' ? '不使用' : 'Skip'}</button>
           <button onClick={onApply} className="btn-primary flex-1 py-2">{lang === 'zh' ? '立即使用' : 'Apply'}</button>
