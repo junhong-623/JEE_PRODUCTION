@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react'
-import { getFirestore, collection, getDocs, doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
+import { getFirestore, collection, getDocs, doc, addDoc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import app from '../../../lib/firebase'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -26,11 +26,16 @@ function PersonalTab({ adminUid }) {
     setLoading(true)
     const [usersSnap, couponsSnap] = await Promise.all([
       getDocs(collection(db, 'cheers_users')),
-      getDocs(collection(db, 'cheers_coupons')),
+      getDocs(collection(db, 'cheers_user_coupons')),
     ])
     setUsers(usersSnap.docs.map(d => ({ uid: d.id, ...d.data() })))
+    // Group coupons by userId (multiple per user now)
     const map = {}
-    couponsSnap.forEach(d => { map[d.id] = d.data() })
+    couponsSnap.forEach(d => {
+      const uid = d.data().userId
+      if (!map[uid]) map[uid] = []
+      map[uid].push({ id: d.id, ...d.data() })
+    })
     setCoupons(map)
     setLoading(false)
   }
@@ -61,12 +66,12 @@ function PersonalTab({ adminUid }) {
     setIssuing(true)
     const discountValue = form.discountType === 'percentage' ? d / 100 : d
     await Promise.all([...selected].map(uid =>
-      setDoc(doc(db, 'cheers_coupons', uid), {
+      addDoc(collection(db, 'cheers_user_coupons'), {
+        userId: uid,
         code: `ADMIN${Math.floor(Math.random() * 9000 + 1000)}`,
         title: form.title || (form.discountType === 'percentage' ? `${d}% 折扣` : `RM${d} 减免`),
         discount: discountValue,
         discountType: form.discountType,
-        type: form.discountType,
         used: false,
         grantedAt: serverTimestamp(),
         usedAt: null,
@@ -79,9 +84,9 @@ function PersonalTab({ adminUid }) {
     setIssuing(false)
   }
 
-  async function handleVoid(uid) {
+  async function handleVoid(couponId) {
     if (!confirm('确认作废此优惠券？')) return
-    await updateDoc(doc(db, 'cheers_coupons', uid), { used: true, usedAt: serverTimestamp() })
+    await updateDoc(doc(db, 'cheers_user_coupons', couponId), { used: true, usedAt: serverTimestamp() })
     flash('已作废')
     load()
   }
@@ -139,27 +144,29 @@ function PersonalTab({ adminUid }) {
         ) : (
           <div className="divide-y divide-cheers-cream max-h-80 overflow-y-auto">
             {filtered.map(u => {
-              const coupon = coupons[u.uid]
+              const userCoupons = coupons[u.uid] || []
+              const activeCoupons = userCoupons.filter(c => !c.used)
               return (
-                <label key={u.uid} className="flex items-center gap-3 px-4 py-2.5 hover:bg-cheers-cream/20 cursor-pointer">
+                <label key={u.uid} className="flex items-start gap-3 px-4 py-2.5 hover:bg-cheers-cream/20 cursor-pointer">
                   <input type="checkbox" checked={selected.has(u.uid)} onChange={() => toggleSelect(u.uid)}
-                    className="w-4 h-4 accent-cheers-brown flex-shrink-0" />
+                    className="w-4 h-4 accent-cheers-brown flex-shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-cheers-dark-brown truncate">{u.displayName || '（无名称）'}</p>
                     <p className="text-xs text-cheers-brown/50 truncate">{u.email}</p>
+                    {userCoupons.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {userCoupons.map(c => (
+                          <span key={c.id} className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full ${c.used ? 'bg-gray-100 text-gray-400' : 'bg-green-100 text-green-700'}`}>
+                            {c.title || c.code}
+                            {!c.used && (
+                              <button type="button" onClick={e => { e.preventDefault(); handleVoid(c.id) }}
+                                className="hover:text-red-500 ml-0.5">×</button>
+                            )}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  {coupon && (
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="text-xs text-cheers-brown">{coupon.title || coupon.code}</span>
-                      <span className={`badge-status ${coupon.used ? 'bg-gray-100 text-gray-400' : 'bg-green-100 text-green-700'}`}>
-                        {coupon.used ? '已使用' : '可用'}
-                      </span>
-                      {!coupon.used && (
-                        <button type="button" onClick={e => { e.preventDefault(); handleVoid(u.uid) }}
-                          className="text-xs text-red-400 hover:text-red-600">作废</button>
-                      )}
-                    </div>
-                  )}
                 </label>
               )
             })}

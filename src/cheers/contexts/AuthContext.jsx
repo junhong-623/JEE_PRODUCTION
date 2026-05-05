@@ -4,7 +4,7 @@ import {
   createUserWithEmailAndPassword, signOut, GoogleAuthProvider,
   signInWithPopup, updateProfile,
 } from 'firebase/auth'
-import { getFirestore, doc, getDoc, setDoc, serverTimestamp, runTransaction } from 'firebase/firestore'
+import { getFirestore, doc, getDoc, setDoc, addDoc, collection, getDocs, query, where, serverTimestamp, runTransaction } from 'firebase/firestore'
 import app from '../../lib/firebase'
 
 const auth = getAuth(app)
@@ -34,9 +34,11 @@ export function AuthProvider({ children }) {
 
   async function grantCouponIfNew(uid) {
     try {
-      const couponRef = doc(db, 'cheers_coupons', uid)
-      const existing = await getDoc(couponRef)
-      if (existing.exists()) return null
+      // Check if already has EARLY100
+      const existingSnap = await getDocs(
+        query(collection(db, 'cheers_user_coupons'), where('userId', '==', uid), where('code', '==', 'EARLY100'))
+      )
+      if (!existingSnap.empty) return null
 
       const counterRef = doc(db, 'cheers_counters', 'registrations')
       let rank = null
@@ -47,10 +49,12 @@ export function AuthProvider({ children }) {
       })
 
       if (rank <= 100) {
-        await setDoc(couponRef, {
+        await addDoc(collection(db, 'cheers_user_coupons'), {
+          userId: uid,
           code: 'EARLY100',
+          title: '早鸟专属优惠',
           discount: 0.10,
-          type: 'percentage',
+          discountType: 'percentage',
           used: false,
           grantedAt: serverTimestamp(),
           usedAt: null,

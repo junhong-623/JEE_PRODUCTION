@@ -103,6 +103,11 @@ service cloud.firestore {
       allow read, write: if isAdmin();
       allow create: if signedIn() && request.auth.uid == uid;
     }
+    match /cheers_user_coupons/{couponId} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow read, write: if isAdmin();
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+    }
     match /cheers_counters/{doc} {
       allow read: if signedIn();
       allow write: if signedIn();
