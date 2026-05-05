@@ -11,10 +11,10 @@ import CouponTicket, { applyDiscount, formatDiscount, computeSavings, findBestCo
 const db = getFirestore(app)
 
 const MY_STATES = [
-  '吉隆坡', '布城', '纳闽',
-  '雪兰莪', '柔佛', '吉打', '吉兰丹', '马六甲',
-  '森美兰', '彭亨', '霹雳', '玻璃市', '槟城', '登嘉楼',
-  '沙巴', '砂拉越',
+  'Kuala Lumpur', 'Putrajaya', 'Labuan',
+  'Selangor', 'Johor', 'Kedah', 'Kelantan', 'Melaka',
+  'Negeri Sembilan', 'Pahang', 'Perak', 'Perlis', 'Pulau Pinang', 'Terengganu',
+  'Sabah', 'Sarawak',
 ]
 
 function detectRegion(postcode) {
