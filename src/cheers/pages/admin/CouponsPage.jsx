@@ -360,7 +360,7 @@ function PromoTab({ adminUid }) {
 // ── Recommend Settings Tab ───────────────────────────────────────────────────
 function SettingsTab() {
   const [categories, setCategories] = useState([])
-  const [upsellCatId, setUpsellCatId] = useState('')
+  const [upsellCatIds, setUpsellCatIds] = useState([])
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
 
@@ -370,15 +370,35 @@ function SettingsTab() {
         getDoc(doc(db, 'cheers_settings', 'global')),
         getDocs(collection(db, 'cheers_categories')),
       ])
-      if (settingsSnap.exists()) setUpsellCatId(settingsSnap.data().couponUpsellCategoryId || '')
+      if (settingsSnap.exists()) {
+        const sd = settingsSnap.data()
+        // Support legacy single string field
+        const ids = sd.couponUpsellCategoryIds?.length
+          ? sd.couponUpsellCategoryIds
+          : sd.couponUpsellCategoryId ? [sd.couponUpsellCategoryId] : []
+        setUpsellCatIds(ids)
+      }
       setCategories(catsSnap.docs.map(d => ({ id: d.id, ...d.data() })))
     }
     load()
   }, [])
 
+  const isAll = upsellCatIds.includes('__all__')
+
+  function toggleAll(checked) {
+    setUpsellCatIds(checked ? ['__all__'] : [])
+  }
+
+  function toggleCat(id, checked) {
+    setUpsellCatIds(prev => checked ? [...prev, id] : prev.filter(x => x !== id))
+  }
+
   async function handleSave() {
     setSaving(true)
-    await setDoc(doc(db, 'cheers_settings', 'global'), { couponUpsellCategoryId: upsellCatId || null }, { merge: true })
+    await setDoc(doc(db, 'cheers_settings', 'global'),
+      { couponUpsellCategoryIds: upsellCatIds.length ? upsellCatIds : null },
+      { merge: true }
+    )
     setSaving(false)
     setMsg('已保存')
     setTimeout(() => setMsg(''), 3000)
@@ -389,15 +409,25 @@ function SettingsTab() {
       {msg && <div className="px-4 py-2 bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg">{msg}</div>}
       <div className="card p-4 space-y-3">
         <div>
-          <h2 className="font-medium text-cheers-dark-brown mb-1">优惠券快差一点时推荐的商品分类</h2>
-          <p className="text-xs text-cheers-brown/50 mb-3">当顾客有优惠券但未达门槛时，在结账页弹窗推荐此分类下最接近差额价格的 3 件商品。</p>
-          <label className="label">推荐商品分类</label>
-          <select className="input" value={upsellCatId} onChange={e => setUpsellCatId(e.target.value)}>
-            <option value="">不设置（不显示推荐）</option>
+          <h2 className="font-medium text-cheers-dark-brown mb-1">优惠券未达门槛时的推荐商品分类</h2>
+          <p className="text-xs text-cheers-brown/50 mb-3">当顾客有优惠券但未达门槛时，推荐这些分类下最接近差额价格的 3 件商品。不勾选则不显示推荐。</p>
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            <label className="flex items-center gap-2 cursor-pointer py-1 border-b border-cheers-cream">
+              <input type="checkbox" checked={isAll} onChange={e => toggleAll(e.target.checked)}
+                className="w-4 h-4 accent-cheers-brown" />
+              <span className="text-sm font-medium text-cheers-dark-brown">全部分类</span>
+            </label>
             {categories.map(c => (
-              <option key={c.id} value={c.id}>{c.name?.zh || c.name?.en || c.id}</option>
+              <label key={c.id} className={`flex items-center gap-2 cursor-pointer py-0.5 ${isAll ? 'opacity-40' : ''}`}>
+                <input type="checkbox"
+                  checked={isAll || upsellCatIds.includes(c.id)}
+                  disabled={isAll}
+                  onChange={e => toggleCat(c.id, e.target.checked)}
+                  className="w-4 h-4 accent-cheers-brown" />
+                <span className="text-sm text-cheers-dark-brown">{c.name?.zh || c.name?.en || c.id}</span>
+              </label>
             ))}
-          </select>
+          </div>
         </div>
         <button onClick={handleSave} disabled={saving} className="btn-primary py-2 px-6">
           {saving ? '保存中…' : '保存设置'}

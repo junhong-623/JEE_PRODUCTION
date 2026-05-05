@@ -10,6 +10,13 @@ import CouponTicket, { applyDiscount, formatDiscount, computeSavings, findBestCo
 
 const db = getFirestore(app)
 
+const MY_STATES = [
+  'Kuala Lumpur', 'Putrajaya', 'Labuan',
+  'Selangor', 'Johor', 'Kedah', 'Kelantan', 'Melaka',
+  'Negeri Sembilan', 'Pahang', 'Perak', 'Perlis', 'Pulau Pinang', 'Terengganu',
+  'Sabah', 'Sarawak',
+]
+
 function detectRegion(postcode) {
   const n = parseInt(postcode, 10)
   if (!postcode || postcode.length < 5 || isNaN(n)) return null
@@ -49,6 +56,15 @@ function CouponModal({ coupon, savings, subtotal, lang, onApply, onSkip }) {
 
 function UpsellModal({ coupon, shortfall, products, lang, onClose }) {
   const nav = useNavigate()
+  const { addToCart } = useCart()
+  const [added, setAdded] = React.useState({})
+
+  async function handleAdd(p) {
+    await addToCart(p, 1, undefined)
+    setAdded(prev => ({ ...prev, [p.id]: true }))
+    setTimeout(onClose, 600)
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
       <div className="absolute inset-0 bg-cheers-dark-brown/40 backdrop-blur-sm" onClick={onClose} />
@@ -65,18 +81,30 @@ function UpsellModal({ coupon, shortfall, products, lang, onClose }) {
           {products.map(p => {
             const name = typeof p.name === 'object' ? (p.name?.[lang] || p.name?.zh) : p.name
             const img = p.imageUrls?.[0] || p.imageUrl
+            const hasSizes = p.sizes?.length > 0
             return (
-              <div key={p.id} onClick={() => { onClose(); nav(`/products/${p.id}`) }}
-                className="flex items-center gap-3 bg-white rounded-xl px-3 py-2.5 cursor-pointer hover:bg-cheers-cream/30 transition-colors">
-                {img
-                  ? <img src={img} alt={name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
-                  : <div className="w-12 h-12 rounded-lg bg-cheers-cream flex-shrink-0" />
-                }
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-cheers-dark-brown truncate">{name}</p>
-                  <p className="text-xs text-cheers-brown">RM {Number(p.price).toFixed(2)}</p>
+              <div key={p.id} className="flex items-center gap-3 bg-white rounded-xl px-3 py-2.5 transition-colors">
+                <div className="cursor-pointer flex items-center gap-3 flex-1 min-w-0" onClick={() => { onClose(); nav(`/products/${p.id}`) }}>
+                  {img
+                    ? <img src={img} alt={name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+                    : <div className="w-12 h-12 rounded-lg bg-cheers-cream flex-shrink-0" />
+                  }
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-cheers-dark-brown truncate">{name}</p>
+                    <p className="text-xs text-cheers-brown">RM {Number(p.price).toFixed(2)}</p>
+                  </div>
                 </div>
-                <span className="text-cheers-brown/30 flex-shrink-0 text-sm">›</span>
+                {hasSizes ? (
+                  <button onClick={() => { onClose(); nav(`/products/${p.id}`) }}
+                    className="flex-shrink-0 text-xs border border-cheers-brown/30 text-cheers-brown px-2 py-1 rounded-lg hover:border-cheers-brown transition-colors">
+                    {lang === 'zh' ? '选规格' : 'Options'}
+                  </button>
+                ) : (
+                  <button onClick={() => handleAdd(p)} disabled={!!added[p.id]}
+                    className={`flex-shrink-0 text-xs px-2 py-1 rounded-lg transition-colors ${added[p.id] ? 'bg-green-100 text-green-700' : 'bg-cheers-brown text-cheers-cream hover:bg-cheers-dark-brown'}`}>
+                    {added[p.id] ? '✓' : (lang === 'zh' ? '+购物车' : '+Cart')}
+                  </button>
+                )}
               </div>
             )
           })}
@@ -99,6 +127,7 @@ export default function CheckoutPage() {
   const [deliveryType, setDeliveryType] = useState('shipping')
   const [location, setLocation] = useState('')
   const [form, setForm] = useState({ name: '', phone: '', address: '', postcode: '', city: '', state: '' })
+  const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -179,11 +208,17 @@ export default function CheckoutPage() {
             setShowPopup(true)
           } else {
             const nearMiss = findNearMissCoupon(coupons, effectiveForPopup)
-            const upsellCatId = settingsSnap.data()?.couponUpsellCategoryId
-            if (nearMiss && upsellCatId) {
+            const sd = settingsSnap.data() || {}
+            const upsellCatIds = sd.couponUpsellCategoryIds?.length
+              ? sd.couponUpsellCategoryIds
+              : sd.couponUpsellCategoryId ? [sd.couponUpsellCategoryId] : null
+            if (nearMiss && upsellCatIds?.length) {
               const shortfall = nearMiss.minSpend - effectiveForPopup
+              const isAll = upsellCatIds.includes('__all__')
               const productsSnap = await getDocs(
-                query(collection(db, 'cheers_products'), where('categoryId', '==', upsellCatId), where('inStock', '==', true))
+                isAll
+                  ? query(collection(db, 'cheers_products'), where('inStock', '==', true))
+                  : query(collection(db, 'cheers_products'), where('categoryId', 'in', upsellCatIds), where('inStock', '==', true))
               )
               const sorted = productsSnap.docs
                 .map(d => ({ id: d.id, ...d.data() }))
@@ -259,6 +294,7 @@ export default function CheckoutPage() {
         subtotal, shippingFee, total,
         status: 'pending',
         paymentMode: settings?.paymentMode || 'full',
+        notes: notes.trim() || null,
         createdAt: serverTimestamp(),
         ...(addonInfo ? { isAddon: true, parentOrderId: addonInfo.parentOrderId } : {}),
         ...(couponIsValid && selectedCoupon ? {
@@ -432,12 +468,23 @@ export default function CheckoutPage() {
                   </div>
                   <div>
                     <label className="label">{t('checkout.state')}</label>
-                    <input className={`input ${addonInfo ? 'bg-cheers-cream/20 cursor-not-allowed' : ''}`} value={form.state}
-                      onChange={e => !addonInfo && setForm(f => ({ ...f, state: e.target.value }))} readOnly={!!addonInfo} required />
+                    <select className={`input ${addonInfo ? 'bg-cheers-cream/20 cursor-not-allowed' : ''}`} value={form.state}
+                      onChange={e => !addonInfo && setForm(f => ({ ...f, state: e.target.value }))} disabled={!!addonInfo} required>
+                      <option value="">{lang === 'zh' ? '选择州属' : 'Select state'}</option>
+                      {MY_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
                   </div>
                 </div>
               </>
             )}
+          </div>
+
+          {/* Order notes */}
+          <div className="card p-4">
+            <label className="label">{lang === 'zh' ? '订单备注（选填）' : 'Order Notes (optional)'}</label>
+            <textarea className="input resize-none" rows={2}
+              placeholder={lang === 'zh' ? '例：请帮我确认尺码后再下单' : 'e.g. Please confirm size before ordering'}
+              value={notes} onChange={e => setNotes(e.target.value)} />
           </div>
 
           {/* Coupon section — collapsible */}
