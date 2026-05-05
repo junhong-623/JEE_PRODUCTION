@@ -10,6 +10,13 @@ import CouponTicket, { applyDiscount, formatDiscount, computeSavings, findBestCo
 
 const db = getFirestore(app)
 
+const MY_STATES = [
+  '吉隆坡', '布城', '纳闽',
+  '雪兰莪', '柔佛', '吉打', '吉兰丹', '马六甲',
+  '森美兰', '彭亨', '霹雳', '玻璃市', '槟城', '登嘉楼',
+  '沙巴', '砂拉越',
+]
+
 function detectRegion(postcode) {
   const n = parseInt(postcode, 10)
   if (!postcode || postcode.length < 5 || isNaN(n)) return null
@@ -99,6 +106,7 @@ export default function CheckoutPage() {
   const [deliveryType, setDeliveryType] = useState('shipping')
   const [location, setLocation] = useState('')
   const [form, setForm] = useState({ name: '', phone: '', address: '', postcode: '', city: '', state: '' })
+  const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -259,6 +267,7 @@ export default function CheckoutPage() {
         subtotal, shippingFee, total,
         status: 'pending',
         paymentMode: settings?.paymentMode || 'full',
+        notes: notes.trim() || null,
         createdAt: serverTimestamp(),
         ...(addonInfo ? { isAddon: true, parentOrderId: addonInfo.parentOrderId } : {}),
         ...(couponIsValid && selectedCoupon ? {
@@ -432,12 +441,23 @@ export default function CheckoutPage() {
                   </div>
                   <div>
                     <label className="label">{t('checkout.state')}</label>
-                    <input className={`input ${addonInfo ? 'bg-cheers-cream/20 cursor-not-allowed' : ''}`} value={form.state}
-                      onChange={e => !addonInfo && setForm(f => ({ ...f, state: e.target.value }))} readOnly={!!addonInfo} required />
+                    <select className={`input ${addonInfo ? 'bg-cheers-cream/20 cursor-not-allowed' : ''}`} value={form.state}
+                      onChange={e => !addonInfo && setForm(f => ({ ...f, state: e.target.value }))} disabled={!!addonInfo} required>
+                      <option value="">{lang === 'zh' ? '选择州属' : 'Select state'}</option>
+                      {MY_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
                   </div>
                 </div>
               </>
             )}
+          </div>
+
+          {/* Order notes */}
+          <div className="card p-4">
+            <label className="label">{lang === 'zh' ? '订单备注（选填）' : 'Order Notes (optional)'}</label>
+            <textarea className="input resize-none" rows={2}
+              placeholder={lang === 'zh' ? '例：请帮我确认尺码后再下单' : 'e.g. Please confirm size before ordering'}
+              value={notes} onChange={e => setNotes(e.target.value)} />
           </div>
 
           {/* Coupon section — collapsible */}
