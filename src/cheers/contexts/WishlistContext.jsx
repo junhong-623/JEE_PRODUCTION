@@ -28,9 +28,12 @@ export function WishlistProvider({ children }) {
     if (!user) return
     setItems(prev => {
       if (prev.find(i => i.productId === product.id)) return prev
+      const rawName = product.name
+      const name = typeof rawName === 'object' ? (rawName?.zh || rawName?.en || '') : (rawName || '')
       const next = [...prev, {
         productId: product.id,
-        name: product.name,
+        name,
+        nameObj: typeof rawName === 'object' ? rawName : null,
         price: product.price,
         imageUrl: product.imageUrl || '',
         addedAt: Date.now(),

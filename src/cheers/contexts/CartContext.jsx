@@ -74,9 +74,11 @@ export function CartProvider({ children }) {
           index === idx ? { ...i, quantity: i.quantity + quantity } : i
         )
       } else {
+        const rawName = product.name
+        const name = typeof rawName === 'object' ? (rawName?.zh || rawName?.en || '') : (rawName || '')
         next = [...prev, {
           productId: product.id,
-          name: product.name,
+          name,
           price: product.price,
           imageUrl: product.imageUrl || '',
           quantity,
