@@ -1,21 +1,41 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useLang } from '../../contexts/LangContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { useCart } from '../../contexts/CartContext'
 import LanguageToggle from '../ui/LanguageToggle'
 
+const ACCOUNT_ITEMS = [
+  { tab: 'profile',  zh: '个人资料', en: 'Profile',   icon: '👤' },
+  { tab: 'address',  zh: '收货地址', en: 'Address',   icon: '📍' },
+  { tab: 'orders',   zh: '我的订单', en: 'My Orders', icon: '📦' },
+  { tab: 'coupons',  zh: '优惠券',   en: 'Coupons',  icon: '🎫' },
+  { tab: 'wishlist', zh: '收藏清单', en: 'Wishlist',  icon: '♡' },
+]
+
 export default function Navbar() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const { user, isAdmin, logout } = useAuth()
   const { totalItems } = useCart()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
+  const accountRef = useRef(null)
+
+  useEffect(() => {
+    if (!accountOpen) return
+    function handleClick(e) {
+      if (!accountRef.current?.contains(e.target)) setAccountOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [accountOpen])
 
   async function handleLogout() {
     await logout()
     navigate('/')
     setMenuOpen(false)
+    setAccountOpen(false)
   }
 
   const navLinkClass = ({ isActive }) =>
@@ -36,8 +56,6 @@ export default function Navbar() {
         {/* Desktop links */}
         <div className="hidden md:flex items-center gap-6">
           <NavLink to="/products" className={navLinkClass}>{t('nav.products')}</NavLink>
-          {user && <NavLink to="/wishlist" className={navLinkClass}>{t('nav.wishlist')}</NavLink>}
-          {user && <NavLink to="/orders" className={navLinkClass}>{t('nav.orders')}</NavLink>}
           {isAdmin && (
             <NavLink to="/admin" className={({ isActive }) =>
               `text-sm px-3 py-1 rounded-full transition-colors ${isActive ? 'bg-cheers-brown text-cheers-cream' : 'border border-cheers-brown text-cheers-brown hover:bg-cheers-brown hover:text-cheers-cream'}`
@@ -45,7 +63,7 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Right actions */}
+        {/* Right */}
         <div className="flex items-center gap-3">
           <LanguageToggle />
 
@@ -62,9 +80,38 @@ export default function Navbar() {
           </Link>
 
           {user ? (
-            <div className="hidden md:flex items-center gap-2">
-              <Link to="/account" className="text-sm text-cheers-brown/70 hover:text-cheers-brown transition-colors">{t('nav.account')}</Link>
-              <button onClick={handleLogout} className="btn-ghost text-sm py-1">{t('nav.logout')}</button>
+            /* Account dropdown */
+            <div className="hidden md:block relative" ref={accountRef}>
+              <button
+                onClick={() => setAccountOpen(o => !o)}
+                className="flex items-center gap-1 text-sm text-cheers-brown/70 hover:text-cheers-brown transition-colors"
+              >
+                {t('nav.account')}
+                <svg className={`w-3.5 h-3.5 transition-transform ${accountOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {accountOpen && (
+                <div className="absolute right-0 top-full mt-2 w-44 bg-white rounded-xl shadow-lg border border-cheers-cream/60 py-1 z-50">
+                  {ACCOUNT_ITEMS.map(item => (
+                    <Link key={item.tab}
+                      to={`/account?tab=${item.tab}`}
+                      onClick={() => setAccountOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2 text-sm text-cheers-dark-brown/70 hover:bg-cheers-cream/30 hover:text-cheers-brown transition-colors">
+                      <span className="text-base">{item.icon}</span>
+                      {lang === 'zh' ? item.zh : item.en}
+                    </Link>
+                  ))}
+                  <div className="border-t border-cheers-cream my-1" />
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2.5 px-4 py-2 text-sm text-red-400 hover:bg-red-50 transition-colors">
+                    <span className="text-base">🚪</span>
+                    {t('nav.logout')}
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="hidden md:flex items-center gap-2">
@@ -73,12 +120,8 @@ export default function Navbar() {
             </div>
           )}
 
-          {/* Mobile menu toggle */}
-          <button
-            className="md:hidden text-cheers-brown"
-            onClick={() => setMenuOpen(o => !o)}
-            aria-label="Menu"
-          >
+          {/* Mobile toggle */}
+          <button className="md:hidden text-cheers-brown" onClick={() => setMenuOpen(o => !o)} aria-label="Menu">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               {menuOpen
                 ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -92,22 +135,29 @@ export default function Navbar() {
       {menuOpen && (
         <div className="md:hidden border-t border-cheers-cream bg-cheers-light-cream px-4 py-4 flex flex-col gap-1">
           <NavLink to="/products" className={mobileNavLinkClass} onClick={() => setMenuOpen(false)}>{t('nav.products')}</NavLink>
-          {user && <NavLink to="/wishlist" className={mobileNavLinkClass} onClick={() => setMenuOpen(false)}>{t('nav.wishlist')}</NavLink>}
-          {user && <NavLink to="/orders" className={mobileNavLinkClass} onClick={() => setMenuOpen(false)}>{t('nav.orders')}</NavLink>}
           {isAdmin && <NavLink to="/admin" className={mobileNavLinkClass} onClick={() => setMenuOpen(false)}>{t('nav.admin')}</NavLink>}
-          <div className="pt-2 border-t border-cheers-cream flex flex-col gap-2">
-            {user ? (
-              <>
-                <NavLink to="/account" className={mobileNavLinkClass} onClick={() => setMenuOpen(false)}>{t('nav.account')}</NavLink>
-                <button onClick={handleLogout} className="btn-secondary text-sm text-left">{t('nav.logout')}</button>
-              </>
-            ) : (
-              <>
-                <Link to="/login" onClick={() => setMenuOpen(false)} className="btn-secondary text-sm text-center">{t('nav.login')}</Link>
-                <Link to="/register" onClick={() => setMenuOpen(false)} className="btn-primary text-sm text-center">{t('nav.register')}</Link>
-              </>
-            )}
-          </div>
+
+          {user ? (
+            <div className="pt-2 border-t border-cheers-cream flex flex-col gap-0.5 mt-1">
+              <p className="text-[10px] uppercase tracking-widest text-cheers-brown/40 mb-1">{t('nav.account')}</p>
+              {ACCOUNT_ITEMS.map(item => (
+                <Link key={item.tab} to={`/account?tab=${item.tab}`}
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-2 text-sm py-1 text-cheers-dark-brown/70 hover:text-cheers-brown">
+                  <span>{item.icon}</span>
+                  {lang === 'zh' ? item.zh : item.en}
+                </Link>
+              ))}
+              <button onClick={handleLogout} className="flex items-center gap-2 text-sm py-1 text-red-400 mt-1">
+                <span>🚪</span>{t('nav.logout')}
+              </button>
+            </div>
+          ) : (
+            <div className="pt-2 border-t border-cheers-cream flex flex-col gap-2 mt-1">
+              <Link to="/login" onClick={() => setMenuOpen(false)} className="btn-secondary text-sm text-center">{t('nav.login')}</Link>
+              <Link to="/register" onClick={() => setMenuOpen(false)} className="btn-primary text-sm text-center">{t('nav.register')}</Link>
+            </div>
+          )}
         </div>
       )}
     </nav>

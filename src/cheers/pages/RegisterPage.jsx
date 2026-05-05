@@ -2,27 +2,33 @@ import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useLang } from '../contexts/LangContext'
 import { useAuth } from '../contexts/AuthContext'
+import CouponTicket from '../components/ui/CouponTicket'
 
 function CouponGrantModal({ grant, lang, onClose }) {
+  const fakeCoupon = {
+    code: grant.code,
+    title: lang === 'zh' ? '早鸟专属优惠' : 'Early Bird Offer',
+    discount: 0.10,
+    discountType: 'percentage',
+    used: false,
+    rank: grant.rank,
+  }
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div className="absolute inset-0 bg-cheers-dark-brown/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center animate-slide-up">
-        <div className="text-5xl mb-3">🎉</div>
-        <h2 className="font-serif text-xl text-cheers-dark-brown mb-2">
-          {lang === 'zh' ? '恭喜！您获得优惠券' : 'Congratulations!'}
+      <div className="relative bg-cheers-light-cream rounded-2xl shadow-2xl max-w-sm w-full px-4 pt-6 pb-5 text-center animate-slide-up">
+        <div className="text-4xl mb-2">🎉</div>
+        <h2 className="font-serif text-lg text-cheers-dark-brown mb-1">
+          {lang === 'zh' ? '恭喜获得优惠券！' : 'Congratulations!'}
         </h2>
-        <p className="text-sm text-cheers-brown/70 mb-4">
+        <p className="text-sm text-cheers-brown/60 mb-4">
           {lang === 'zh'
-            ? `您是第 ${grant.rank} 位会员，已获得 10% 折扣优惠券！`
-            : `You're member #${grant.rank} — enjoy a 10% discount coupon!`}
+            ? `您是第 ${grant.rank} 位会员，专属优惠已发放`
+            : `You're member #${grant.rank} — here's your exclusive coupon`}
         </p>
-        <div className="bg-cheers-cream border-2 border-dashed border-cheers-brown/30 rounded-xl py-3 px-4 mb-5">
-          <p className="text-xs text-cheers-brown/50 mb-1">{lang === 'zh' ? '优惠码' : 'Coupon Code'}</p>
-          <p className="font-mono text-xl font-bold text-cheers-brown tracking-widest">{grant.code}</p>
-          <p className="text-xs text-cheers-brown/50 mt-1">{lang === 'zh' ? '结账时自动应用' : 'Applied automatically at checkout'}</p>
-        </div>
+        <CouponTicket coupon={fakeCoupon} lang={lang} />
+        <p className="text-xs text-green-600 mt-3 mb-4">{lang === 'zh' ? '✓ 结账时自动提醒使用' : '✓ Auto-prompted at checkout'}</p>
         <button onClick={onClose} className="btn-primary w-full py-2.5">
           {lang === 'zh' ? '太棒了！' : 'Awesome!'}
         </button>
