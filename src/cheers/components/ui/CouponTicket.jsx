@@ -31,6 +31,20 @@ export function computeSavings(subtotal, coupon) {
   return subtotal - applyDiscount(subtotal, coupon)
 }
 
+// Among coupons not yet eligible due to minSpend, find the one with highest potential savings
+export function findNearMissCoupon(coupons, subtotal) {
+  const candidates = coupons.filter(c =>
+    !isCouponExpired(c) && !c.used &&
+    c.minSpend > 0 && subtotal < c.minSpend
+  )
+  if (!candidates.length) return null
+  return candidates.reduce((best, c) => {
+    const bSavings = computeSavings(best.minSpend, best)
+    const cSavings = computeSavings(c.minSpend, c)
+    return cSavings > bSavings ? c : best
+  })
+}
+
 export function findBestCoupon(coupons, subtotal) {
   const eligible = coupons.filter(c =>
     isCouponEligible(c, subtotal) &&

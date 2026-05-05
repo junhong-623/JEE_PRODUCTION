@@ -6,7 +6,7 @@ import app from '../../lib/firebase'
 import { useLang } from '../contexts/LangContext'
 import { useCart } from '../contexts/CartContext'
 import { useAuth } from '../contexts/AuthContext'
-import CouponTicket, { applyDiscount, formatDiscount, computeSavings, findBestCoupon, isCouponEligible } from '../components/ui/CouponTicket'
+import CouponTicket, { applyDiscount, formatDiscount, computeSavings, findBestCoupon, findNearMissCoupon, isCouponEligible } from '../components/ui/CouponTicket'
 
 const db = getFirestore(app)
 
@@ -47,6 +47,48 @@ function CouponModal({ coupon, savings, subtotal, lang, onApply, onSkip }) {
   )
 }
 
+function UpsellModal({ coupon, shortfall, products, lang, onClose }) {
+  const nav = useNavigate()
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+      <div className="absolute inset-0 bg-cheers-dark-brown/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-cheers-light-cream rounded-2xl shadow-2xl max-w-sm w-full px-4 pt-5 pb-4 animate-slide-up">
+        <button onClick={onClose} className="absolute top-3 right-3 text-cheers-brown/40 hover:text-cheers-brown text-lg leading-none">×</button>
+        <div className="text-center mb-4">
+          <p className="text-3xl mb-1">🎫</p>
+          <p className="font-serif text-lg text-cheers-dark-brown leading-snug">
+            {lang === 'zh' ? `再加 RM ${shortfall.toFixed(2)} 即可使用` : `Add RM ${shortfall.toFixed(2)} more to unlock`}
+          </p>
+          <p className="text-xs text-cheers-brown/50 mt-1">{coupon.title} · {formatDiscount(coupon, lang)}</p>
+        </div>
+        <div className="space-y-2">
+          {products.map(p => {
+            const name = typeof p.name === 'object' ? (p.name?.[lang] || p.name?.zh) : p.name
+            const img = p.imageUrls?.[0] || p.imageUrl
+            return (
+              <div key={p.id} onClick={() => { onClose(); nav(`/products/${p.id}`) }}
+                className="flex items-center gap-3 bg-white rounded-xl px-3 py-2.5 cursor-pointer hover:bg-cheers-cream/30 transition-colors">
+                {img
+                  ? <img src={img} alt={name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+                  : <div className="w-12 h-12 rounded-lg bg-cheers-cream flex-shrink-0" />
+                }
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-cheers-dark-brown truncate">{name}</p>
+                  <p className="text-xs text-cheers-brown">RM {Number(p.price).toFixed(2)}</p>
+                </div>
+                <span className="text-cheers-brown/30 flex-shrink-0 text-sm">›</span>
+              </div>
+            )
+          })}
+        </div>
+        <button onClick={onClose} className="mt-3 w-full text-xs text-cheers-brown/40 hover:text-cheers-brown py-1">
+          {lang === 'zh' ? '暂不需要' : 'Maybe later'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function CheckoutPage() {
   const { t, lang } = useLang()
   const { items, subtotal, clearCart } = useCart()
@@ -73,6 +115,7 @@ export default function CheckoutPage() {
   const [codeChecking, setCodeChecking] = useState(false)
   const [showPopup, setShowPopup] = useState(false)
   const [popupCoupon, setPopupCoupon] = useState(null)
+  const [upsellModal, setUpsellModal] = useState(null) // { coupon, shortfall, products }
 
   useEffect(() => {
     if (items.length === 0) navigate('/cart')
@@ -129,9 +172,26 @@ export default function CheckoutPage() {
         const coupons = couponsSnap.docs.map(d => ({ id: d.id, _source: 'personal', ...d.data() }))
         setUserCoupons(coupons)
         if (coupons.length > 0) {
-          const best = findBestCoupon(coupons, subtotal + parentSubtotal)
-          setPopupCoupon(best)
-          setShowPopup(!!best)
+          const effectiveForPopup = subtotal + parentSubtotal
+          const best = findBestCoupon(coupons, effectiveForPopup)
+          if (best) {
+            setPopupCoupon(best)
+            setShowPopup(true)
+          } else {
+            const nearMiss = findNearMissCoupon(coupons, effectiveForPopup)
+            const upsellCatId = settingsSnap.data()?.couponUpsellCategoryId
+            if (nearMiss && upsellCatId) {
+              const shortfall = nearMiss.minSpend - effectiveForPopup
+              const productsSnap = await getDocs(
+                query(collection(db, 'cheers_products'), where('categoryId', '==', upsellCatId), where('inStock', '==', true))
+              )
+              const sorted = productsSnap.docs
+                .map(d => ({ id: d.id, ...d.data() }))
+                .sort((a, b) => Math.abs(a.price - shortfall) - Math.abs(b.price - shortfall))
+                .slice(0, 3)
+              if (sorted.length > 0) setUpsellModal({ coupon: nearMiss, shortfall, products: sorted })
+            }
+          }
         }
       }
     }
@@ -247,6 +307,16 @@ export default function CheckoutPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
+      {upsellModal && (
+        <UpsellModal
+          coupon={upsellModal.coupon}
+          shortfall={upsellModal.shortfall}
+          products={upsellModal.products}
+          lang={lang}
+          onClose={() => setUpsellModal(null)}
+        />
+      )}
+
       {showPopup && popupCoupon && (
         <CouponModal
           coupon={popupCoupon}
