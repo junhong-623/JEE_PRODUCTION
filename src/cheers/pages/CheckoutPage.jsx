@@ -87,9 +87,9 @@ export default function CheckoutPage() {
       const ref = await addDoc(collection(db, 'cheers_orders'), orderData)
       await clearCart()
 
-      // Fire-and-forget admin notification
+      // Fire-and-forget admin notification (temporarily disabled)
       const { notificationEmail, emailjsTemplateId } = settings || {}
-      if (notificationEmail && emailjsTemplateId) {
+      if (false && notificationEmail && emailjsTemplateId) {
         const deliveryInfo = deliveryType === 'face-to-face'
           ? `面交 · ${location}`
           : `邮寄 · ${region === 'east' ? '东马' : '西马'} · ${form.postcode} ${form.city}, ${form.state}`
