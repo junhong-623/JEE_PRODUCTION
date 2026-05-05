@@ -12,6 +12,17 @@ export function applyDiscount(subtotal, coupon) {
   return subtotal * (1 - coupon.discount)
 }
 
+export function computeSavings(subtotal, coupon) {
+  return subtotal - applyDiscount(subtotal, coupon)
+}
+
+export function findBestCoupon(coupons, subtotal) {
+  if (!coupons.length) return null
+  return coupons.reduce((best, c) => {
+    return computeSavings(subtotal, c) > computeSavings(subtotal, best) ? c : best
+  })
+}
+
 export default function CouponTicket({ coupon, lang, dim = false }) {
   const discountLabel = formatDiscount(coupon, lang)
   const title = coupon.title || (lang === 'zh' ? '专属优惠' : 'Special Offer')

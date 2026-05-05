@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { getAuth, updateProfile } from 'firebase/auth'
-import { getFirestore, doc, getDoc, setDoc, collection, query, where, orderBy, getDocs } from 'firebase/firestore'
+import { getFirestore, doc, getDoc, setDoc, collection, query, where, orderBy, getDocs, addDoc } from 'firebase/firestore'
 import app from '../../lib/firebase'
 import { useLang } from '../contexts/LangContext'
 import { useAuth } from '../contexts/AuthContext'
@@ -207,18 +207,18 @@ function OrdersTab({ user, lang, t }) {
 }
 
 function CouponsTab({ user, lang }) {
-  const [coupon, setCoupon] = useState(null)
+  const [coupons, setCoupons] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getDoc(doc(db, 'cheers_coupons', user.uid))
-      .then(snap => { if (snap.exists()) setCoupon(snap.data()) })
+    getDocs(query(collection(db, 'cheers_user_coupons'), where('userId', '==', user.uid)))
+      .then(snap => setCoupons(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (a.used ? 1 : 0) - (b.used ? 1 : 0))))
       .finally(() => setLoading(false))
   }, [user.uid])
 
   if (loading) return <div className="py-10 text-center text-cheers-brown/40">加载中…</div>
 
-  if (!coupon) return (
+  if (!coupons.length) return (
     <div className="py-16 text-center text-cheers-brown/50">
       <div className="text-4xl mb-3">🎫</div>
       <p>{lang === 'zh' ? '暂无优惠券' : 'No coupons yet'}</p>
@@ -226,11 +226,15 @@ function CouponsTab({ user, lang }) {
   )
 
   return (
-    <div className="max-w-sm py-2">
-      <CouponTicket coupon={coupon} lang={lang} />
-      {!coupon.used && (
-        <p className="text-xs text-green-600 text-center mt-3">{lang === 'zh' ? '✓ 结账时自动弹出提醒' : '✓ Auto-prompted at checkout'}</p>
-      )}
+    <div className="space-y-4 py-2">
+      {coupons.map(coupon => (
+        <div key={coupon.id}>
+          <CouponTicket coupon={coupon} lang={lang} dim={coupon.used} />
+          {!coupon.used && (
+            <p className="text-xs text-green-600 text-center mt-2">{lang === 'zh' ? '✓ 结账时可使用' : '✓ Available at checkout'}</p>
+          )}
+        </div>
+      ))}
     </div>
   )
 }

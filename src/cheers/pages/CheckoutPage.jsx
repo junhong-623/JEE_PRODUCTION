@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getFirestore, doc, getDoc, addDoc, collection, serverTimestamp, updateDoc, increment } from 'firebase/firestore'
+import { getFirestore, doc, getDoc, addDoc, getDocs, collection, query, where, serverTimestamp, updateDoc, increment } from 'firebase/firestore'
 import emailjs from '@emailjs/browser'
 import app from '../../lib/firebase'
 import { useLang } from '../contexts/LangContext'
 import { useCart } from '../contexts/CartContext'
 import { useAuth } from '../contexts/AuthContext'
-import CouponTicket, { applyDiscount, formatDiscount } from '../components/ui/CouponTicket'
+import CouponTicket, { applyDiscount, formatDiscount, computeSavings, findBestCoupon } from '../components/ui/CouponTicket'
 
 const db = getFirestore(app)
 
@@ -24,25 +24,23 @@ function generateOrderId() {
   return `CHEERS-${date}-${rand}`
 }
 
-function CouponModal({ coupon, lang, onApply, onSkip }) {
+// Popup shows best coupon in ticket style
+function CouponModal({ coupon, savings, lang, onApply, onSkip }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
       onClick={e => { if (e.target === e.currentTarget) onSkip() }}>
       <div className="absolute inset-0 bg-cheers-dark-brown/40 backdrop-blur-sm" onClick={onSkip} />
-      <div className="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center animate-slide-up">
-        <div className="text-4xl mb-3">🎫</div>
-        <h2 className="font-serif text-lg text-cheers-dark-brown mb-2">
-          {lang === 'zh' ? '您有优惠券！' : 'You have a coupon!'}
-        </h2>
-        <div className="bg-cheers-cream border-2 border-dashed border-cheers-brown/30 rounded-xl py-3 px-4 mb-4">
-          <p className="font-mono text-xl font-bold text-cheers-brown tracking-widest">{coupon.code}</p>
-          <p className="text-sm text-cheers-dark-brown mt-1">
-            {lang === 'zh' ? `商品总额 ${Math.round(coupon.discount * 100)}% 折扣（不含邮费）` : `${Math.round(coupon.discount * 100)}% off subtotal (excl. shipping)`}
-          </p>
-        </div>
-        <div className="flex gap-3">
-          <button onClick={onSkip} className="btn-secondary flex-1">{lang === 'zh' ? '不使用' : 'Skip'}</button>
-          <button onClick={onApply} className="btn-primary flex-1">{lang === 'zh' ? '立即使用' : 'Apply'}</button>
+      <div className="relative bg-cheers-light-cream rounded-2xl shadow-2xl max-w-sm w-full px-4 pt-5 pb-5 text-center animate-slide-up">
+        <p className="font-serif text-lg text-cheers-dark-brown mb-1">
+          {lang === 'zh' ? '您有优惠券可用！' : 'You have a coupon!'}
+        </p>
+        <p className="text-xs text-cheers-brown/50 mb-4">
+          {lang === 'zh' ? `可省 RM ${savings.toFixed(2)}` : `Save RM ${savings.toFixed(2)}`}
+        </p>
+        <CouponTicket coupon={coupon} lang={lang} />
+        <div className="flex gap-3 mt-4">
+          <button onClick={onSkip} className="btn-secondary flex-1 py-2">{lang === 'zh' ? '不使用' : 'Skip'}</button>
+          <button onClick={onApply} className="btn-primary flex-1 py-2">{lang === 'zh' ? '立即使用' : 'Apply'}</button>
         </div>
       </div>
     </div>
@@ -61,13 +59,16 @@ export default function CheckoutPage() {
   const [form, setForm] = useState({ name: '', phone: '', address: '', postcode: '', city: '', state: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [coupon, setCoupon] = useState(null)          // personal coupon
-  const [couponApplied, setCouponApplied] = useState(false)
-  const [showCouponModal, setShowCouponModal] = useState(false)
-  const [promoInput, setPromoInput] = useState('')
-  const [promoCode, setPromoCode] = useState(null)    // validated promo code
-  const [promoError, setPromoError] = useState('')
-  const [promoChecking, setPromoChecking] = useState(false)
+
+  // Coupon state
+  const [userCoupons, setUserCoupons] = useState([])       // personal unused coupons
+  const [selectedCoupon, setSelectedCoupon] = useState(null) // { coupon data + id + _source }
+  const [couponsExpanded, setCouponsExpanded] = useState(false)
+  const [codeInput, setCodeInput] = useState('')
+  const [codeResult, setCodeResult] = useState(null) // coupon obj | 'not_found'
+  const [codeChecking, setCodeChecking] = useState(false)
+  const [showPopup, setShowPopup] = useState(false)
+  const [popupCoupon, setPopupCoupon] = useState(null)
 
   useEffect(() => {
     if (items.length === 0) navigate('/cart')
@@ -75,36 +76,31 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     async function load() {
-      const [settingsSnap, addressSnap] = await Promise.all([
+      const [settingsSnap, addressSnap, couponsSnap] = await Promise.all([
         getDoc(doc(db, 'cheers_settings', 'global')),
         user ? getDoc(doc(db, 'cheers_addresses', user.uid)) : Promise.resolve(null),
+        user ? getDocs(query(collection(db, 'cheers_user_coupons'), where('userId', '==', user.uid), where('used', '==', false))) : Promise.resolve(null),
       ])
+
       if (settingsSnap.exists()) {
         setSettings(settingsSnap.data())
         if (!settingsSnap.data().faceToFaceEnabled) setDeliveryType('shipping')
       }
-      // Auto-fill saved address
+
       if (addressSnap?.exists()) {
         const a = addressSnap.data()
-        setForm(f => ({
-          ...f,
-          name: a.name || user?.displayName || '',
-          phone: a.phone || '',
-          address: a.address || '',
-          postcode: a.postcode || '',
-          city: a.city || '',
-          state: a.state || '',
-        }))
+        setForm(f => ({ ...f, name: a.name || user?.displayName || '', phone: a.phone || '', address: a.address || '', postcode: a.postcode || '', city: a.city || '', state: a.state || '' }))
       } else if (user) {
         setForm(f => ({ ...f, name: user.displayName || '' }))
       }
 
-      // Check coupon
-      if (user) {
-        const couponSnap = await getDoc(doc(db, 'cheers_coupons', user.uid))
-        if (couponSnap.exists() && !couponSnap.data().used) {
-          setCoupon({ ...couponSnap.data() })
-          setShowCouponModal(true)
+      if (couponsSnap) {
+        const coupons = couponsSnap.docs.map(d => ({ id: d.id, _source: 'personal', ...d.data() }))
+        setUserCoupons(coupons)
+        if (coupons.length > 0) {
+          const best = findBestCoupon(coupons, subtotal)
+          setPopupCoupon(best)
+          setShowPopup(true)
         }
       }
     }
@@ -116,31 +112,41 @@ export default function CheckoutPage() {
     : region === 'east' ? (settings?.shippingFeeEast || 0)
     : (settings?.shippingFeeWest ?? settings?.shippingFee ?? 0)
 
-  const activeCoupon = couponApplied ? coupon : promoCode
-  const discountedSubtotal = activeCoupon ? applyDiscount(subtotal, activeCoupon) : subtotal
-  const discount = subtotal - discountedSubtotal
-  const total = discountedSubtotal + shippingFee
+  const discountAmount = selectedCoupon ? computeSavings(subtotal, selectedCoupon) : 0
+  const total = subtotal - discountAmount + shippingFee
 
-  async function handlePromoApply() {
-    const code = promoInput.trim().toUpperCase()
+  function selectCoupon(c) {
+    setSelectedCoupon(prev => prev?.id === c.id && prev?._source === c._source ? null : c)
+    setCodeResult(null)
+    setCodeInput('')
+  }
+
+  async function handleCodeSearch() {
+    const code = codeInput.trim().toUpperCase()
     if (!code) return
-    setPromoChecking(true)
-    setPromoError('')
-    setPromoCode(null)
+    setCodeChecking(true)
+    setCodeResult(null)
     try {
-      const snap = await getDoc(doc(db, 'cheers_promo_codes', code))
-      if (!snap.exists() || !snap.data().active) {
-        setPromoError(lang === 'zh' ? '无效优惠码' : 'Invalid promo code')
-      } else {
-        const data = snap.data()
-        if (data.maxUses !== null && data.usedCount >= data.maxUses) {
-          setPromoError(lang === 'zh' ? '此优惠码已达使用上限' : 'Promo code limit reached')
-        } else {
-          setPromoCode(data)
-          setCouponApplied(false) // only one at a time
+      // Search personal coupons first
+      const personalSnap = await getDocs(
+        query(collection(db, 'cheers_user_coupons'), where('userId', '==', user.uid), where('code', '==', code), where('used', '==', false))
+      )
+      if (!personalSnap.empty) {
+        const d = personalSnap.docs[0]
+        setCodeResult({ id: d.id, _source: 'personal', ...d.data() })
+        return
+      }
+      // Search promo codes
+      const promoSnap = await getDoc(doc(db, 'cheers_promo_codes', code))
+      if (promoSnap.exists() && promoSnap.data().active) {
+        const data = promoSnap.data()
+        if (!data.maxUses || data.usedCount < data.maxUses) {
+          setCodeResult({ _source: 'promo', ...data })
+          return
         }
       }
-    } finally { setPromoChecking(false) }
+      setCodeResult('not_found')
+    } finally { setCodeChecking(false) }
   }
 
   async function handleSubmit(e) {
@@ -151,34 +157,25 @@ export default function CheckoutPage() {
     try {
       const orderId = generateOrderId()
       const orderData = {
-        orderId,
-        userId: user.uid,
-        userEmail: user.email,
-        userName: form.name,
+        orderId, userId: user.uid, userEmail: user.email, userName: form.name,
         items: items.map(i => ({ ...i })),
-        delivery: deliveryType === 'face-to-face'
-          ? { type: 'face-to-face', location }
-          : { type: 'shipping', region, ...form },
-        subtotal,
-        shippingFee,
-        total,
+        delivery: deliveryType === 'face-to-face' ? { type: 'face-to-face', location } : { type: 'shipping', region, ...form },
+        subtotal, shippingFee, total,
         status: 'pending',
         paymentMode: settings?.paymentMode || 'full',
         createdAt: serverTimestamp(),
-        ...(activeCoupon ? { coupon: { code: activeCoupon.code, discount: activeCoupon.discount, discountType: activeCoupon.discountType || 'percentage' }, discount } : {}),
+        ...(selectedCoupon ? {
+          coupon: { code: selectedCoupon.code, discount: selectedCoupon.discount, discountType: selectedCoupon.discountType || 'percentage', title: selectedCoupon.title },
+          discount: discountAmount,
+        } : {}),
       }
       const ref = await addDoc(collection(db, 'cheers_orders'), orderData)
 
-      // Mark coupon / promo code used
-      if (couponApplied && coupon) {
-        await updateDoc(doc(db, 'cheers_coupons', user.uid), {
-          used: true, usedAt: serverTimestamp(), usedOnOrder: orderId,
-        }).catch(() => {})
+      if (selectedCoupon?._source === 'personal' && selectedCoupon?.id) {
+        await updateDoc(doc(db, 'cheers_user_coupons', selectedCoupon.id), { used: true, usedAt: serverTimestamp(), usedOnOrder: orderId }).catch(() => {})
       }
-      if (promoCode) {
-        await updateDoc(doc(db, 'cheers_promo_codes', promoCode.code), {
-          usedCount: increment(1),
-        }).catch(() => {})
+      if (selectedCoupon?._source === 'promo' && selectedCoupon?.code) {
+        await updateDoc(doc(db, 'cheers_promo_codes', selectedCoupon.code), { usedCount: increment(1) }).catch(() => {})
       }
 
       await clearCart()
@@ -186,23 +183,14 @@ export default function CheckoutPage() {
       // Fire-and-forget admin notification (temporarily disabled)
       const { notificationEmail, emailjsTemplateId } = settings || {}
       if (false && notificationEmail && emailjsTemplateId) {
-        const deliveryInfo = deliveryType === 'face-to-face'
-          ? `面交 · ${location}`
-          : `邮寄 · ${region === 'east' ? '东马' : '西马'} · ${form.postcode} ${form.city}, ${form.state}`
-        emailjs.send(
-          import.meta.env.VITE_EMAILJS_SERVICE_ID,
-          emailjsTemplateId,
-          {
-            to_email: notificationEmail, order_id: orderId,
-            customer_name: form.name, customer_email: user.email,
-            customer_phone: form.phone || '—',
-            order_items: items.map(i => `${i.name}${i.size ? ` (${i.size})` : ''} × ${i.quantity}  RM${(i.price * i.quantity).toFixed(2)}`).join('\n'),
-            order_total: `RM ${total.toFixed(2)}`,
-            delivery_info: deliveryInfo,
-            order_date: new Date().toLocaleString('zh-MY'),
-          },
-          import.meta.env.VITE_EMAILJS_PUBLIC_KEY
-        ).catch(() => {})
+        const deliveryInfo = deliveryType === 'face-to-face' ? `面交 · ${location}` : `邮寄 · ${region === 'east' ? '东马' : '西马'} · ${form.postcode} ${form.city}, ${form.state}`
+        emailjs.send(import.meta.env.VITE_EMAILJS_SERVICE_ID, emailjsTemplateId, {
+          to_email: notificationEmail, order_id: orderId, customer_name: form.name,
+          customer_email: user.email, customer_phone: form.phone || '—',
+          order_items: items.map(i => `${i.name}${i.size ? ` (${i.size})` : ''} × ${i.quantity}  RM${(i.price * i.quantity).toFixed(2)}`).join('\n'),
+          order_total: `RM ${total.toFixed(2)}`, delivery_info: deliveryInfo,
+          order_date: new Date().toLocaleString('zh-MY'),
+        }, import.meta.env.VITE_EMAILJS_PUBLIC_KEY).catch(() => {})
       }
 
       navigate(`/payment/${ref.id}`, { state: { orderId, total, paymentMode: settings?.paymentMode } })
@@ -221,11 +209,13 @@ export default function CheckoutPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      {showCouponModal && coupon && (
+      {showPopup && popupCoupon && (
         <CouponModal
-          coupon={coupon} lang={lang}
-          onApply={() => { setCouponApplied(true); setShowCouponModal(false) }}
-          onSkip={() => { setCouponApplied(false); setShowCouponModal(false) }}
+          coupon={popupCoupon}
+          savings={computeSavings(subtotal, popupCoupon)}
+          lang={lang}
+          onApply={() => { setSelectedCoupon(popupCoupon); setShowPopup(false) }}
+          onSkip={() => setShowPopup(false)}
         />
       )}
 
@@ -235,29 +225,24 @@ export default function CheckoutPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
 
-          {/* Delivery method — shipping first */}
+          {/* Delivery — shipping first */}
           <div className="card p-4">
             <h2 className="font-medium text-cheers-dark-brown mb-3">{t('checkout.delivery')}</h2>
             <div className="space-y-2">
               <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${deliveryType === 'shipping' ? 'border-cheers-brown bg-cheers-cream/30' : 'border-cheers-cream hover:border-cheers-brown/40'}`}>
-                <input type="radio" name="delivery" value="shipping"
-                  checked={deliveryType === 'shipping'} onChange={() => setDeliveryType('shipping')}
-                  className="text-cheers-brown" />
+                <input type="radio" name="delivery" value="shipping" checked={deliveryType === 'shipping'} onChange={() => setDeliveryType('shipping')} className="text-cheers-brown" />
                 <div>
                   <p className="text-sm font-medium text-cheers-dark-brown">{t('checkout.shipping')}</p>
                   <p className="text-xs text-cheers-brown/60">
                     {lang === 'zh' ? '西马' : 'West MY'} RM {(settings.shippingFeeWest ?? settings.shippingFee ?? 0).toFixed(2)}
-                    {' · '}
-                    {lang === 'zh' ? '东马' : 'East MY'} RM {(settings.shippingFeeEast || 0).toFixed(2)}
+                    {' · '}{lang === 'zh' ? '东马' : 'East MY'} RM {(settings.shippingFeeEast || 0).toFixed(2)}
                     {' · '}{lang === 'zh' ? '根据邮编自动判断' : 'auto-detected from postcode'}
                   </p>
                 </div>
               </label>
               {settings.faceToFaceEnabled && (
                 <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${deliveryType === 'face-to-face' ? 'border-cheers-brown bg-cheers-cream/30' : 'border-cheers-cream hover:border-cheers-brown/40'}`}>
-                  <input type="radio" name="delivery" value="face-to-face"
-                    checked={deliveryType === 'face-to-face'} onChange={() => setDeliveryType('face-to-face')}
-                    className="text-cheers-brown" />
+                  <input type="radio" name="delivery" value="face-to-face" checked={deliveryType === 'face-to-face'} onChange={() => setDeliveryType('face-to-face')} className="text-cheers-brown" />
                   <div>
                     <p className="text-sm font-medium text-cheers-dark-brown">{t('checkout.faceToFace')}</p>
                     <p className="text-xs text-green-600">{t('checkout.faceToFaceHint')}</p>
@@ -265,16 +250,13 @@ export default function CheckoutPage() {
                 </label>
               )}
             </div>
-
             {deliveryType === 'face-to-face' && (
               <div className="mt-3">
                 <label className="label">{t('checkout.location')}</label>
                 <select value={location} onChange={e => setLocation(e.target.value)} className="input" required>
                   <option value="">{t('checkout.selectLocation')}</option>
                   {(settings.faceToFaceLocations || []).map((loc, i) => (
-                    <option key={i} value={loc.name?.[lang] || loc.name?.zh || loc.name}>
-                      {loc.name?.[lang] || loc.name?.zh || loc.name}
-                    </option>
+                    <option key={i} value={loc.name?.[lang] || loc.name?.zh || loc.name}>{loc.name?.[lang] || loc.name?.zh || loc.name}</option>
                   ))}
                 </select>
               </div>
@@ -294,13 +276,11 @@ export default function CheckoutPage() {
                 <input className="input" type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} required />
               </div>
             </div>
-
             {deliveryType === 'shipping' && (
               <>
                 <div>
                   <label className="label">{t('checkout.address')}</label>
-                  <textarea className="input resize-none" rows={2}
-                    value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} required />
+                  <textarea className="input resize-none" rows={2} value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} required />
                 </div>
                 <div className="grid sm:grid-cols-3 gap-3">
                   <div>
@@ -326,48 +306,75 @@ export default function CheckoutPage() {
             )}
           </div>
 
-          {/* Personal coupon */}
-          {coupon && !coupon.used && (
-            <div className="space-y-2">
-              <p className="text-xs text-cheers-brown/50 font-medium">{lang === 'zh' ? '您的优惠券' : 'Your Coupon'}</p>
-              <div className={`transition-opacity ${promoCode ? 'opacity-40 pointer-events-none' : ''}`}>
-                <CouponTicket coupon={coupon} lang={lang} />
+          {/* Coupon section — collapsible */}
+          <div className="card overflow-hidden">
+            <button type="button" onClick={() => setCouponsExpanded(v => !v)}
+              className="w-full px-4 py-3 flex items-center justify-between text-left">
+              <span className="text-sm font-medium text-cheers-dark-brown">
+                🎫 {userCoupons.length > 0
+                  ? (lang === 'zh' ? `我有 ${userCoupons.length} 张优惠券` : `${userCoupons.length} coupon${userCoupons.length > 1 ? 's' : ''} available`)
+                  : (lang === 'zh' ? '优惠券 / 优惠码' : 'Coupon / Promo Code')}
+              </span>
+              <div className="flex items-center gap-2">
+                {selectedCoupon && (
+                  <span className="text-xs text-green-600 font-medium">−RM {discountAmount.toFixed(2)}</span>
+                )}
+                <span className="text-cheers-brown/40 text-sm">{couponsExpanded ? '▲' : '▼'}</span>
               </div>
-              <div className="flex items-center justify-between px-3 pt-1">
-                <p className="text-xs text-cheers-brown/50">{lang === 'zh' ? '仅限商品总额，不含邮费' : 'Subtotal only, excl. shipping'}</p>
-                <button type="button" onClick={() => { setCouponApplied(v => !v); setPromoCode(null); setPromoInput('') }}
-                  disabled={!!promoCode}
-                  className={`text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${couponApplied ? 'text-green-600 bg-green-100' : 'text-cheers-brown border border-cheers-brown/30 hover:border-cheers-brown'}`}>
-                  {couponApplied ? '✓ ' + (lang === 'zh' ? '已应用' : 'Applied') : (lang === 'zh' ? '使用' : 'Apply')}
-                </button>
-              </div>
-            </div>
-          )}
+            </button>
 
-          {/* Promo code input */}
-          <div className="space-y-2">
-            <p className="text-xs text-cheers-brown/50 font-medium">{lang === 'zh' ? '输入优惠码' : 'Promo Code'}</p>
-            {promoCode ? (
-              <div>
-                <CouponTicket coupon={{ ...promoCode, title: promoCode.title || promoCode.code }} lang={lang} />
-                <div className="flex justify-end px-3 pt-1">
-                  <button type="button" onClick={() => { setPromoCode(null); setPromoInput('') }}
-                    className="text-xs text-red-400 hover:text-red-600">{lang === 'zh' ? '移除' : 'Remove'}</button>
+            {couponsExpanded && (
+              <div className="border-t border-cheers-cream px-2 py-3 space-y-4">
+                {/* Personal coupons grid */}
+                {userCoupons.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs text-cheers-brown/50 font-medium px-2">{lang === 'zh' ? '我的优惠券（点击选择）' : 'My Coupons (click to select)'}</p>
+                    {userCoupons.map(c => (
+                      <div key={c.id} onClick={() => selectCoupon(c)}
+                        className={`cursor-pointer rounded-xl transition-all ${selectedCoupon?.id === c.id ? 'ring-2 ring-green-400 ring-offset-1' : 'hover:opacity-90'}`}>
+                        <CouponTicket coupon={c} lang={lang} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Code search */}
+                <div className="px-1 space-y-2">
+                  <p className="text-xs text-cheers-brown/50 font-medium">{lang === 'zh' ? '输入优惠码（个人券码或优惠码）' : 'Enter coupon / promo code'}</p>
+                  <div className="flex gap-2">
+                    <input className="input flex-1 font-mono uppercase text-sm"
+                      placeholder={lang === 'zh' ? '例：SUMMER10' : 'e.g. SUMMER10'}
+                      value={codeInput} onChange={e => { setCodeInput(e.target.value.toUpperCase()); setCodeResult(null) }}
+                      onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleCodeSearch())} />
+                    <button type="button" onClick={handleCodeSearch} disabled={codeChecking || !codeInput}
+                      className="btn-secondary px-4 text-sm">
+                      {codeChecking ? '…' : (lang === 'zh' ? '搜索' : 'Search')}
+                    </button>
+                  </div>
+                  {codeResult === 'not_found' && (
+                    <p className="text-xs text-red-500">{lang === 'zh' ? '找不到此优惠码' : 'Code not found or expired'}</p>
+                  )}
+                  {codeResult && codeResult !== 'not_found' && (
+                    <div onClick={() => selectCoupon(codeResult)}
+                      className={`cursor-pointer rounded-xl transition-all ${selectedCoupon?.code === codeResult.code ? 'ring-2 ring-green-400 ring-offset-1' : 'hover:opacity-90'}`}>
+                      <CouponTicket coupon={codeResult} lang={lang} />
+                    </div>
+                  )}
                 </div>
-              </div>
-            ) : (
-              <div className="flex gap-2">
-                <input className="input flex-1 font-mono uppercase text-sm" placeholder={lang === 'zh' ? '例：SUMMER10' : 'e.g. SUMMER10'}
-                  value={promoInput} onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoError('') }}
-                  disabled={couponApplied} />
-                <button type="button" onClick={handlePromoApply} disabled={promoChecking || !promoInput || couponApplied}
-                  className="btn-secondary text-sm px-4">
-                  {promoChecking ? '…' : (lang === 'zh' ? '使用' : 'Apply')}
-                </button>
+
+                {selectedCoupon && (
+                  <div className="px-2 flex items-center justify-between">
+                    <p className="text-xs text-green-600 font-medium">
+                      ✓ {selectedCoupon.title || selectedCoupon.code} {lang === 'zh' ? '已选中' : 'selected'}
+                    </p>
+                    <button type="button" onClick={() => setSelectedCoupon(null)}
+                      className="text-xs text-cheers-brown/50 hover:text-cheers-brown">
+                      {lang === 'zh' ? '取消' : 'Remove'}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
-            {promoError && <p className="text-xs text-red-500">{promoError}</p>}
-            {couponApplied && <p className="text-xs text-cheers-brown/40">{lang === 'zh' ? '已使用个人优惠券，不可叠加' : 'Personal coupon applied — cannot combine'}</p>}
           </div>
 
           <button type="submit" disabled={loading} className="btn-primary w-full py-3">
@@ -382,28 +389,26 @@ export default function CheckoutPage() {
             {items.map(item => (
               <div key={`${item.productId}-${item.size}`} className="flex justify-between text-sm">
                 <span className="text-cheers-dark-brown/70 truncate flex-1 mr-2">{item.name}{item.size ? ` (${item.size})` : ''} × {item.quantity}</span>
-                <span className="text-cheers-dark-brown flex-shrink-0">{t('common.rmPrefix')} {(item.price * item.quantity).toFixed(2)}</span>
+                <span className="text-cheers-dark-brown flex-shrink-0">RM {(item.price * item.quantity).toFixed(2)}</span>
               </div>
             ))}
           </div>
           <div className="border-t border-cheers-cream pt-3 space-y-1.5">
             <div className="flex justify-between text-sm text-cheers-brown/70">
-              <span>{t('cart.subtotal')}</span>
-              <span>{t('common.rmPrefix')} {subtotal.toFixed(2)}</span>
+              <span>{t('cart.subtotal')}</span><span>RM {subtotal.toFixed(2)}</span>
             </div>
-            {activeCoupon && discount > 0 && (
+            {selectedCoupon && discountAmount > 0 && (
               <div className="flex justify-between text-sm text-green-600">
-                <span>🎫 {activeCoupon.code} ({formatDiscount(activeCoupon, lang)})</span>
-                <span>−RM {discount.toFixed(2)}</span>
+                <span>🎫 {formatDiscount(selectedCoupon, lang)}</span>
+                <span>−RM {discountAmount.toFixed(2)}</span>
               </div>
             )}
             <div className="flex justify-between text-sm text-cheers-brown/70">
               <span>{t('cart.shipping')}</span>
-              <span>{shippingFee === 0 ? t('cart.free') : `${t('common.rmPrefix')} ${shippingFee.toFixed(2)}`}</span>
+              <span>{shippingFee === 0 ? t('cart.free') : `RM ${shippingFee.toFixed(2)}`}</span>
             </div>
             <div className="flex justify-between font-semibold text-cheers-dark-brown pt-1 border-t border-cheers-cream">
-              <span>{t('cart.total')}</span>
-              <span>{t('common.rmPrefix')} {total.toFixed(2)}</span>
+              <span>{t('cart.total')}</span><span>RM {total.toFixed(2)}</span>
             </div>
           </div>
         </div>
