@@ -37,7 +37,7 @@ function CouponModal({ coupon, savings, subtotal, lang, onApply, onSkip }) {
         <p className="text-xs text-cheers-brown/50 mb-4">
           {lang === 'zh' ? `可省 RM ${savings.toFixed(2)}` : `Save RM ${savings.toFixed(2)}`}
         </p>
-        <CouponTicket coupon={coupon} lang={lang} subtotal={subtotal} />
+        <CouponTicket coupon={coupon} lang={lang} subtotal={effectiveSubtotal} />
         <div className="flex gap-3 mt-4">
           <button onClick={onSkip} className="btn-secondary flex-1 py-2">{lang === 'zh' ? '不使用' : 'Skip'}</button>
           <button onClick={onApply} className="btn-primary flex-1 py-2">{lang === 'zh' ? '立即使用' : 'Apply'}</button>
@@ -62,6 +62,7 @@ export default function CheckoutPage() {
 
   // Addon mode
   const [addonInfo, setAddonInfo] = useState(null) // { parentOrderId, delivery }
+  const [parentOrderSubtotal, setParentOrderSubtotal] = useState(0)
 
   // Coupon state
   const [userCoupons, setUserCoupons] = useState([])       // personal unused coupons
@@ -101,11 +102,14 @@ export default function CheckoutPage() {
         }
       }
 
-      const [settingsSnap, addressSnap, couponsSnap] = await Promise.all([
+      const [settingsSnap, addressSnap, couponsSnap, parentSnap] = await Promise.all([
         getDoc(doc(db, 'cheers_settings', 'global')),
         (!addon && user) ? getDoc(doc(db, 'cheers_addresses', user.uid)) : Promise.resolve(null),
         user ? getDocs(query(collection(db, 'cheers_user_coupons'), where('userId', '==', user.uid), where('used', '==', false))) : Promise.resolve(null),
+        addon ? getDocs(query(collection(db, 'cheers_orders'), where('orderId', '==', addon.parentOrderId))) : Promise.resolve(null),
       ])
+      const parentSubtotal = (!parentSnap || parentSnap.empty) ? 0 : (parentSnap.docs[0].data().subtotal || 0)
+      if (parentSubtotal > 0) setParentOrderSubtotal(parentSubtotal)
 
       if (settingsSnap.exists()) {
         setSettings(settingsSnap.data())
@@ -125,9 +129,9 @@ export default function CheckoutPage() {
         const coupons = couponsSnap.docs.map(d => ({ id: d.id, _source: 'personal', ...d.data() }))
         setUserCoupons(coupons)
         if (coupons.length > 0) {
-          const best = findBestCoupon(coupons, subtotal)
+          const best = findBestCoupon(coupons, subtotal + parentSubtotal)
           setPopupCoupon(best)
-          setShowPopup(true)
+          setShowPopup(!!best)
         }
       }
     }
@@ -135,7 +139,8 @@ export default function CheckoutPage() {
   }, [user])
 
   const region = detectRegion(form.postcode)
-  const couponIsValid = selectedCoupon ? isCouponEligible(selectedCoupon, subtotal) : false
+  const effectiveSubtotal = subtotal + parentOrderSubtotal  // combined for coupon minSpend check in addon mode
+  const couponIsValid = selectedCoupon ? isCouponEligible(selectedCoupon, effectiveSubtotal) : false
   const isFreeShippingCoupon = couponIsValid && (selectedCoupon?.discountType || selectedCoupon?.type) === 'free_shipping'
   const shippingFee = addonInfo ? 0
     : deliveryType === 'face-to-face' ? 0
@@ -146,7 +151,7 @@ export default function CheckoutPage() {
   const total = subtotal - discountAmount + shippingFee
 
   function selectCoupon(c) {
-    if (!isCouponEligible(c, subtotal)) return
+    if (!isCouponEligible(c, effectiveSubtotal)) return
     setSelectedCoupon(prev => prev?.id === c.id && prev?._source === c._source ? null : c)
     setCodeResult(null)
     setCodeInput('')
@@ -246,7 +251,7 @@ export default function CheckoutPage() {
         <CouponModal
           coupon={popupCoupon}
           savings={computeSavings(subtotal, popupCoupon)}
-          subtotal={subtotal}
+          subtotal={effectiveSubtotal}
           lang={lang}
           onApply={() => { setSelectedCoupon(popupCoupon); setShowPopup(false) }}
           onSkip={() => setShowPopup(false)}
@@ -386,14 +391,19 @@ export default function CheckoutPage() {
 
             {couponsExpanded && (
               <div className="border-t border-cheers-cream px-2 py-3 space-y-4">
+                {addonInfo && parentOrderSubtotal > 0 && (
+                  <p className="text-[10px] text-orange-500 px-2">
+                    📦 {lang === 'zh' ? `门槛按合并金额计算：原单 RM ${parentOrderSubtotal.toFixed(2)} + 此单 RM ${subtotal.toFixed(2)} = RM ${effectiveSubtotal.toFixed(2)}` : `Min. spend uses combined total: RM ${effectiveSubtotal.toFixed(2)}`}
+                  </p>
+                )}
                 {/* Personal coupons grid */}
                 {userCoupons.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-xs text-cheers-brown/50 font-medium px-2">{lang === 'zh' ? '我的优惠券（点击选择）' : 'My Coupons (click to select)'}</p>
                     {userCoupons.map(c => (
                       <div key={c.id} onClick={() => selectCoupon(c)}
-                        className={`rounded-xl transition-all ${isCouponEligible(c, subtotal) ? 'cursor-pointer' : 'cursor-not-allowed'} ${selectedCoupon?.id === c.id ? 'ring-2 ring-green-400 ring-offset-1' : 'hover:opacity-90'}`}>
-                        <CouponTicket coupon={c} lang={lang} subtotal={subtotal} />
+                        className={`rounded-xl transition-all ${isCouponEligible(c, effectiveSubtotal) ? 'cursor-pointer' : 'cursor-not-allowed'} ${selectedCoupon?.id === c.id ? 'ring-2 ring-green-400 ring-offset-1' : 'hover:opacity-90'}`}>
+                        <CouponTicket coupon={c} lang={lang} subtotal={effectiveSubtotal} />
                       </div>
                     ))}
                   </div>
@@ -417,8 +427,8 @@ export default function CheckoutPage() {
                   )}
                   {codeResult && codeResult !== 'not_found' && (
                     <div onClick={() => selectCoupon(codeResult)}
-                      className={`rounded-xl transition-all ${isCouponEligible(codeResult, subtotal) ? 'cursor-pointer' : 'cursor-not-allowed'} ${selectedCoupon?.code === codeResult.code ? 'ring-2 ring-green-400 ring-offset-1' : 'hover:opacity-90'}`}>
-                      <CouponTicket coupon={codeResult} lang={lang} subtotal={subtotal} />
+                      className={`rounded-xl transition-all ${isCouponEligible(codeResult, effectiveSubtotal) ? 'cursor-pointer' : 'cursor-not-allowed'} ${selectedCoupon?.code === codeResult.code ? 'ring-2 ring-green-400 ring-offset-1' : 'hover:opacity-90'}`}>
+                      <CouponTicket coupon={codeResult} lang={lang} subtotal={effectiveSubtotal} />
                     </div>
                   )}
                 </div>
