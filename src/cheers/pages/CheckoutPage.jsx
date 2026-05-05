@@ -60,6 +60,9 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // Addon mode
+  const [addonInfo, setAddonInfo] = useState(null) // { parentOrderId, delivery }
+
   // Coupon state
   const [userCoupons, setUserCoupons] = useState([])       // personal unused coupons
   const [selectedCoupon, setSelectedCoupon] = useState(null) // { coupon data + id + _source }
@@ -76,22 +79,46 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     async function load() {
+      // Check addon mode first
+      const addonRaw = sessionStorage.getItem('cheers_addon')
+      const addon = addonRaw ? JSON.parse(addonRaw) : null
+      if (addon) {
+        setAddonInfo(addon)
+        const d = addon.delivery || {}
+        setDeliveryType(d.type === 'face-to-face' ? 'face-to-face' : 'shipping')
+        if (d.type === 'face-to-face') {
+          setLocation(d.location || '')
+        } else {
+          setForm(f => ({
+            ...f,
+            name: d.name || user?.displayName || '',
+            phone: d.phone || '',
+            address: d.address || '',
+            postcode: d.postcode || '',
+            city: d.city || '',
+            state: d.state || '',
+          }))
+        }
+      }
+
       const [settingsSnap, addressSnap, couponsSnap] = await Promise.all([
         getDoc(doc(db, 'cheers_settings', 'global')),
-        user ? getDoc(doc(db, 'cheers_addresses', user.uid)) : Promise.resolve(null),
+        (!addon && user) ? getDoc(doc(db, 'cheers_addresses', user.uid)) : Promise.resolve(null),
         user ? getDocs(query(collection(db, 'cheers_user_coupons'), where('userId', '==', user.uid), where('used', '==', false))) : Promise.resolve(null),
       ])
 
       if (settingsSnap.exists()) {
         setSettings(settingsSnap.data())
-        if (!settingsSnap.data().faceToFaceEnabled) setDeliveryType('shipping')
+        if (!settingsSnap.data().faceToFaceEnabled && !addon) setDeliveryType('shipping')
       }
 
-      if (addressSnap?.exists()) {
-        const a = addressSnap.data()
-        setForm(f => ({ ...f, name: a.name || user?.displayName || '', phone: a.phone || '', address: a.address || '', postcode: a.postcode || '', city: a.city || '', state: a.state || '' }))
-      } else if (user) {
-        setForm(f => ({ ...f, name: user.displayName || '' }))
+      if (!addon) {
+        if (addressSnap?.exists()) {
+          const a = addressSnap.data()
+          setForm(f => ({ ...f, name: a.name || user?.displayName || '', phone: a.phone || '', address: a.address || '', postcode: a.postcode || '', city: a.city || '', state: a.state || '' }))
+        } else if (user) {
+          setForm(f => ({ ...f, name: user.displayName || '' }))
+        }
       }
 
       if (couponsSnap) {
@@ -108,7 +135,8 @@ export default function CheckoutPage() {
   }, [user])
 
   const region = detectRegion(form.postcode)
-  const shippingFee = deliveryType === 'face-to-face' ? 0
+  const shippingFee = addonInfo ? 0
+    : deliveryType === 'face-to-face' ? 0
     : region === 'east' ? (settings?.shippingFeeEast || 0)
     : (settings?.shippingFeeWest ?? settings?.shippingFee ?? 0)
 
@@ -164,6 +192,7 @@ export default function CheckoutPage() {
         status: 'pending',
         paymentMode: settings?.paymentMode || 'full',
         createdAt: serverTimestamp(),
+        ...(addonInfo ? { isAddon: true, parentOrderId: addonInfo.parentOrderId } : {}),
         ...(selectedCoupon ? {
           coupon: { code: selectedCoupon.code, discount: selectedCoupon.discount, discountType: selectedCoupon.discountType || 'percentage', title: selectedCoupon.title },
           discount: discountAmount,
@@ -179,6 +208,7 @@ export default function CheckoutPage() {
       }
 
       await clearCart()
+      if (addonInfo) sessionStorage.removeItem('cheers_addon')
 
       // Fire-and-forget admin notification (temporarily disabled)
       const { notificationEmail, emailjsTemplateId } = settings || {}
@@ -217,6 +247,25 @@ export default function CheckoutPage() {
           onApply={() => { setSelectedCoupon(popupCoupon); setShowPopup(false) }}
           onSkip={() => setShowPopup(false)}
         />
+      )}
+
+      {addonInfo && (
+        <div className="mb-4 flex items-center gap-3 bg-orange-50 border border-orange-200 rounded-xl px-4 py-3">
+          <span className="text-xl">📦</span>
+          <div>
+            <p className="text-sm font-medium text-orange-800">
+              {lang === 'zh' ? '加单模式' : 'Add-on Mode'}
+            </p>
+            <p className="text-xs text-orange-600">
+              {lang === 'zh' ? '关联至' : 'Adding to'}: <span className="font-medium">{addonInfo.parentOrderId}</span>
+              {' · '}{lang === 'zh' ? '邮费免收，地址与原订单相同' : 'Free shipping, same address as original order'}
+            </p>
+          </div>
+          <button type="button" onClick={() => { sessionStorage.removeItem('cheers_addon'); setAddonInfo(null) }}
+            className="ml-auto text-xs text-orange-400 hover:text-orange-600">
+            {lang === 'zh' ? '取消加单' : 'Cancel'}
+          </button>
+        </div>
       )}
 
       <h1 className="font-serif text-2xl text-cheers-dark-brown mb-6">{t('checkout.title')}</h1>
@@ -265,7 +314,10 @@ export default function CheckoutPage() {
 
           {/* Contact & address */}
           <div className="card p-4 space-y-3">
-            <h2 className="font-medium text-cheers-dark-brown">{lang === 'zh' ? '联系信息' : 'Contact Info'}</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="font-medium text-cheers-dark-brown">{lang === 'zh' ? '联系信息' : 'Contact Info'}</h2>
+              {addonInfo && <span className="text-xs text-orange-500">{lang === 'zh' ? '地址与原订单一致' : 'Same as original order'}</span>}
+            </div>
             <div className="grid sm:grid-cols-2 gap-3">
               <div>
                 <label className="label">{t('checkout.name')}</label>
@@ -280,13 +332,14 @@ export default function CheckoutPage() {
               <>
                 <div>
                   <label className="label">{t('checkout.address')}</label>
-                  <textarea className="input resize-none" rows={2} value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} required />
+                  <textarea className={`input resize-none ${addonInfo ? 'bg-cheers-cream/20 cursor-not-allowed' : ''}`} rows={2} value={form.address}
+                    onChange={e => !addonInfo && setForm(f => ({ ...f, address: e.target.value }))} readOnly={!!addonInfo} required />
                 </div>
                 <div className="grid sm:grid-cols-3 gap-3">
                   <div>
                     <label className="label">{t('checkout.postcode')}</label>
-                    <input className="input" value={form.postcode} maxLength={5}
-                      onChange={e => setForm(f => ({ ...f, postcode: e.target.value.replace(/\D/g, '') }))} required />
+                    <input className={`input ${addonInfo ? 'bg-cheers-cream/20 cursor-not-allowed' : ''}`} value={form.postcode} maxLength={5}
+                      onChange={e => !addonInfo && setForm(f => ({ ...f, postcode: e.target.value.replace(/\D/g, '') }))} readOnly={!!addonInfo} required />
                     {form.postcode.length === 5 && (
                       <p className={`text-xs mt-1 font-medium ${region ? 'text-green-600' : 'text-red-400'}`}>
                         {region === 'east' ? '🏝️ 东马' : region === 'west' ? '🇲🇾 西马' : (lang === 'zh' ? '无效邮编' : 'Invalid postcode')}
@@ -295,11 +348,13 @@ export default function CheckoutPage() {
                   </div>
                   <div>
                     <label className="label">{t('checkout.city')}</label>
-                    <input className="input" value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} required />
+                    <input className={`input ${addonInfo ? 'bg-cheers-cream/20 cursor-not-allowed' : ''}`} value={form.city}
+                      onChange={e => !addonInfo && setForm(f => ({ ...f, city: e.target.value }))} readOnly={!!addonInfo} required />
                   </div>
                   <div>
                     <label className="label">{t('checkout.state')}</label>
-                    <input className="input" value={form.state} onChange={e => setForm(f => ({ ...f, state: e.target.value }))} required />
+                    <input className={`input ${addonInfo ? 'bg-cheers-cream/20 cursor-not-allowed' : ''}`} value={form.state}
+                      onChange={e => !addonInfo && setForm(f => ({ ...f, state: e.target.value }))} readOnly={!!addonInfo} required />
                   </div>
                 </div>
               </>

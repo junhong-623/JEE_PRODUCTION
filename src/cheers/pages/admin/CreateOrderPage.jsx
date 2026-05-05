@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getFirestore, addDoc, collection, serverTimestamp } from 'firebase/firestore'
+import { getFirestore, addDoc, collection, serverTimestamp, getDocs, query, where, limit } from 'firebase/firestore'
 import app from '../../../lib/firebase'
 
 const db = getFirestore(app)
@@ -30,6 +30,42 @@ export default function CreateOrderPage() {
   const [status, setStatus] = useState('pending')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [isAddon, setIsAddon] = useState(false)
+  const [parentOrderInput, setParentOrderInput] = useState('')
+  const [parentOrder, setParentOrder] = useState(null) // found order doc
+  const [parentSearching, setParentSearching] = useState(false)
+  const [parentError, setParentError] = useState('')
+
+  async function searchParentOrder() {
+    const id = parentOrderInput.trim().toUpperCase()
+    if (!id) return
+    setParentSearching(true)
+    setParentError('')
+    setParentOrder(null)
+    try {
+      const snap = await getDocs(query(collection(db, 'cheers_orders'), where('orderId', '==', id), limit(1)))
+      if (snap.empty) {
+        setParentError('找不到此订单')
+      } else {
+        const d = snap.docs[0]
+        const data = { id: d.id, ...d.data() }
+        setParentOrder(data)
+        // Auto-fill delivery info
+        const del = data.delivery || {}
+        setDeliveryType(del.type === 'face-to-face' ? 'face-to-face' : 'shipping')
+        setRegion(del.region || 'west')
+        setAddress({
+          address: del.address || '',
+          postcode: del.postcode || '',
+          city: del.city || '',
+          state: del.state || '',
+          location: del.location || '',
+        })
+        setShippingFee('0')
+        setCustomer(c => ({ ...c, name: data.userName || '', email: data.userEmail || '', phone: del.phone || '' }))
+      }
+    } finally { setParentSearching(false) }
+  }
 
   function setItem(idx, field, value) {
     setItems(prev => prev.map((item, i) => i === idx ? { ...item, [field]: value } : item))
@@ -49,6 +85,7 @@ export default function CreateOrderPage() {
     e.preventDefault()
     if (!customer.name) { setError('请填写顾客姓名'); return }
     if (items.some(i => !i.name || !i.price)) { setError('请填写完整商品信息'); return }
+    if (isAddon && !parentOrder) { setError('请先搜索并选择母订单'); return }
     setSaving(true)
     setError('')
     try {
@@ -69,6 +106,7 @@ export default function CreateOrderPage() {
         orderId,
         userId: 'manual',
         source: 'manual',
+        ...(isAddon && parentOrder ? { isAddon: true, parentOrderId: parentOrder.orderId || parentOrder.id } : {}),
         userEmail: customer.email || '—',
         userName: customer.name,
         items: orderItems,
@@ -115,6 +153,35 @@ export default function CreateOrderPage() {
             <label className="label">电子邮件</label>
             <input className="input" type="email" value={customer.email} onChange={e => setCustomer(c => ({ ...c, email: e.target.value }))} />
           </div>
+        </div>
+
+        {/* Addon option */}
+        <div className="card p-4 space-y-3">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" checked={isAddon} onChange={e => { setIsAddon(e.target.checked); if (!e.target.checked) { setParentOrder(null); setParentOrderInput(''); setShippingFee('0') } }}
+              className="w-4 h-4 accent-cheers-brown" />
+            <span className="text-sm font-medium text-cheers-dark-brown">📦 加单模式（关联至已有订单，邮费免收）</span>
+          </label>
+
+          {isAddon && (
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <input className="input flex-1 font-mono uppercase text-sm" placeholder="输入母订单号，例：CHEERS-20260505-1234"
+                  value={parentOrderInput} onChange={e => { setParentOrderInput(e.target.value.toUpperCase()); setParentError('') }} />
+                <button type="button" onClick={searchParentOrder} disabled={parentSearching} className="btn-secondary px-4 text-sm flex-shrink-0">
+                  {parentSearching ? '…' : '搜索'}
+                </button>
+              </div>
+              {parentError && <p className="text-xs text-red-500">{parentError}</p>}
+              {parentOrder && (
+                <div className="bg-orange-50 border border-orange-200 rounded-lg px-3 py-2">
+                  <p className="text-xs font-medium text-orange-800">✓ 已找到母订单</p>
+                  <p className="text-xs text-orange-600">{parentOrder.orderId} · {parentOrder.userName} · {parentOrder.userEmail}</p>
+                  <p className="text-xs text-orange-500 mt-0.5">地址已自动填入，邮费已清零</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Items */}
