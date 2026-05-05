@@ -283,7 +283,9 @@ function WishlistTab({ lang, t }) {
           </Link>
           <div className="flex-1 min-w-0">
             <Link to={`/products/${item.productId}`}>
-              <p className="font-medium text-cheers-dark-brown text-sm line-clamp-2 hover:text-cheers-brown">{item.name}</p>
+              <p className="font-medium text-cheers-dark-brown text-sm line-clamp-2 hover:text-cheers-brown">
+                {typeof item.name === 'object' ? (item.name?.[lang] || item.name?.zh || '') : (item.name || '')}
+              </p>
             </Link>
             <p className="text-cheers-brown text-sm mt-0.5">RM {item.price?.toFixed(2)}</p>
           </div>
