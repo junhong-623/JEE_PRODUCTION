@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { getAuth, updateProfile } from 'firebase/auth'
 import { getFirestore, doc, getDoc, setDoc, collection, query, where, orderBy, getDocs } from 'firebase/firestore'
 import app from '../../lib/firebase'
@@ -7,6 +7,7 @@ import { useLang } from '../contexts/LangContext'
 import { useAuth } from '../contexts/AuthContext'
 import { useWishlist } from '../contexts/WishlistContext'
 import { useCart } from '../contexts/CartContext'
+import CouponTicket from '../components/ui/CouponTicket'
 
 const db = getFirestore(app)
 const auth = getAuth(app)
@@ -26,15 +27,14 @@ const STATUS_COLORS = {
 }
 
 const TABS = [
-  { key: 'profile', zh: '个人资料', en: 'Profile', icon: '👤' },
-  { key: 'address', zh: '收货地址', en: 'Address', icon: '📍' },
-  { key: 'orders', zh: '我的订单', en: 'Orders', icon: '📦' },
-  { key: 'coupons', zh: '优惠券', en: 'Coupons', icon: '🎫' },
-  { key: 'wishlist', zh: '收藏清单', en: 'Wishlist', icon: '♡' },
+  { key: 'profile',  zh: '个人资料', en: 'Profile',   icon: '👤' },
+  { key: 'address',  zh: '收货地址', en: 'Address',   icon: '📍' },
+  { key: 'orders',   zh: '我的订单', en: 'Orders',    icon: '📦' },
+  { key: 'coupons',  zh: '优惠券',   en: 'Coupons',  icon: '🎫' },
+  { key: 'wishlist', zh: '收藏清单', en: 'Wishlist',  icon: '♡' },
 ]
 
-// ── Profile Tab ──────────────────────────────────────────────────────────────
-function ProfileTab({ user, lang, t }) {
+function ProfileTab({ user, lang }) {
   const [name, setName] = useState(user.displayName || '')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -47,9 +47,7 @@ function ProfileTab({ user, lang, t }) {
       await setDoc(doc(db, 'cheers_users', user.uid), { displayName: name }, { merge: true })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
-    } finally {
-      setSaving(false)
-    }
+    } finally { setSaving(false) }
   }
 
   return (
@@ -64,13 +62,12 @@ function ProfileTab({ user, lang, t }) {
         <p className="text-xs text-cheers-brown/40 mt-1">{lang === 'zh' ? '邮箱不可修改' : 'Email cannot be changed'}</p>
       </div>
       <button type="submit" disabled={saving} className="btn-primary px-6 py-2">
-        {saving ? (lang === 'zh' ? '保存中…' : 'Saving…') : saved ? '✓ ' + (lang === 'zh' ? '已保存' : 'Saved') : (lang === 'zh' ? '保存' : 'Save')}
+        {saving ? '…' : saved ? '✓ ' + (lang === 'zh' ? '已保存' : 'Saved') : (lang === 'zh' ? '保存' : 'Save')}
       </button>
     </form>
   )
 }
 
-// ── Address Tab ───────────────────────────────────────────────────────────────
 function AddressTab({ user, lang }) {
   const [form, setForm] = useState({ name: '', phone: '', address: '', postcode: '', city: '', state: '' })
   const [saving, setSaving] = useState(false)
@@ -78,9 +75,7 @@ function AddressTab({ user, lang }) {
   const region = detectRegion(form.postcode)
 
   useEffect(() => {
-    getDoc(doc(db, 'cheers_addresses', user.uid)).then(snap => {
-      if (snap.exists()) setForm(snap.data())
-    })
+    getDoc(doc(db, 'cheers_addresses', user.uid)).then(snap => { if (snap.exists()) setForm(snap.data()) })
   }, [user.uid])
 
   async function handleSave(e) {
@@ -90,14 +85,12 @@ function AddressTab({ user, lang }) {
       await setDoc(doc(db, 'cheers_addresses', user.uid), form)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
-    } finally {
-      setSaving(false)
-    }
+    } finally { setSaving(false) }
   }
 
   return (
     <form onSubmit={handleSave} className="space-y-3 max-w-md">
-      <p className="text-sm text-cheers-brown/60">{lang === 'zh' ? '保存后在结账时自动填写' : 'Saved address will auto-fill at checkout'}</p>
+      <p className="text-sm text-cheers-brown/60">{lang === 'zh' ? '保存后在结账时自动填写' : 'Auto-filled at checkout after saving'}</p>
       <div className="grid sm:grid-cols-2 gap-3">
         <div>
           <label className="label">{lang === 'zh' ? '收件姓名' : 'Name'}</label>
@@ -133,13 +126,12 @@ function AddressTab({ user, lang }) {
         </div>
       </div>
       <button type="submit" disabled={saving} className="btn-primary px-6 py-2">
-        {saving ? (lang === 'zh' ? '保存中…' : 'Saving…') : saved ? '✓ ' + (lang === 'zh' ? '已保存' : 'Saved') : (lang === 'zh' ? '保存地址' : 'Save Address')}
+        {saving ? '…' : saved ? '✓ ' + (lang === 'zh' ? '已保存' : 'Saved') : (lang === 'zh' ? '保存地址' : 'Save Address')}
       </button>
     </form>
   )
 }
 
-// ── Orders Tab ────────────────────────────────────────────────────────────────
 function OrdersTab({ user, lang, t }) {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
@@ -152,10 +144,12 @@ function OrdersTab({ user, lang, t }) {
   }, [user.uid])
 
   if (loading) return <div className="py-10 text-center text-cheers-brown/40">{t('common.loading')}</div>
+
   if (!orders.length) return (
     <div className="py-16 text-center text-cheers-brown/50">
-      <div className="text-4xl mb-3">📦</div>
-      <p>{t('orders.empty')}</p>
+      <div className="text-5xl mb-3">📦</div>
+      <p className="mb-4">{t('orders.empty')}</p>
+      <Link to="/products" className="btn-primary">{lang === 'zh' ? '去逛逛' : 'Browse Products'}</Link>
     </div>
   )
 
@@ -178,7 +172,7 @@ function OrdersTab({ user, lang, t }) {
                 </p>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
-                <span className="font-semibold text-cheers-brown text-sm">{t('common.rmPrefix')} {order.total?.toFixed(2)}</span>
+                <span className="font-semibold text-cheers-brown text-sm">RM {order.total?.toFixed(2)}</span>
                 <span className="text-cheers-brown/40 text-xs">{isOpen ? '▲' : '▼'}</span>
               </div>
             </div>
@@ -188,18 +182,20 @@ function OrdersTab({ user, lang, t }) {
                   {order.items?.map((item, i) => (
                     <div key={i} className="flex justify-between text-sm">
                       <span className="text-cheers-dark-brown/80 flex-1 mr-2">{item.name}{item.size ? ` (${item.size})` : ''} × {item.quantity}</span>
-                      <span>{t('common.rmPrefix')} {(item.price * item.quantity).toFixed(2)}</span>
+                      <span>RM {(item.price * item.quantity).toFixed(2)}</span>
                     </div>
                   ))}
                 </div>
-                <div className="text-sm text-cheers-brown/60">
+                <p className="text-sm text-cheers-brown/60">
                   {order.delivery?.type === 'face-to-face'
-                    ? `${lang === 'zh' ? '面交' : 'Meet up'} · ${order.delivery.location}`
+                    ? `面交 · ${order.delivery.location}`
                     : [order.delivery?.address, order.delivery?.city, order.delivery?.state].filter(Boolean).join(', ')}
-                </div>
+                </p>
+                {order.coupon && (
+                  <p className="text-sm text-green-600">🎫 {order.coupon.code} 已使用</p>
+                )}
                 <div className="flex justify-between font-semibold text-cheers-dark-brown pt-2 border-t border-cheers-cream">
-                  <span>{t('cart.total')}</span>
-                  <span>{t('common.rmPrefix')} {order.total?.toFixed(2)}</span>
+                  <span>{t('cart.total')}</span><span>RM {order.total?.toFixed(2)}</span>
                 </div>
               </div>
             )}
@@ -210,7 +206,6 @@ function OrdersTab({ user, lang, t }) {
   )
 }
 
-// ── Coupons Tab ───────────────────────────────────────────────────────────────
 function CouponsTab({ user, lang }) {
   const [coupon, setCoupon] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -221,7 +216,8 @@ function CouponsTab({ user, lang }) {
       .finally(() => setLoading(false))
   }, [user.uid])
 
-  if (loading) return <div className="py-10 text-center text-cheers-brown/40">{lang === 'zh' ? '加载中…' : 'Loading…'}</div>
+  if (loading) return <div className="py-10 text-center text-cheers-brown/40">加载中…</div>
+
   if (!coupon) return (
     <div className="py-16 text-center text-cheers-brown/50">
       <div className="text-4xl mb-3">🎫</div>
@@ -230,35 +226,15 @@ function CouponsTab({ user, lang }) {
   )
 
   return (
-    <div className="max-w-sm">
-      <div className={`card p-5 border-2 border-dashed ${coupon.used ? 'border-cheers-cream opacity-60' : 'border-cheers-brown/40'}`}>
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-xs text-cheers-brown/50 mb-1">{lang === 'zh' ? '优惠券' : 'Coupon'}</p>
-            <p className="font-mono text-2xl font-bold text-cheers-brown tracking-widest">{coupon.code}</p>
-          </div>
-          <span className={`badge-status ${coupon.used ? 'bg-gray-100 text-gray-500' : 'bg-green-100 text-green-700'}`}>
-            {coupon.used ? (lang === 'zh' ? '已使用' : 'Used') : (lang === 'zh' ? '可使用' : 'Available')}
-          </span>
-        </div>
-        <p className="mt-3 text-sm text-cheers-dark-brown">
-          {lang === 'zh' ? `商品总额 ${Math.round(coupon.discount * 100)}% 折扣` : `${Math.round(coupon.discount * 100)}% off subtotal`}
-        </p>
-        {coupon.rank && <p className="text-xs text-cheers-brown/40 mt-1">{lang === 'zh' ? `第 ${coupon.rank} 位会员` : `Member #${coupon.rank}`}</p>}
-        {coupon.used && coupon.usedAt && (
-          <p className="text-xs text-cheers-brown/40 mt-1">
-            {lang === 'zh' ? '使用于' : 'Used on'} {coupon.usedAt?.toDate?.()?.toLocaleDateString()}
-          </p>
-        )}
-        {!coupon.used && (
-          <p className="text-xs text-green-600 mt-2">{lang === 'zh' ? '✓ 结账时自动应用' : '✓ Auto-applied at checkout'}</p>
-        )}
-      </div>
+    <div className="max-w-sm py-2">
+      <CouponTicket coupon={coupon} lang={lang} />
+      {!coupon.used && (
+        <p className="text-xs text-green-600 text-center mt-3">{lang === 'zh' ? '✓ 结账时自动弹出提醒' : '✓ Auto-prompted at checkout'}</p>
+      )}
     </div>
   )
 }
 
-// ── Wishlist Tab ──────────────────────────────────────────────────────────────
 function WishlistTab({ lang, t }) {
   const { items, removeFromWishlist } = useWishlist()
   const { addToCart } = useCart()
@@ -266,8 +242,8 @@ function WishlistTab({ lang, t }) {
   if (!items.length) return (
     <div className="py-16 text-center text-cheers-brown/50">
       <div className="text-4xl mb-3">♡</div>
-      <p>{t('wishlist.empty')}</p>
-      <Link to="/products" className="btn-primary mt-4 inline-block">{lang === 'zh' ? '去逛逛' : 'Browse'}</Link>
+      <p className="mb-4">{t('wishlist.empty')}</p>
+      <Link to="/products" className="btn-primary">{lang === 'zh' ? '去逛逛' : 'Browse Products'}</Link>
     </div>
   )
 
@@ -284,7 +260,7 @@ function WishlistTab({ lang, t }) {
             <Link to={`/products/${item.productId}`}>
               <p className="font-medium text-cheers-dark-brown text-sm line-clamp-2 hover:text-cheers-brown">{item.name}</p>
             </Link>
-            <p className="text-cheers-brown text-sm mt-0.5">{t('common.rmPrefix')} {item.price?.toFixed(2)}</p>
+            <p className="text-cheers-brown text-sm mt-0.5">RM {item.price?.toFixed(2)}</p>
           </div>
           <div className="flex flex-col gap-1.5 flex-shrink-0">
             <button onClick={() => addToCart(item)} className="btn-primary text-xs py-1.5 px-3">{t('wishlist.moveToCart')}</button>
@@ -296,11 +272,13 @@ function WishlistTab({ lang, t }) {
   )
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
 export default function AccountPage() {
   const { t, lang } = useLang()
-  const { user, logout } = useAuth()
-  const [tab, setTab] = useState('profile')
+  const { user } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tab = searchParams.get('tab') || 'profile'
+
+  function setTab(key) { setSearchParams({ tab: key }) }
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">

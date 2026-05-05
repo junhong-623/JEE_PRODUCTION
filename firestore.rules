@@ -107,6 +107,10 @@ service cloud.firestore {
       allow read: if signedIn();
       allow write: if signedIn();
     }
+    match /cheers_promo_codes/{code} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
 
     // ── Cheers admins & users ────────────────────────────────────
     match /cheers_admins/{uid} {

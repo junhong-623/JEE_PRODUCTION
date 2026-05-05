@@ -75,6 +75,28 @@ h1, h2, h3 {
 }
 .animate-slide-up { animation: slide-up 0.25s ease forwards; }
 
+/* Coupon ticket */
+.coupon-ticket {
+  position: relative;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(107,45,45,0.10);
+}
+.coupon-ticket .notch-left,
+.coupon-ticket .notch-right {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #FDFAE8;
+  border: 1px solid #F5F0A0;
+  z-index: 2;
+}
+.coupon-ticket .notch-left  { left:  -10px; }
+.coupon-ticket .notch-right { right: -10px; }
+
 /* Scrollbar styling */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--cheers-light-cream); }

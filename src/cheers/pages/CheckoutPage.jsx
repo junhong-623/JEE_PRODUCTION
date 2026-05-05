@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getFirestore, doc, getDoc, addDoc, collection, serverTimestamp, updateDoc } from 'firebase/firestore'
+import { getFirestore, doc, getDoc, addDoc, collection, serverTimestamp, updateDoc, increment } from 'firebase/firestore'
 import emailjs from '@emailjs/browser'
 import app from '../../lib/firebase'
 import { useLang } from '../contexts/LangContext'
 import { useCart } from '../contexts/CartContext'
 import { useAuth } from '../contexts/AuthContext'
+import CouponTicket, { applyDiscount, formatDiscount } from '../components/ui/CouponTicket'
 
 const db = getFirestore(app)
 
@@ -60,9 +61,13 @@ export default function CheckoutPage() {
   const [form, setForm] = useState({ name: '', phone: '', address: '', postcode: '', city: '', state: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [coupon, setCoupon] = useState(null)
+  const [coupon, setCoupon] = useState(null)          // personal coupon
   const [couponApplied, setCouponApplied] = useState(false)
   const [showCouponModal, setShowCouponModal] = useState(false)
+  const [promoInput, setPromoInput] = useState('')
+  const [promoCode, setPromoCode] = useState(null)    // validated promo code
+  const [promoError, setPromoError] = useState('')
+  const [promoChecking, setPromoChecking] = useState(false)
 
   useEffect(() => {
     if (items.length === 0) navigate('/cart')
@@ -110,9 +115,33 @@ export default function CheckoutPage() {
   const shippingFee = deliveryType === 'face-to-face' ? 0
     : region === 'east' ? (settings?.shippingFeeEast || 0)
     : (settings?.shippingFeeWest ?? settings?.shippingFee ?? 0)
-  const discountedSubtotal = couponApplied && coupon ? subtotal * (1 - coupon.discount) : subtotal
-  const discount = couponApplied && coupon ? subtotal * coupon.discount : 0
+
+  const activeCoupon = couponApplied ? coupon : promoCode
+  const discountedSubtotal = activeCoupon ? applyDiscount(subtotal, activeCoupon) : subtotal
+  const discount = subtotal - discountedSubtotal
   const total = discountedSubtotal + shippingFee
+
+  async function handlePromoApply() {
+    const code = promoInput.trim().toUpperCase()
+    if (!code) return
+    setPromoChecking(true)
+    setPromoError('')
+    setPromoCode(null)
+    try {
+      const snap = await getDoc(doc(db, 'cheers_promo_codes', code))
+      if (!snap.exists() || !snap.data().active) {
+        setPromoError(lang === 'zh' ? '无效优惠码' : 'Invalid promo code')
+      } else {
+        const data = snap.data()
+        if (data.maxUses !== null && data.usedCount >= data.maxUses) {
+          setPromoError(lang === 'zh' ? '此优惠码已达使用上限' : 'Promo code limit reached')
+        } else {
+          setPromoCode(data)
+          setCouponApplied(false) // only one at a time
+        }
+      }
+    } finally { setPromoChecking(false) }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -136,14 +165,19 @@ export default function CheckoutPage() {
         status: 'pending',
         paymentMode: settings?.paymentMode || 'full',
         createdAt: serverTimestamp(),
-        ...(couponApplied && coupon ? { coupon: { code: coupon.code, discount: coupon.discount }, discount } : {}),
+        ...(activeCoupon ? { coupon: { code: activeCoupon.code, discount: activeCoupon.discount, discountType: activeCoupon.discountType || 'percentage' }, discount } : {}),
       }
       const ref = await addDoc(collection(db, 'cheers_orders'), orderData)
 
-      // Mark coupon used
+      // Mark coupon / promo code used
       if (couponApplied && coupon) {
         await updateDoc(doc(db, 'cheers_coupons', user.uid), {
           used: true, usedAt: serverTimestamp(), usedOnOrder: orderId,
+        }).catch(() => {})
+      }
+      if (promoCode) {
+        await updateDoc(doc(db, 'cheers_promo_codes', promoCode.code), {
+          usedCount: increment(1),
         }).catch(() => {})
       }
 
@@ -292,21 +326,49 @@ export default function CheckoutPage() {
             )}
           </div>
 
-          {/* Coupon toggle */}
+          {/* Personal coupon */}
           {coupon && !coupon.used && (
-            <div className={`flex items-center justify-between p-3 rounded-xl border-2 border-dashed ${couponApplied ? 'border-green-400 bg-green-50' : 'border-cheers-cream'}`}>
-              <div>
-                <p className="text-sm font-medium text-cheers-dark-brown">
-                  🎫 {coupon.code} — {Math.round(coupon.discount * 100)}% {lang === 'zh' ? '折扣' : 'off'}
-                </p>
-                <p className="text-xs text-cheers-brown/50">{lang === 'zh' ? '仅限商品总额，不含邮费' : 'Applies to subtotal only, excl. shipping'}</p>
+            <div className="space-y-2">
+              <p className="text-xs text-cheers-brown/50 font-medium">{lang === 'zh' ? '您的优惠券' : 'Your Coupon'}</p>
+              <div className={`transition-opacity ${promoCode ? 'opacity-40 pointer-events-none' : ''}`}>
+                <CouponTicket coupon={coupon} lang={lang} />
               </div>
-              <button type="button" onClick={() => setCouponApplied(v => !v)}
-                className={`text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${couponApplied ? 'text-green-600 bg-green-100 hover:bg-green-200' : 'text-cheers-brown border border-cheers-brown/30 hover:border-cheers-brown'}`}>
-                {couponApplied ? (lang === 'zh' ? '✓ 已应用' : '✓ Applied') : (lang === 'zh' ? '使用' : 'Apply')}
-              </button>
+              <div className="flex items-center justify-between px-3 pt-1">
+                <p className="text-xs text-cheers-brown/50">{lang === 'zh' ? '仅限商品总额，不含邮费' : 'Subtotal only, excl. shipping'}</p>
+                <button type="button" onClick={() => { setCouponApplied(v => !v); setPromoCode(null); setPromoInput('') }}
+                  disabled={!!promoCode}
+                  className={`text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${couponApplied ? 'text-green-600 bg-green-100' : 'text-cheers-brown border border-cheers-brown/30 hover:border-cheers-brown'}`}>
+                  {couponApplied ? '✓ ' + (lang === 'zh' ? '已应用' : 'Applied') : (lang === 'zh' ? '使用' : 'Apply')}
+                </button>
+              </div>
             </div>
           )}
+
+          {/* Promo code input */}
+          <div className="space-y-2">
+            <p className="text-xs text-cheers-brown/50 font-medium">{lang === 'zh' ? '输入优惠码' : 'Promo Code'}</p>
+            {promoCode ? (
+              <div>
+                <CouponTicket coupon={{ ...promoCode, title: promoCode.title || promoCode.code }} lang={lang} />
+                <div className="flex justify-end px-3 pt-1">
+                  <button type="button" onClick={() => { setPromoCode(null); setPromoInput('') }}
+                    className="text-xs text-red-400 hover:text-red-600">{lang === 'zh' ? '移除' : 'Remove'}</button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input className="input flex-1 font-mono uppercase text-sm" placeholder={lang === 'zh' ? '例：SUMMER10' : 'e.g. SUMMER10'}
+                  value={promoInput} onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoError('') }}
+                  disabled={couponApplied} />
+                <button type="button" onClick={handlePromoApply} disabled={promoChecking || !promoInput || couponApplied}
+                  className="btn-secondary text-sm px-4">
+                  {promoChecking ? '…' : (lang === 'zh' ? '使用' : 'Apply')}
+                </button>
+              </div>
+            )}
+            {promoError && <p className="text-xs text-red-500">{promoError}</p>}
+            {couponApplied && <p className="text-xs text-cheers-brown/40">{lang === 'zh' ? '已使用个人优惠券，不可叠加' : 'Personal coupon applied — cannot combine'}</p>}
+          </div>
 
           <button type="submit" disabled={loading} className="btn-primary w-full py-3">
             {loading ? t('checkout.submitting') : t('checkout.submit')}
@@ -329,10 +391,10 @@ export default function CheckoutPage() {
               <span>{t('cart.subtotal')}</span>
               <span>{t('common.rmPrefix')} {subtotal.toFixed(2)}</span>
             </div>
-            {couponApplied && discount > 0 && (
+            {activeCoupon && discount > 0 && (
               <div className="flex justify-between text-sm text-green-600">
-                <span>🎫 {coupon.code} ({Math.round(coupon.discount * 100)}%)</span>
-                <span>−{t('common.rmPrefix')} {discount.toFixed(2)}</span>
+                <span>🎫 {activeCoupon.code} ({formatDiscount(activeCoupon, lang)})</span>
+                <span>−RM {discount.toFixed(2)}</span>
               </div>
             )}
             <div className="flex justify-between text-sm text-cheers-brown/70">
