@@ -63,7 +63,7 @@ export default function Navbar() {
 
           {user ? (
             <div className="hidden md:flex items-center gap-2">
-              <span className="text-xs text-cheers-brown/60 max-w-[100px] truncate">{user.displayName || user.email}</span>
+              <Link to="/account" className="text-sm text-cheers-brown/70 hover:text-cheers-brown transition-colors">{t('nav.account')}</Link>
               <button onClick={handleLogout} className="btn-ghost text-sm py-1">{t('nav.logout')}</button>
             </div>
           ) : (
@@ -98,7 +98,7 @@ export default function Navbar() {
           <div className="pt-2 border-t border-cheers-cream flex flex-col gap-2">
             {user ? (
               <>
-                <span className="text-xs text-cheers-brown/60">{user.displayName || user.email}</span>
+                <NavLink to="/account" className={mobileNavLinkClass} onClick={() => setMenuOpen(false)}>{t('nav.account')}</NavLink>
                 <button onClick={handleLogout} className="btn-secondary text-sm text-left">{t('nav.logout')}</button>
               </>
             ) : (

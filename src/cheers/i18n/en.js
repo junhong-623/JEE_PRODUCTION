@@ -2,7 +2,7 @@ export default {
   nav: {
     products: 'Products', cart: 'Cart', wishlist: 'Wishlist',
     orders: 'My Orders', login: 'Login', register: 'Register',
-    logout: 'Logout', admin: 'Admin', home: 'Home',
+    logout: 'Logout', admin: 'Admin', home: 'Home', account: 'My Account',
   },
   home: {
     hero: { title: 'Japan Proxy Shopping', subtitle: 'Curated Japanese goods delivered right to you', cta: 'Browse Products' },
@@ -83,7 +83,7 @@ export default {
     dashboard: 'Dashboard', trips: 'Trips', products: 'Products',
     categories: 'Categories', orders: 'Orders', settings: 'Settings',
     payment: 'Payment', delivery: 'Delivery', contact: 'Contact',
-    policies: 'Policies', activity: 'Activity Feed', admins: 'Admins',
+    policies: 'Policies', activity: 'Activity Feed', admins: 'Admins', coupons: 'Coupons',
     save: 'Save', saving: 'Saving…', saved: 'Saved',
     add: 'Add', edit: 'Edit', delete: 'Delete', cancel: 'Cancel',
     confirm: 'Confirm', upload: 'Upload Image',

@@ -94,6 +94,20 @@ service cloud.firestore {
       }
     }
 
+    // ── Cheers addresses, coupons, counters ─────────────────────
+    match /cheers_addresses/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+    match /cheers_coupons/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow read, write: if isAdmin();
+      allow create: if signedIn() && request.auth.uid == uid;
+    }
+    match /cheers_counters/{doc} {
+      allow read: if signedIn();
+      allow write: if signedIn();
+    }
+
     // ── Cheers admins & users ────────────────────────────────────
     match /cheers_admins/{uid} {
       allow read, write: if isAdmin();

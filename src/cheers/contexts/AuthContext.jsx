@@ -4,7 +4,7 @@ import {
   createUserWithEmailAndPassword, signOut, GoogleAuthProvider,
   signInWithPopup, updateProfile,
 } from 'firebase/auth'
-import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp, runTransaction } from 'firebase/firestore'
 import app from '../../lib/firebase'
 
 const auth = getAuth(app)
@@ -16,15 +16,50 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [newCouponGrant, setNewCouponGrant] = useState(null) // { rank, code } if just granted
 
   async function writeUserProfile(u) {
     try {
-      await setDoc(doc(db, 'cheers_users', u.uid), {
+      const userRef = doc(db, 'cheers_users', u.uid)
+      const snap = await getDoc(userRef)
+      const isNew = !snap.exists()
+      await setDoc(userRef, {
         email: (u.email || '').toLowerCase(),
         displayName: u.displayName || '',
         lastSeen: serverTimestamp(),
       }, { merge: true })
-    } catch (_) {}
+      return isNew
+    } catch { return false }
+  }
+
+  async function grantCouponIfNew(uid) {
+    try {
+      const couponRef = doc(db, 'cheers_coupons', uid)
+      const existing = await getDoc(couponRef)
+      if (existing.exists()) return null
+
+      const counterRef = doc(db, 'cheers_counters', 'registrations')
+      let rank = null
+      await runTransaction(db, async (txn) => {
+        const counterSnap = await txn.get(counterRef)
+        rank = (counterSnap.data()?.count || 0) + 1
+        txn.set(counterRef, { count: rank }, { merge: true })
+      })
+
+      if (rank <= 100) {
+        await setDoc(couponRef, {
+          code: 'EARLY100',
+          discount: 0.10,
+          type: 'percentage',
+          used: false,
+          grantedAt: serverTimestamp(),
+          usedAt: null,
+          rank,
+        })
+        return rank
+      }
+      return null
+    } catch { return null }
   }
 
   useEffect(() => {
@@ -55,20 +90,30 @@ export function AuthProvider({ children }) {
   const register = async (email, password, name) => {
     const cred = await createUserWithEmailAndPassword(auth, email, password)
     await updateProfile(cred.user, { displayName: name })
-    writeUserProfile(cred.user)
+    await writeUserProfile(cred.user)
+    const rank = await grantCouponIfNew(cred.user.uid)
+    if (rank) setNewCouponGrant({ rank, code: 'EARLY100' })
     return cred
   }
 
   const loginWithGoogle = async () => {
     const cred = await signInWithPopup(auth, new GoogleAuthProvider())
-    writeUserProfile(cred.user)
+    const isNew = await writeUserProfile(cred.user)
+    if (isNew) {
+      const rank = await grantCouponIfNew(cred.user.uid)
+      if (rank) setNewCouponGrant({ rank, code: 'EARLY100' })
+    }
     return cred
   }
 
   const logout = () => signOut(auth)
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAdmin, login, register, loginWithGoogle, logout }}>
+    <AuthContext.Provider value={{
+      user, loading, isAdmin,
+      newCouponGrant, clearNewCouponGrant: () => setNewCouponGrant(null),
+      login, register, loginWithGoogle, logout,
+    }}>
       {!loading && children}
     </AuthContext.Provider>
   )
