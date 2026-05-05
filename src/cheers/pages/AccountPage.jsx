@@ -10,6 +10,13 @@ import { useCart } from '../contexts/CartContext'
 import CouponTicket from '../components/ui/CouponTicket'
 
 const db = getFirestore(app)
+
+const MY_STATES = [
+  'Kuala Lumpur', 'Putrajaya', 'Labuan',
+  'Selangor', 'Johor', 'Kedah', 'Kelantan', 'Melaka',
+  'Negeri Sembilan', 'Pahang', 'Perak', 'Perlis', 'Pulau Pinang', 'Terengganu',
+  'Sabah', 'Sarawak',
+]
 const auth = getAuth(app)
 
 function detectRegion(postcode) {
@@ -122,7 +129,10 @@ function AddressTab({ user, lang }) {
         </div>
         <div>
           <label className="label">{lang === 'zh' ? '州属' : 'State'}</label>
-          <input className="input" value={form.state} onChange={e => setForm(f => ({ ...f, state: e.target.value }))} />
+          <select className="input" value={form.state} onChange={e => setForm(f => ({ ...f, state: e.target.value }))}>
+            <option value="">{lang === 'zh' ? '选择州属' : 'Select state'}</option>
+            {MY_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
         </div>
       </div>
       <button type="submit" disabled={saving} className="btn-primary px-6 py-2">
