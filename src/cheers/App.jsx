@@ -37,6 +37,8 @@ const AdminPolicies        = lazy(() => import('./pages/admin/PoliciesPage'))
 const AdminActivity        = lazy(() => import('./pages/admin/ActivitySettingsPage'))
 const AdminAdmins          = lazy(() => import('./pages/admin/AdminsPage'))
 const AdminCreateOrder     = lazy(() => import('./pages/admin/CreateOrderPage'))
+const AdminCoupons         = lazy(() => import('./pages/admin/CouponsPage'))
+const AccountPage          = lazy(() => import('./pages/AccountPage'))
 
 function PageLoader() {
   return (
@@ -74,6 +76,7 @@ export default function CheersApp() {
                         <Route path="/payment/:orderId" element={<PaymentPage />} />
                         <Route path="/orders" element={<OrdersPage />} />
                         <Route path="/wishlist" element={<WishlistPage />} />
+                        <Route path="/account" element={<AccountPage />} />
                       </Route>
 
                       <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
@@ -91,6 +94,7 @@ export default function CheersApp() {
                         <Route path="settings/activity" element={<AdminActivity />} />
                         <Route path="admins" element={<AdminAdmins />} />
                         <Route path="orders/new" element={<AdminCreateOrder />} />
+                        <Route path="coupons" element={<AdminCoupons />} />
                       </Route>
 
                       <Route path="*" element={<Navigate to="/" replace />} />

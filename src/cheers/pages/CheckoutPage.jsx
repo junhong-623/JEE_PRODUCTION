@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getFirestore, doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore'
+import { getFirestore, doc, getDoc, addDoc, collection, serverTimestamp, updateDoc } from 'firebase/firestore'
 import emailjs from '@emailjs/browser'
 import app from '../../lib/firebase'
 import { useLang } from '../contexts/LangContext'
@@ -23,6 +23,31 @@ function generateOrderId() {
   return `CHEERS-${date}-${rand}`
 }
 
+function CouponModal({ coupon, lang, onApply, onSkip }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      onClick={e => { if (e.target === e.currentTarget) onSkip() }}>
+      <div className="absolute inset-0 bg-cheers-dark-brown/40 backdrop-blur-sm" onClick={onSkip} />
+      <div className="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center animate-slide-up">
+        <div className="text-4xl mb-3">🎫</div>
+        <h2 className="font-serif text-lg text-cheers-dark-brown mb-2">
+          {lang === 'zh' ? '您有优惠券！' : 'You have a coupon!'}
+        </h2>
+        <div className="bg-cheers-cream border-2 border-dashed border-cheers-brown/30 rounded-xl py-3 px-4 mb-4">
+          <p className="font-mono text-xl font-bold text-cheers-brown tracking-widest">{coupon.code}</p>
+          <p className="text-sm text-cheers-dark-brown mt-1">
+            {lang === 'zh' ? `商品总额 ${Math.round(coupon.discount * 100)}% 折扣（不含邮费）` : `${Math.round(coupon.discount * 100)}% off subtotal (excl. shipping)`}
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <button onClick={onSkip} className="btn-secondary flex-1">{lang === 'zh' ? '不使用' : 'Skip'}</button>
+          <button onClick={onApply} className="btn-primary flex-1">{lang === 'zh' ? '立即使用' : 'Apply'}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function CheckoutPage() {
   const { t, lang } = useLang()
   const { items, subtotal, clearCart } = useCart()
@@ -35,31 +60,59 @@ export default function CheckoutPage() {
   const [form, setForm] = useState({ name: '', phone: '', address: '', postcode: '', city: '', state: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [coupon, setCoupon] = useState(null)
+  const [couponApplied, setCouponApplied] = useState(false)
+  const [showCouponModal, setShowCouponModal] = useState(false)
 
   useEffect(() => {
     if (items.length === 0) navigate('/cart')
   }, [items])
 
   useEffect(() => {
-    getDoc(doc(db, 'cheers_settings', 'global')).then(snap => {
-      if (snap.exists()) {
-        setSettings(snap.data())
-        if (!snap.data().faceToFaceEnabled) setDeliveryType('shipping')
+    async function load() {
+      const [settingsSnap, addressSnap] = await Promise.all([
+        getDoc(doc(db, 'cheers_settings', 'global')),
+        user ? getDoc(doc(db, 'cheers_addresses', user.uid)) : Promise.resolve(null),
+      ])
+      if (settingsSnap.exists()) {
+        setSettings(settingsSnap.data())
+        if (!settingsSnap.data().faceToFaceEnabled) setDeliveryType('shipping')
       }
-    })
-    if (user) {
-      setForm(f => ({
-        ...f,
-        name: user.displayName || '',
-      }))
+      // Auto-fill saved address
+      if (addressSnap?.exists()) {
+        const a = addressSnap.data()
+        setForm(f => ({
+          ...f,
+          name: a.name || user?.displayName || '',
+          phone: a.phone || '',
+          address: a.address || '',
+          postcode: a.postcode || '',
+          city: a.city || '',
+          state: a.state || '',
+        }))
+      } else if (user) {
+        setForm(f => ({ ...f, name: user.displayName || '' }))
+      }
+
+      // Check coupon
+      if (user) {
+        const couponSnap = await getDoc(doc(db, 'cheers_coupons', user.uid))
+        if (couponSnap.exists() && !couponSnap.data().used) {
+          setCoupon({ ...couponSnap.data() })
+          setShowCouponModal(true)
+        }
+      }
     }
+    load()
   }, [user])
 
   const region = detectRegion(form.postcode)
   const shippingFee = deliveryType === 'face-to-face' ? 0
     : region === 'east' ? (settings?.shippingFeeEast || 0)
     : (settings?.shippingFeeWest ?? settings?.shippingFee ?? 0)
-  const total = subtotal + shippingFee
+  const discountedSubtotal = couponApplied && coupon ? subtotal * (1 - coupon.discount) : subtotal
+  const discount = couponApplied && coupon ? subtotal * coupon.discount : 0
+  const total = discountedSubtotal + shippingFee
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -83,8 +136,17 @@ export default function CheckoutPage() {
         status: 'pending',
         paymentMode: settings?.paymentMode || 'full',
         createdAt: serverTimestamp(),
+        ...(couponApplied && coupon ? { coupon: { code: coupon.code, discount: coupon.discount }, discount } : {}),
       }
       const ref = await addDoc(collection(db, 'cheers_orders'), orderData)
+
+      // Mark coupon used
+      if (couponApplied && coupon) {
+        await updateDoc(doc(db, 'cheers_coupons', user.uid), {
+          used: true, usedAt: serverTimestamp(), usedOnOrder: orderId,
+        }).catch(() => {})
+      }
+
       await clearCart()
 
       // Fire-and-forget admin notification (temporarily disabled)
@@ -97,15 +159,13 @@ export default function CheckoutPage() {
           import.meta.env.VITE_EMAILJS_SERVICE_ID,
           emailjsTemplateId,
           {
-            to_email:      notificationEmail,
-            order_id:      orderId,
-            customer_name: form.name,
-            customer_email: user.email,
+            to_email: notificationEmail, order_id: orderId,
+            customer_name: form.name, customer_email: user.email,
             customer_phone: form.phone || '—',
-            order_items:   items.map(i => `${i.name}${i.size ? ` (${i.size})` : ''} × ${i.quantity}  RM${(i.price * i.quantity).toFixed(2)}`).join('\n'),
-            order_total:   `RM ${total.toFixed(2)}`,
+            order_items: items.map(i => `${i.name}${i.size ? ` (${i.size})` : ''} × ${i.quantity}  RM${(i.price * i.quantity).toFixed(2)}`).join('\n'),
+            order_total: `RM ${total.toFixed(2)}`,
             delivery_info: deliveryInfo,
-            order_date:    new Date().toLocaleString('zh-MY'),
+            order_date: new Date().toLocaleString('zh-MY'),
           },
           import.meta.env.VITE_EMAILJS_PUBLIC_KEY
         ).catch(() => {})
@@ -127,27 +187,24 @@ export default function CheckoutPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
+      {showCouponModal && coupon && (
+        <CouponModal
+          coupon={coupon} lang={lang}
+          onApply={() => { setCouponApplied(true); setShowCouponModal(false) }}
+          onSkip={() => { setCouponApplied(false); setShowCouponModal(false) }}
+        />
+      )}
+
       <h1 className="font-serif text-2xl text-cheers-dark-brown mb-6">{t('checkout.title')}</h1>
 
       <div className="grid md:grid-cols-[1fr_320px] gap-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
 
-          {/* Delivery method */}
+          {/* Delivery method — shipping first */}
           <div className="card p-4">
             <h2 className="font-medium text-cheers-dark-brown mb-3">{t('checkout.delivery')}</h2>
             <div className="space-y-2">
-              {settings.faceToFaceEnabled && (
-                <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${deliveryType === 'face-to-face' ? 'border-cheers-brown bg-cheers-cream/30' : 'border-cheers-cream hover:border-cheers-brown/40'}`}>
-                  <input type="radio" name="delivery" value="face-to-face"
-                    checked={deliveryType === 'face-to-face'} onChange={() => setDeliveryType('face-to-face')}
-                    className="text-cheers-brown" />
-                  <div>
-                    <p className="text-sm font-medium text-cheers-dark-brown">{t('checkout.faceToFace')}</p>
-                    <p className="text-xs text-green-600">{t('checkout.faceToFaceHint')}</p>
-                  </div>
-                </label>
-              )}
               <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${deliveryType === 'shipping' ? 'border-cheers-brown bg-cheers-cream/30' : 'border-cheers-cream hover:border-cheers-brown/40'}`}>
                 <input type="radio" name="delivery" value="shipping"
                   checked={deliveryType === 'shipping'} onChange={() => setDeliveryType('shipping')}
@@ -162,9 +219,19 @@ export default function CheckoutPage() {
                   </p>
                 </div>
               </label>
+              {settings.faceToFaceEnabled && (
+                <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${deliveryType === 'face-to-face' ? 'border-cheers-brown bg-cheers-cream/30' : 'border-cheers-cream hover:border-cheers-brown/40'}`}>
+                  <input type="radio" name="delivery" value="face-to-face"
+                    checked={deliveryType === 'face-to-face'} onChange={() => setDeliveryType('face-to-face')}
+                    className="text-cheers-brown" />
+                  <div>
+                    <p className="text-sm font-medium text-cheers-dark-brown">{t('checkout.faceToFace')}</p>
+                    <p className="text-xs text-green-600">{t('checkout.faceToFaceHint')}</p>
+                  </div>
+                </label>
+              )}
             </div>
 
-            {/* Face-to-face location select */}
             {deliveryType === 'face-to-face' && (
               <div className="mt-3">
                 <label className="label">{t('checkout.location')}</label>
@@ -208,9 +275,7 @@ export default function CheckoutPage() {
                       onChange={e => setForm(f => ({ ...f, postcode: e.target.value.replace(/\D/g, '') }))} required />
                     {form.postcode.length === 5 && (
                       <p className={`text-xs mt-1 font-medium ${region ? 'text-green-600' : 'text-red-400'}`}>
-                        {region === 'east' ? (lang === 'zh' ? '🏝️ 东马邮费' : '🏝️ East Malaysia rate')
-                          : region === 'west' ? (lang === 'zh' ? '🇲🇾 西马邮费' : '🇲🇾 West Malaysia rate')
-                          : (lang === 'zh' ? '无效邮编' : 'Invalid postcode')}
+                        {region === 'east' ? '🏝️ 东马' : region === 'west' ? '🇲🇾 西马' : (lang === 'zh' ? '无效邮编' : 'Invalid postcode')}
                       </p>
                     )}
                   </div>
@@ -227,6 +292,22 @@ export default function CheckoutPage() {
             )}
           </div>
 
+          {/* Coupon toggle */}
+          {coupon && !coupon.used && (
+            <div className={`flex items-center justify-between p-3 rounded-xl border-2 border-dashed ${couponApplied ? 'border-green-400 bg-green-50' : 'border-cheers-cream'}`}>
+              <div>
+                <p className="text-sm font-medium text-cheers-dark-brown">
+                  🎫 {coupon.code} — {Math.round(coupon.discount * 100)}% {lang === 'zh' ? '折扣' : 'off'}
+                </p>
+                <p className="text-xs text-cheers-brown/50">{lang === 'zh' ? '仅限商品总额，不含邮费' : 'Applies to subtotal only, excl. shipping'}</p>
+              </div>
+              <button type="button" onClick={() => setCouponApplied(v => !v)}
+                className={`text-sm font-medium px-3 py-1.5 rounded-lg transition-colors ${couponApplied ? 'text-green-600 bg-green-100 hover:bg-green-200' : 'text-cheers-brown border border-cheers-brown/30 hover:border-cheers-brown'}`}>
+                {couponApplied ? (lang === 'zh' ? '✓ 已应用' : '✓ Applied') : (lang === 'zh' ? '使用' : 'Apply')}
+              </button>
+            </div>
+          )}
+
           <button type="submit" disabled={loading} className="btn-primary w-full py-3">
             {loading ? t('checkout.submitting') : t('checkout.submit')}
           </button>
@@ -237,8 +318,8 @@ export default function CheckoutPage() {
           <h2 className="font-medium text-cheers-dark-brown mb-3">{t('checkout.orderSummary')}</h2>
           <div className="space-y-2 mb-3">
             {items.map(item => (
-              <div key={item.productId} className="flex justify-between text-sm">
-                <span className="text-cheers-dark-brown/70 truncate flex-1 mr-2">{item.name} × {item.quantity}</span>
+              <div key={`${item.productId}-${item.size}`} className="flex justify-between text-sm">
+                <span className="text-cheers-dark-brown/70 truncate flex-1 mr-2">{item.name}{item.size ? ` (${item.size})` : ''} × {item.quantity}</span>
                 <span className="text-cheers-dark-brown flex-shrink-0">{t('common.rmPrefix')} {(item.price * item.quantity).toFixed(2)}</span>
               </div>
             ))}
@@ -248,6 +329,12 @@ export default function CheckoutPage() {
               <span>{t('cart.subtotal')}</span>
               <span>{t('common.rmPrefix')} {subtotal.toFixed(2)}</span>
             </div>
+            {couponApplied && discount > 0 && (
+              <div className="flex justify-between text-sm text-green-600">
+                <span>🎫 {coupon.code} ({Math.round(coupon.discount * 100)}%)</span>
+                <span>−{t('common.rmPrefix')} {discount.toFixed(2)}</span>
+              </div>
+            )}
             <div className="flex justify-between text-sm text-cheers-brown/70">
               <span>{t('cart.shipping')}</span>
               <span>{shippingFee === 0 ? t('cart.free') : `${t('common.rmPrefix')} ${shippingFee.toFixed(2)}`}</span>

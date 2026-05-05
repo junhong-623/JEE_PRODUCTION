@@ -2,7 +2,7 @@ export default {
   nav: {
     products: '商品目录', cart: '购物车', wishlist: '收藏夹',
     orders: '我的订单', login: '登录', register: '注册',
-    logout: '退出登录', admin: '管理后台', home: '首页',
+    logout: '退出登录', admin: '管理后台', home: '首页', account: '我的账号',
   },
   home: {
     hero: { title: '日本代购', subtitle: '精选日本好物，专业代购服务直送到您手中', cta: '浏览商品' },
@@ -83,7 +83,7 @@ export default {
     dashboard: '仪表盘', trips: '行程管理', products: '商品管理',
     categories: '分类管理', orders: '订单管理', settings: '设置',
     payment: '付款设置', delivery: '配送设置', contact: '联系方式',
-    policies: '条款管理', activity: '动态 Feed', admins: '管理员',
+    policies: '条款管理', activity: '动态 Feed', admins: '管理员', coupons: '优惠券',
     save: '保存', saving: '保存中…', saved: '已保存',
     add: '新增', edit: '编辑', delete: '删除', cancel: '取消',
     confirm: '确认', upload: '上传图片',
