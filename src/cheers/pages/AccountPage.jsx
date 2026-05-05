@@ -2,11 +2,11 @@ import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getAuth, updateProfile } from 'firebase/auth'
 import { getFirestore, doc, getDoc, setDoc, collection, query, where, orderBy, getDocs } from 'firebase/firestore'
-import app from '../lib/firebase'
-import { useLang } from './contexts/LangContext'
-import { useAuth } from './contexts/AuthContext'
-import { useWishlist } from './contexts/WishlistContext'
-import { useCart } from './contexts/CartContext'
+import app from '../../lib/firebase'
+import { useLang } from '../contexts/LangContext'
+import { useAuth } from '../contexts/AuthContext'
+import { useWishlist } from '../contexts/WishlistContext'
+import { useCart } from '../contexts/CartContext'
 
 const db = getFirestore(app)
 const auth = getAuth(app)
