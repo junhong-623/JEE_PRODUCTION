@@ -6,7 +6,7 @@ import app from '../../lib/firebase'
 import { useLang } from '../contexts/LangContext'
 import { useCart } from '../contexts/CartContext'
 import { useAuth } from '../contexts/AuthContext'
-import CouponTicket, { applyDiscount, formatDiscount, computeSavings, findBestCoupon } from '../components/ui/CouponTicket'
+import CouponTicket, { applyDiscount, formatDiscount, computeSavings, findBestCoupon, isCouponEligible } from '../components/ui/CouponTicket'
 
 const db = getFirestore(app)
 
@@ -25,7 +25,7 @@ function generateOrderId() {
 }
 
 // Popup shows best coupon in ticket style
-function CouponModal({ coupon, savings, lang, onApply, onSkip }) {
+function CouponModal({ coupon, savings, subtotal, lang, onApply, onSkip }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
       onClick={e => { if (e.target === e.currentTarget) onSkip() }}>
@@ -37,7 +37,7 @@ function CouponModal({ coupon, savings, lang, onApply, onSkip }) {
         <p className="text-xs text-cheers-brown/50 mb-4">
           {lang === 'zh' ? `可省 RM ${savings.toFixed(2)}` : `Save RM ${savings.toFixed(2)}`}
         </p>
-        <CouponTicket coupon={coupon} lang={lang} />
+        <CouponTicket coupon={coupon} lang={lang} subtotal={subtotal} />
         <div className="flex gap-3 mt-4">
           <button onClick={onSkip} className="btn-secondary flex-1 py-2">{lang === 'zh' ? '不使用' : 'Skip'}</button>
           <button onClick={onApply} className="btn-primary flex-1 py-2">{lang === 'zh' ? '立即使用' : 'Apply'}</button>
@@ -135,15 +135,18 @@ export default function CheckoutPage() {
   }, [user])
 
   const region = detectRegion(form.postcode)
+  const couponIsValid = selectedCoupon ? isCouponEligible(selectedCoupon, subtotal) : false
+  const isFreeShippingCoupon = couponIsValid && (selectedCoupon?.discountType || selectedCoupon?.type) === 'free_shipping'
   const shippingFee = addonInfo ? 0
     : deliveryType === 'face-to-face' ? 0
+    : isFreeShippingCoupon ? 0
     : region === 'east' ? (settings?.shippingFeeEast || 0)
     : (settings?.shippingFeeWest ?? settings?.shippingFee ?? 0)
-
-  const discountAmount = selectedCoupon ? computeSavings(subtotal, selectedCoupon) : 0
+  const discountAmount = (couponIsValid && !isFreeShippingCoupon) ? computeSavings(subtotal, selectedCoupon) : 0
   const total = subtotal - discountAmount + shippingFee
 
   function selectCoupon(c) {
+    if (!isCouponEligible(c, subtotal)) return
     setSelectedCoupon(prev => prev?.id === c.id && prev?._source === c._source ? null : c)
     setCodeResult(null)
     setCodeInput('')
@@ -193,17 +196,17 @@ export default function CheckoutPage() {
         paymentMode: settings?.paymentMode || 'full',
         createdAt: serverTimestamp(),
         ...(addonInfo ? { isAddon: true, parentOrderId: addonInfo.parentOrderId } : {}),
-        ...(selectedCoupon ? {
+        ...(couponIsValid && selectedCoupon ? {
           coupon: { code: selectedCoupon.code, discount: selectedCoupon.discount, discountType: selectedCoupon.discountType || 'percentage', title: selectedCoupon.title },
-          discount: discountAmount,
+          discount: isFreeShippingCoupon ? 0 : discountAmount,
         } : {}),
       }
       const ref = await addDoc(collection(db, 'cheers_orders'), orderData)
 
-      if (selectedCoupon?._source === 'personal' && selectedCoupon?.id) {
+      if (couponIsValid && selectedCoupon?._source === 'personal' && selectedCoupon?.id) {
         await updateDoc(doc(db, 'cheers_user_coupons', selectedCoupon.id), { used: true, usedAt: serverTimestamp(), usedOnOrder: orderId }).catch(() => {})
       }
-      if (selectedCoupon?._source === 'promo' && selectedCoupon?.code) {
+      if (couponIsValid && selectedCoupon?._source === 'promo' && selectedCoupon?.code) {
         await updateDoc(doc(db, 'cheers_promo_codes', selectedCoupon.code), { usedCount: increment(1) }).catch(() => {})
       }
 
@@ -243,6 +246,7 @@ export default function CheckoutPage() {
         <CouponModal
           coupon={popupCoupon}
           savings={computeSavings(subtotal, popupCoupon)}
+          subtotal={subtotal}
           lang={lang}
           onApply={() => { setSelectedCoupon(popupCoupon); setShowPopup(false) }}
           onSkip={() => setShowPopup(false)}
@@ -371,8 +375,10 @@ export default function CheckoutPage() {
                   : (lang === 'zh' ? '优惠券 / 优惠码' : 'Coupon / Promo Code')}
               </span>
               <div className="flex items-center gap-2">
-                {selectedCoupon && (
-                  <span className="text-xs text-green-600 font-medium">−RM {discountAmount.toFixed(2)}</span>
+                {selectedCoupon && couponIsValid && (
+                  <span className="text-xs text-green-600 font-medium">
+                    {isFreeShippingCoupon ? (lang === 'zh' ? '🚚 免运费' : '🚚 Free Ship') : `−RM ${discountAmount.toFixed(2)}`}
+                  </span>
                 )}
                 <span className="text-cheers-brown/40 text-sm">{couponsExpanded ? '▲' : '▼'}</span>
               </div>
@@ -386,8 +392,8 @@ export default function CheckoutPage() {
                     <p className="text-xs text-cheers-brown/50 font-medium px-2">{lang === 'zh' ? '我的优惠券（点击选择）' : 'My Coupons (click to select)'}</p>
                     {userCoupons.map(c => (
                       <div key={c.id} onClick={() => selectCoupon(c)}
-                        className={`cursor-pointer rounded-xl transition-all ${selectedCoupon?.id === c.id ? 'ring-2 ring-green-400 ring-offset-1' : 'hover:opacity-90'}`}>
-                        <CouponTicket coupon={c} lang={lang} />
+                        className={`rounded-xl transition-all ${isCouponEligible(c, subtotal) ? 'cursor-pointer' : 'cursor-not-allowed'} ${selectedCoupon?.id === c.id ? 'ring-2 ring-green-400 ring-offset-1' : 'hover:opacity-90'}`}>
+                        <CouponTicket coupon={c} lang={lang} subtotal={subtotal} />
                       </div>
                     ))}
                   </div>
@@ -411,13 +417,13 @@ export default function CheckoutPage() {
                   )}
                   {codeResult && codeResult !== 'not_found' && (
                     <div onClick={() => selectCoupon(codeResult)}
-                      className={`cursor-pointer rounded-xl transition-all ${selectedCoupon?.code === codeResult.code ? 'ring-2 ring-green-400 ring-offset-1' : 'hover:opacity-90'}`}>
-                      <CouponTicket coupon={codeResult} lang={lang} />
+                      className={`rounded-xl transition-all ${isCouponEligible(codeResult, subtotal) ? 'cursor-pointer' : 'cursor-not-allowed'} ${selectedCoupon?.code === codeResult.code ? 'ring-2 ring-green-400 ring-offset-1' : 'hover:opacity-90'}`}>
+                      <CouponTicket coupon={codeResult} lang={lang} subtotal={subtotal} />
                     </div>
                   )}
                 </div>
 
-                {selectedCoupon && (
+                {selectedCoupon && couponIsValid && (
                   <div className="px-2 flex items-center justify-between">
                     <p className="text-xs text-green-600 font-medium">
                       ✓ {selectedCoupon.title || selectedCoupon.code} {lang === 'zh' ? '已选中' : 'selected'}
@@ -452,10 +458,16 @@ export default function CheckoutPage() {
             <div className="flex justify-between text-sm text-cheers-brown/70">
               <span>{t('cart.subtotal')}</span><span>RM {subtotal.toFixed(2)}</span>
             </div>
-            {selectedCoupon && discountAmount > 0 && (
+            {couponIsValid && !isFreeShippingCoupon && discountAmount > 0 && (
               <div className="flex justify-between text-sm text-green-600">
                 <span>🎫 {formatDiscount(selectedCoupon, lang)}</span>
                 <span>−RM {discountAmount.toFixed(2)}</span>
+              </div>
+            )}
+            {isFreeShippingCoupon && (
+              <div className="flex justify-between text-sm text-green-600">
+                <span>🚚 {selectedCoupon.title || (lang === 'zh' ? '免运费券' : 'Free Shipping')}</span>
+                <span>{lang === 'zh' ? '已减免' : 'Applied'}</span>
               </div>
             )}
             <div className="flex justify-between text-sm text-cheers-brown/70">
