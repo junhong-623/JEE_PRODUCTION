@@ -6,7 +6,7 @@ import app from '../../lib/firebase'
 import { useLang } from '../contexts/LangContext'
 import { useCart } from '../contexts/CartContext'
 import { useAuth } from '../contexts/AuthContext'
-import CouponTicket, { applyDiscount, formatDiscount, computeSavings, findBestCoupon, isCouponEligible } from '../components/ui/CouponTicket'
+import CouponTicket, { applyDiscount, formatDiscount, computeSavings, findBestCoupon, findNearMissCoupon, isCouponEligible } from '../components/ui/CouponTicket'
 
 const db = getFirestore(app)
 
@@ -37,11 +37,53 @@ function CouponModal({ coupon, savings, subtotal, lang, onApply, onSkip }) {
         <p className="text-xs text-cheers-brown/50 mb-4">
           {lang === 'zh' ? `可省 RM ${savings.toFixed(2)}` : `Save RM ${savings.toFixed(2)}`}
         </p>
-        <CouponTicket coupon={coupon} lang={lang} subtotal={subtotal} />
+        <CouponTicket coupon={coupon} lang={lang} subtotal={effectiveSubtotal} />
         <div className="flex gap-3 mt-4">
           <button onClick={onSkip} className="btn-secondary flex-1 py-2">{lang === 'zh' ? '不使用' : 'Skip'}</button>
           <button onClick={onApply} className="btn-primary flex-1 py-2">{lang === 'zh' ? '立即使用' : 'Apply'}</button>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function UpsellModal({ coupon, shortfall, products, lang, onClose }) {
+  const nav = useNavigate()
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+      <div className="absolute inset-0 bg-cheers-dark-brown/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-cheers-light-cream rounded-2xl shadow-2xl max-w-sm w-full px-4 pt-5 pb-4 animate-slide-up">
+        <button onClick={onClose} className="absolute top-3 right-3 text-cheers-brown/40 hover:text-cheers-brown text-lg leading-none">×</button>
+        <div className="text-center mb-4">
+          <p className="text-3xl mb-1">🎫</p>
+          <p className="font-serif text-lg text-cheers-dark-brown leading-snug">
+            {lang === 'zh' ? `再加 RM ${shortfall.toFixed(2)} 即可使用` : `Add RM ${shortfall.toFixed(2)} more to unlock`}
+          </p>
+          <p className="text-xs text-cheers-brown/50 mt-1">{coupon.title} · {formatDiscount(coupon, lang)}</p>
+        </div>
+        <div className="space-y-2">
+          {products.map(p => {
+            const name = typeof p.name === 'object' ? (p.name?.[lang] || p.name?.zh) : p.name
+            const img = p.imageUrls?.[0] || p.imageUrl
+            return (
+              <div key={p.id} onClick={() => { onClose(); nav(`/products/${p.id}`) }}
+                className="flex items-center gap-3 bg-white rounded-xl px-3 py-2.5 cursor-pointer hover:bg-cheers-cream/30 transition-colors">
+                {img
+                  ? <img src={img} alt={name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+                  : <div className="w-12 h-12 rounded-lg bg-cheers-cream flex-shrink-0" />
+                }
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-cheers-dark-brown truncate">{name}</p>
+                  <p className="text-xs text-cheers-brown">RM {Number(p.price).toFixed(2)}</p>
+                </div>
+                <span className="text-cheers-brown/30 flex-shrink-0 text-sm">›</span>
+              </div>
+            )
+          })}
+        </div>
+        <button onClick={onClose} className="mt-3 w-full text-xs text-cheers-brown/40 hover:text-cheers-brown py-1">
+          {lang === 'zh' ? '暂不需要' : 'Maybe later'}
+        </button>
       </div>
     </div>
   )
@@ -62,6 +104,7 @@ export default function CheckoutPage() {
 
   // Addon mode
   const [addonInfo, setAddonInfo] = useState(null) // { parentOrderId, delivery }
+  const [parentOrderSubtotal, setParentOrderSubtotal] = useState(0)
 
   // Coupon state
   const [userCoupons, setUserCoupons] = useState([])       // personal unused coupons
@@ -72,6 +115,7 @@ export default function CheckoutPage() {
   const [codeChecking, setCodeChecking] = useState(false)
   const [showPopup, setShowPopup] = useState(false)
   const [popupCoupon, setPopupCoupon] = useState(null)
+  const [upsellModal, setUpsellModal] = useState(null) // { coupon, shortfall, products }
 
   useEffect(() => {
     if (items.length === 0) navigate('/cart')
@@ -101,11 +145,14 @@ export default function CheckoutPage() {
         }
       }
 
-      const [settingsSnap, addressSnap, couponsSnap] = await Promise.all([
+      const [settingsSnap, addressSnap, couponsSnap, parentSnap] = await Promise.all([
         getDoc(doc(db, 'cheers_settings', 'global')),
         (!addon && user) ? getDoc(doc(db, 'cheers_addresses', user.uid)) : Promise.resolve(null),
         user ? getDocs(query(collection(db, 'cheers_user_coupons'), where('userId', '==', user.uid), where('used', '==', false))) : Promise.resolve(null),
+        addon ? getDocs(query(collection(db, 'cheers_orders'), where('orderId', '==', addon.parentOrderId))) : Promise.resolve(null),
       ])
+      const parentSubtotal = (!parentSnap || parentSnap.empty) ? 0 : (parentSnap.docs[0].data().subtotal || 0)
+      if (parentSubtotal > 0) setParentOrderSubtotal(parentSubtotal)
 
       if (settingsSnap.exists()) {
         setSettings(settingsSnap.data())
@@ -125,9 +172,26 @@ export default function CheckoutPage() {
         const coupons = couponsSnap.docs.map(d => ({ id: d.id, _source: 'personal', ...d.data() }))
         setUserCoupons(coupons)
         if (coupons.length > 0) {
-          const best = findBestCoupon(coupons, subtotal)
-          setPopupCoupon(best)
-          setShowPopup(true)
+          const effectiveForPopup = subtotal + parentSubtotal
+          const best = findBestCoupon(coupons, effectiveForPopup)
+          if (best) {
+            setPopupCoupon(best)
+            setShowPopup(true)
+          } else {
+            const nearMiss = findNearMissCoupon(coupons, effectiveForPopup)
+            const upsellCatId = settingsSnap.data()?.couponUpsellCategoryId
+            if (nearMiss && upsellCatId) {
+              const shortfall = nearMiss.minSpend - effectiveForPopup
+              const productsSnap = await getDocs(
+                query(collection(db, 'cheers_products'), where('categoryId', '==', upsellCatId), where('inStock', '==', true))
+              )
+              const sorted = productsSnap.docs
+                .map(d => ({ id: d.id, ...d.data() }))
+                .sort((a, b) => Math.abs(a.price - shortfall) - Math.abs(b.price - shortfall))
+                .slice(0, 3)
+              if (sorted.length > 0) setUpsellModal({ coupon: nearMiss, shortfall, products: sorted })
+            }
+          }
         }
       }
     }
@@ -135,7 +199,8 @@ export default function CheckoutPage() {
   }, [user])
 
   const region = detectRegion(form.postcode)
-  const couponIsValid = selectedCoupon ? isCouponEligible(selectedCoupon, subtotal) : false
+  const effectiveSubtotal = subtotal + parentOrderSubtotal  // combined for coupon minSpend check in addon mode
+  const couponIsValid = selectedCoupon ? isCouponEligible(selectedCoupon, effectiveSubtotal) : false
   const isFreeShippingCoupon = couponIsValid && (selectedCoupon?.discountType || selectedCoupon?.type) === 'free_shipping'
   const shippingFee = addonInfo ? 0
     : deliveryType === 'face-to-face' ? 0
@@ -146,7 +211,7 @@ export default function CheckoutPage() {
   const total = subtotal - discountAmount + shippingFee
 
   function selectCoupon(c) {
-    if (!isCouponEligible(c, subtotal)) return
+    if (!isCouponEligible(c, effectiveSubtotal)) return
     setSelectedCoupon(prev => prev?.id === c.id && prev?._source === c._source ? null : c)
     setCodeResult(null)
     setCodeInput('')
@@ -242,11 +307,21 @@ export default function CheckoutPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
+      {upsellModal && (
+        <UpsellModal
+          coupon={upsellModal.coupon}
+          shortfall={upsellModal.shortfall}
+          products={upsellModal.products}
+          lang={lang}
+          onClose={() => setUpsellModal(null)}
+        />
+      )}
+
       {showPopup && popupCoupon && (
         <CouponModal
           coupon={popupCoupon}
           savings={computeSavings(subtotal, popupCoupon)}
-          subtotal={subtotal}
+          subtotal={effectiveSubtotal}
           lang={lang}
           onApply={() => { setSelectedCoupon(popupCoupon); setShowPopup(false) }}
           onSkip={() => setShowPopup(false)}
@@ -386,14 +461,19 @@ export default function CheckoutPage() {
 
             {couponsExpanded && (
               <div className="border-t border-cheers-cream px-2 py-3 space-y-4">
+                {addonInfo && parentOrderSubtotal > 0 && (
+                  <p className="text-[10px] text-orange-500 px-2">
+                    📦 {lang === 'zh' ? `门槛按合并金额计算：原单 RM ${parentOrderSubtotal.toFixed(2)} + 此单 RM ${subtotal.toFixed(2)} = RM ${effectiveSubtotal.toFixed(2)}` : `Min. spend uses combined total: RM ${effectiveSubtotal.toFixed(2)}`}
+                  </p>
+                )}
                 {/* Personal coupons grid */}
                 {userCoupons.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-xs text-cheers-brown/50 font-medium px-2">{lang === 'zh' ? '我的优惠券（点击选择）' : 'My Coupons (click to select)'}</p>
                     {userCoupons.map(c => (
                       <div key={c.id} onClick={() => selectCoupon(c)}
-                        className={`rounded-xl transition-all ${isCouponEligible(c, subtotal) ? 'cursor-pointer' : 'cursor-not-allowed'} ${selectedCoupon?.id === c.id ? 'ring-2 ring-green-400 ring-offset-1' : 'hover:opacity-90'}`}>
-                        <CouponTicket coupon={c} lang={lang} subtotal={subtotal} />
+                        className={`rounded-xl transition-all ${isCouponEligible(c, effectiveSubtotal) ? 'cursor-pointer' : 'cursor-not-allowed'} ${selectedCoupon?.id === c.id ? 'ring-2 ring-green-400 ring-offset-1' : 'hover:opacity-90'}`}>
+                        <CouponTicket coupon={c} lang={lang} subtotal={effectiveSubtotal} />
                       </div>
                     ))}
                   </div>
@@ -417,8 +497,8 @@ export default function CheckoutPage() {
                   )}
                   {codeResult && codeResult !== 'not_found' && (
                     <div onClick={() => selectCoupon(codeResult)}
-                      className={`rounded-xl transition-all ${isCouponEligible(codeResult, subtotal) ? 'cursor-pointer' : 'cursor-not-allowed'} ${selectedCoupon?.code === codeResult.code ? 'ring-2 ring-green-400 ring-offset-1' : 'hover:opacity-90'}`}>
-                      <CouponTicket coupon={codeResult} lang={lang} subtotal={subtotal} />
+                      className={`rounded-xl transition-all ${isCouponEligible(codeResult, effectiveSubtotal) ? 'cursor-pointer' : 'cursor-not-allowed'} ${selectedCoupon?.code === codeResult.code ? 'ring-2 ring-green-400 ring-offset-1' : 'hover:opacity-90'}`}>
+                      <CouponTicket coupon={codeResult} lang={lang} subtotal={effectiveSubtotal} />
                     </div>
                   )}
                 </div>

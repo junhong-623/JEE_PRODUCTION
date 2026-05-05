@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useMemo } from 'react'
-import { getFirestore, collection, getDocs, doc, addDoc, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { getFirestore, collection, getDocs, getDoc, doc, addDoc, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore'
 import app from '../../../lib/firebase'
 import { useAuth } from '../../contexts/AuthContext'
 
 const db = getFirestore(app)
 
-const TAB = { personal: 'personal', promo: 'promo' }
+const TAB = { personal: 'personal', promo: 'promo', settings: 'settings' }
 
 function formatDiscount(discount, type) {
   if (type === 'free_shipping') return '免运费'
@@ -357,6 +357,56 @@ function PromoTab({ adminUid }) {
   )
 }
 
+// ── Recommend Settings Tab ───────────────────────────────────────────────────
+function SettingsTab() {
+  const [categories, setCategories] = useState([])
+  const [upsellCatId, setUpsellCatId] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  useEffect(() => {
+    async function load() {
+      const [settingsSnap, catsSnap] = await Promise.all([
+        getDoc(doc(db, 'cheers_settings', 'global')),
+        getDocs(collection(db, 'cheers_categories')),
+      ])
+      if (settingsSnap.exists()) setUpsellCatId(settingsSnap.data().couponUpsellCategoryId || '')
+      setCategories(catsSnap.docs.map(d => ({ id: d.id, ...d.data() })))
+    }
+    load()
+  }, [])
+
+  async function handleSave() {
+    setSaving(true)
+    await setDoc(doc(db, 'cheers_settings', 'global'), { couponUpsellCategoryId: upsellCatId || null }, { merge: true })
+    setSaving(false)
+    setMsg('已保存')
+    setTimeout(() => setMsg(''), 3000)
+  }
+
+  return (
+    <div className="space-y-4">
+      {msg && <div className="px-4 py-2 bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg">{msg}</div>}
+      <div className="card p-4 space-y-3">
+        <div>
+          <h2 className="font-medium text-cheers-dark-brown mb-1">优惠券快差一点时推荐的商品分类</h2>
+          <p className="text-xs text-cheers-brown/50 mb-3">当顾客有优惠券但未达门槛时，在结账页弹窗推荐此分类下最接近差额价格的 3 件商品。</p>
+          <label className="label">推荐商品分类</label>
+          <select className="input" value={upsellCatId} onChange={e => setUpsellCatId(e.target.value)}>
+            <option value="">不设置（不显示推荐）</option>
+            {categories.map(c => (
+              <option key={c.id} value={c.id}>{c.name?.zh || c.name?.en || c.id}</option>
+            ))}
+          </select>
+        </div>
+        <button onClick={handleSave} disabled={saving} className="btn-primary py-2 px-6">
+          {saving ? '保存中…' : '保存设置'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── Main ─────────────────────────────────────────────────────────────────────
 export default function CouponsPage() {
   const { user } = useAuth()
@@ -368,8 +418,9 @@ export default function CouponsPage() {
 
       <div className="flex gap-1 mb-5 border-b border-cheers-cream">
         {[
-          { key: TAB.personal, label: '个人优惠券' },
-          { key: TAB.promo,    label: '优惠码' },
+          { key: TAB.personal,  label: '个人优惠券' },
+          { key: TAB.promo,     label: '优惠码' },
+          { key: TAB.settings,  label: '推荐设置' },
         ].map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === t.key ? 'border-cheers-brown text-cheers-brown' : 'border-transparent text-cheers-brown/50 hover:text-cheers-brown'}`}>
@@ -378,8 +429,9 @@ export default function CouponsPage() {
         ))}
       </div>
 
-      {tab === TAB.personal && <PersonalTab adminUid={user?.uid} />}
-      {tab === TAB.promo    && <PromoTab    adminUid={user?.uid} />}
+      {tab === TAB.personal  && <PersonalTab adminUid={user?.uid} />}
+      {tab === TAB.promo     && <PromoTab    adminUid={user?.uid} />}
+      {tab === TAB.settings  && <SettingsTab />}
     </div>
   )
 }
