@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { getAuth, updateProfile } from 'firebase/auth'
 import { getFirestore, doc, getDoc, setDoc, collection, query, where, orderBy, getDocs, addDoc } from 'firebase/firestore'
 import app from '../../lib/firebase'
@@ -132,10 +132,22 @@ function AddressTab({ user, lang }) {
   )
 }
 
+const ADDON_ELIGIBLE = ['pending', 'confirmed', 'purchasing']
+
 function OrdersTab({ user, lang, t }) {
+  const navigate = useNavigate()
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(null)
+
+  function handleAddon(order) {
+    sessionStorage.setItem('cheers_addon', JSON.stringify({
+      parentOrderId: order.orderId || order.id,
+      parentDocId: order.id,
+      delivery: order.delivery,
+    }))
+    navigate('/products')
+  }
 
   useEffect(() => {
     getDocs(query(collection(db, 'cheers_orders'), where('userId', '==', user.uid), orderBy('createdAt', 'desc')))
@@ -197,6 +209,15 @@ function OrdersTab({ user, lang, t }) {
                 <div className="flex justify-between font-semibold text-cheers-dark-brown pt-2 border-t border-cheers-cream">
                   <span>{t('cart.total')}</span><span>RM {order.total?.toFixed(2)}</span>
                 </div>
+                {order.parentOrderId && (
+                  <p className="text-xs text-orange-600">{lang === 'zh' ? '加单至' : 'Add-on to'}: {order.parentOrderId}</p>
+                )}
+                {ADDON_ELIGIBLE.includes(order.status) && !order.isAddon && (
+                  <button onClick={e => { e.stopPropagation(); handleAddon(order) }}
+                    className="w-full btn-secondary text-sm py-2">
+                    📦 {lang === 'zh' ? '加单（免邮费合并配送）' : 'Add-on (free shipping)'}
+                  </button>
+                )}
               </div>
             )}
           </div>

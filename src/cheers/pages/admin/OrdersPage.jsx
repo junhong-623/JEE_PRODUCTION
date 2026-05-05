@@ -94,6 +94,9 @@ export default function AdminOrdersPage() {
                       {order.source === 'manual' && (
                         <span className="badge-status bg-orange-100 text-orange-700">手动</span>
                       )}
+                      {order.isAddon && (
+                        <span className="badge-status bg-orange-100 text-orange-700">加单</span>
+                      )}
                     </div>
                     <p className="text-xs text-cheers-brown/50 mt-0.5">
                       {order.userName} · {order.userEmail} ·{' '}
@@ -131,6 +134,14 @@ export default function AdminOrdersPage() {
                       </p>
                       <p className="text-sm text-cheers-dark-brown/60 mt-0.5">{order.userName} · {order.delivery?.phone}</p>
                     </div>
+
+                    {order.parentOrderId && (
+                      <div className="bg-orange-50 border border-orange-100 rounded-lg px-3 py-2">
+                        <p className="text-xs text-orange-600">
+                          📦 加单至母订单：<span className="font-medium">{order.parentOrderId}</span>
+                        </p>
+                      </div>
+                    )}
 
                     {order.notes && (
                       <div>
