@@ -116,6 +116,9 @@ service cloud.firestore {
       allow read: if signedIn();
       allow write: if isAdmin();
     }
+    match /cheers_procurement_tracking/{key} {
+      allow read, write: if isAdmin();
+    }
 
     // ── Cheers admins & users ────────────────────────────────────
     match /cheers_admins/{uid} {

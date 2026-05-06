@@ -49,7 +49,7 @@ export default {
     viewDetails: 'View Details',
     status: {
       pending: 'Pending', confirmed: 'Confirmed',
-      purchasing: 'Purchasing', shipped: 'Shipped', completed: 'Completed',
+      purchasing: 'Purchasing', procured: 'Procured', shipped: 'Shipped', completed: 'Completed',
     },
   },
   wishlist: {
@@ -83,7 +83,7 @@ export default {
     dashboard: 'Dashboard', trips: 'Trips', products: 'Products',
     categories: 'Categories', orders: 'Orders', settings: 'Settings',
     payment: 'Payment', delivery: 'Delivery', contact: 'Contact',
-    policies: 'Policies', activity: 'Activity Feed', admins: 'Admins', coupons: 'Coupons', homeSettings: 'Home Settings',
+    policies: 'Policies', activity: 'Activity Feed', admins: 'Admins', coupons: 'Coupons', homeSettings: 'Home Settings', report: 'Report',
     save: 'Save', saving: 'Saving…', saved: 'Saved',
     add: 'Add', edit: 'Edit', delete: 'Delete', cancel: 'Cancel',
     confirm: 'Confirm', upload: 'Upload Image',

@@ -11,6 +11,7 @@ const NAV = [
   { to: '/admin/orders', label: 'admin.orders', icon: '📦' },
   { to: '/admin/admins', label: 'admin.admins', icon: '👥' },
   { to: '/admin/coupons', label: 'admin.coupons', icon: '🎫' },
+  { to: '/admin/report',  label: 'admin.report',  icon: '📊' },
   null,
   { to: '/admin/settings/payment', label: 'admin.payment', icon: '💳' },
   { to: '/admin/settings/delivery', label: 'admin.delivery', icon: '🚚' },
