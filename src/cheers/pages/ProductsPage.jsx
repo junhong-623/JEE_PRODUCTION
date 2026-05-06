@@ -50,10 +50,22 @@ export default function ProductsPage() {
     load()
   }, [])
 
-  // Build set of matching category IDs (include sub-categories of selected root)
+  const rootCats = categories.filter(c => !c.parentId)
+  function getChildren(parentId) { return categories.filter(c => c.parentId === parentId) }
+
+  // Determine which root is active (even when a sub-category is selected)
+  const activeCatObj = categories.find(c => c.id === activeCategory)
+  const activeRootId = activeCategory === 'all' ? null
+    : activeCatObj?.parentId || activeCategory   // sub → parent; root → itself
+  const activeSubCats = activeRootId ? getChildren(activeRootId) : []
+
+  // Products to show: include all sub-category products when root is selected
   const matchingCatIds = (() => {
     if (activeCategory === 'all') return null
-    const childIds = categories.filter(c => c.parentId === activeCategory).map(c => c.id)
+    // If a sub-category is directly selected, show only that sub
+    if (activeCatObj?.parentId) return new Set([activeCategory])
+    // Root selected: include root + all its children
+    const childIds = getChildren(activeCategory).map(c => c.id)
     return new Set([activeCategory, ...childIds])
   })()
 
@@ -77,32 +89,45 @@ export default function ProductsPage() {
         />
       </div>
 
-      {/* Category filter */}
-      {categories.length > 0 && (
-        <div className="flex gap-2 flex-wrap mb-6">
-          <button
-            onClick={() => setActiveCategory('all')}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-              activeCategory === 'all'
-                ? 'bg-cheers-brown text-cheers-cream'
-                : 'border border-cheers-brown/30 text-cheers-brown hover:border-cheers-brown'
-            }`}
-          >
-            {t('common.all')}
-          </button>
-          {categories.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
+      {/* Category filter — root row */}
+      {rootCats.length > 0 && (
+        <div className="space-y-2 mb-6">
+          <div className="flex gap-2 flex-wrap">
+            <button onClick={() => setActiveCategory('all')}
               className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                activeCategory === cat.id
-                  ? 'bg-cheers-brown text-cheers-cream'
-                  : 'border border-cheers-brown/30 text-cheers-brown hover:border-cheers-brown'
-              }`}
-            >
-              {cat.name?.[lang] || cat.name?.zh || cat.name}
+                activeCategory === 'all' ? 'bg-cheers-brown text-cheers-cream' : 'border border-cheers-brown/30 text-cheers-brown hover:border-cheers-brown'
+              }`}>
+              {t('common.all')}
             </button>
-          ))}
+            {rootCats.map(cat => (
+              <button key={cat.id} onClick={() => setActiveCategory(cat.id)}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  activeRootId === cat.id ? 'bg-cheers-brown text-cheers-cream' : 'border border-cheers-brown/30 text-cheers-brown hover:border-cheers-brown'
+                }`}>
+                {cat.name?.[lang] || cat.name?.zh}
+              </button>
+            ))}
+          </div>
+
+          {/* Sub-category row — only shown after clicking a root with children */}
+          {activeSubCats.length > 0 && (
+            <div className="flex gap-2 flex-wrap pl-3 border-l-2 border-cheers-cream">
+              <button onClick={() => setActiveCategory(activeRootId)}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  activeCategory === activeRootId ? 'bg-cheers-brown/80 text-cheers-cream' : 'border border-cheers-brown/20 text-cheers-brown/70 hover:border-cheers-brown/50'
+                }`}>
+                {lang === 'zh' ? '全部' : 'All'}
+              </button>
+              {activeSubCats.map(sub => (
+                <button key={sub.id} onClick={() => setActiveCategory(sub.id)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    activeCategory === sub.id ? 'bg-cheers-brown/80 text-cheers-cream' : 'border border-cheers-brown/20 text-cheers-brown/70 hover:border-cheers-brown/50'
+                  }`}>
+                  {sub.name?.[lang] || sub.name?.zh}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

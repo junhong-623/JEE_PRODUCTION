@@ -24,9 +24,7 @@ export default function AnnouncementBanner() {
     getDoc(doc(db, 'cheers_settings', 'global')).then(snap => {
       const ann = snap.data()?.announcement
       if (ann?.active && (ann.text?.zh || ann.text?.en)) {
-        const key = `ann_${ann.text?.zh || ann.text?.en}`
-        if (localStorage.getItem(key)) { setDismissed(true); return }
-        setData({ ...ann, _key: key })
+        setData(ann)
       }
     })
   }, [])
@@ -63,7 +61,7 @@ export default function AnnouncementBanner() {
         </div>
 
         {/* Dismiss */}
-        <button onClick={() => { localStorage.setItem(data._key, '1'); setDismissed(true) }}
+        <button onClick={() => setDismissed(true)}
           className="absolute right-3 opacity-40 hover:opacity-80 text-base leading-none flex-shrink-0">×</button>
       </div>
     </div>
