@@ -194,6 +194,15 @@ function OrdersTab({ user, lang, t }) {
                 </p>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
+                {order.status === 'pending' && !order.paymentSubmitted && (
+                  <Link to={`/payment/${order.id}`} onClick={e => e.stopPropagation()}
+                    className="text-xs btn-primary py-1 px-2.5">
+                    {lang === 'zh' ? '前往付款' : 'Pay Now'}
+                  </Link>
+                )}
+                {order.paymentSubmitted && (
+                  <span className="text-xs text-green-600 font-medium">💰 {lang === 'zh' ? '已付款' : 'Paid'}</span>
+                )}
                 <span className="font-semibold text-cheers-brown text-sm">RM {order.total?.toFixed(2)}</span>
                 <span className="text-cheers-brown/40 text-xs">{isOpen ? '▲' : '▼'}</span>
               </div>
@@ -221,6 +230,12 @@ function OrdersTab({ user, lang, t }) {
                 </div>
                 {order.parentOrderId && (
                   <p className="text-xs text-orange-600">{lang === 'zh' ? '加单至' : 'Add-on to'}: {order.parentOrderId}</p>
+                )}
+                {order.status === 'pending' && !order.paymentSubmitted && (
+                  <Link to={`/payment/${order.id}`}
+                    className="w-full btn-primary text-sm py-2.5 text-center block">
+                    💳 {lang === 'zh' ? '前往付款' : 'Pay Now'}
+                  </Link>
                 )}
                 {ADDON_ELIGIBLE.includes(order.status) && !order.isAddon && (
                   <button onClick={e => { e.stopPropagation(); handleAddon(order) }}
