@@ -218,20 +218,36 @@ export default function HomeSettingsPage() {
           <h2 className="font-medium text-cheers-dark-brown mb-1">首页分类展示</h2>
           <p className="text-xs text-cheers-brown/50 mb-3">勾选后在主页显示为分类卡片，顾客点击「去逛逛」直接进入该分类商品页。</p>
           {allCategories.filter(c => !c.parentId).length === 0 ? (
-            <p className="text-xs text-cheers-brown/40">暂无根分类</p>
+            <p className="text-xs text-cheers-brown/40">暂无分类</p>
           ) : (
-            <div className="space-y-2 max-h-56 overflow-y-auto">
-              {allCategories.filter(c => !c.parentId).map(cat => (
-                <label key={cat.id} className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" className="w-4 h-4 accent-cheers-brown"
-                    checked={homepageCatIds.includes(cat.id)}
-                    onChange={e => setHomepageCatIds(prev =>
-                      e.target.checked ? [...prev, cat.id] : prev.filter(id => id !== cat.id)
-                    )} />
-                  {cat.coverImage && <img src={cat.coverImage} className="w-8 h-8 rounded object-cover" />}
-                  <span className="text-sm text-cheers-dark-brown">{cat.name?.zh || cat.name?.en}</span>
-                </label>
-              ))}
+            <div className="space-y-1 max-h-64 overflow-y-auto">
+              {allCategories.filter(c => !c.parentId).map(root => {
+                const children = allCategories.filter(c => c.parentId === root.id)
+                return (
+                  <div key={root.id}>
+                    <label className="flex items-center gap-3 cursor-pointer py-1">
+                      <input type="checkbox" className="w-4 h-4 accent-cheers-brown"
+                        checked={homepageCatIds.includes(root.id)}
+                        onChange={e => setHomepageCatIds(prev =>
+                          e.target.checked ? [...prev, root.id] : prev.filter(id => id !== root.id)
+                        )} />
+                      {root.coverImage && <img src={root.coverImage} className="w-7 h-7 rounded object-cover flex-shrink-0" />}
+                      <span className="text-sm font-medium text-cheers-dark-brown">{root.name?.zh || root.name?.en}</span>
+                    </label>
+                    {children.map(child => (
+                      <label key={child.id} className="flex items-center gap-3 cursor-pointer py-0.5 pl-7 border-l border-cheers-cream ml-2">
+                        <input type="checkbox" className="w-4 h-4 accent-cheers-brown"
+                          checked={homepageCatIds.includes(child.id)}
+                          onChange={e => setHomepageCatIds(prev =>
+                            e.target.checked ? [...prev, child.id] : prev.filter(id => id !== child.id)
+                          )} />
+                        {child.coverImage && <img src={child.coverImage} className="w-6 h-6 rounded object-cover flex-shrink-0" />}
+                        <span className="text-xs text-cheers-dark-brown/80">{child.name?.zh || child.name?.en}</span>
+                      </label>
+                    ))}
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
