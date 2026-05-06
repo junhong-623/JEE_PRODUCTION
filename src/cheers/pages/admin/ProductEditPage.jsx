@@ -161,7 +161,7 @@ export default function ProductEditPage() {
     name: { zh: '', en: '' },
     description: { zh: '', en: '' },
     price: '',
-    categoryId: '',
+    categoryIds: [],
     tripId: '',
     inStock: true,
     featured: false,
@@ -191,7 +191,7 @@ export default function ProductEditPage() {
             name: data.name || { zh: '', en: '' },
             description: data.description || { zh: '', en: '' },
             price: data.price?.toString() || '',
-            categoryId: data.categoryId || '',
+            categoryIds: data.categoryIds || (data.categoryId ? [data.categoryId] : []),
             tripId: data.tripId || '',
             inStock: data.inStock ?? true,
             featured: data.featured ?? false,
@@ -214,7 +214,7 @@ export default function ProductEditPage() {
   }, [id, isNew])
 
   async function handleTripChange(tripId) {
-    setForm(f => ({ ...f, tripId, categoryId: '' }))
+    setForm(f => ({ ...f, tripId, categoryIds: [] }))
     const catSnap = await getDocs(query(collection(db, 'cheers_categories'), orderBy('order')))
     setCategories(catSnap.docs.filter(d => d.data().tripId === tripId).map(d => ({ id: d.id, ...d.data() })))
   }
@@ -243,7 +243,8 @@ export default function ProductEditPage() {
       name: form.name,
       description: form.description,
       price: parseFloat(form.price),
-      categoryId: form.categoryId,
+      categoryIds: form.categoryIds,
+      categoryId: form.categoryIds[0] || '',
       tripId: form.tripId,
       inStock: form.inStock,
       featured: form.featured,
@@ -328,11 +329,26 @@ export default function ProductEditPage() {
               </select>
             </div>
             <div>
-              <label className="label">分类</label>
-              <select className="input" value={form.categoryId} onChange={e => setForm(f => ({ ...f, categoryId: e.target.value }))}>
-                <option value="">未分类</option>
-                {categories.map(c => <option key={c.id} value={c.id}>{c.name?.zh}</option>)}
-              </select>
+              <label className="label">分类（可多选）</label>
+              {categories.length === 0 ? (
+                <p className="text-xs text-cheers-brown/40 mt-1">请先选择行程</p>
+              ) : (
+                <div className="space-y-1 max-h-40 overflow-y-auto border border-cheers-cream rounded-lg p-2">
+                  {categories.map(c => (
+                    <label key={c.id} className={`flex items-center gap-2 cursor-pointer py-0.5 ${c.parentId ? 'pl-4 text-xs' : 'text-sm font-medium'}`}>
+                      <input type="checkbox" className="w-3.5 h-3.5 accent-cheers-brown flex-shrink-0"
+                        checked={form.categoryIds.includes(c.id)}
+                        onChange={e => setForm(f => ({
+                          ...f,
+                          categoryIds: e.target.checked
+                            ? [...f.categoryIds, c.id]
+                            : f.categoryIds.filter(id => id !== c.id),
+                        }))} />
+                      <span className="text-cheers-dark-brown">{c.name?.zh}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
