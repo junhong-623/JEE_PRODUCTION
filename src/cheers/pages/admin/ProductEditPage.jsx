@@ -13,7 +13,7 @@ const BLOCK_LANG_TABS = ['zh', 'en']
 
 function BlockEditor({ blocks, onChange }) {
   const [editLang, setEditLang] = useState('zh')
-  const [uploading, setUploading] = useState(null) // index being uploaded
+  const [uploading, setUploading] = useState(null) // block index or 'images' for multi-upload
 
   function addBlock(type) {
     const b = type === 'text'
@@ -42,6 +42,16 @@ function BlockEditor({ blocks, onChange }) {
       const url = await uploadProductMedia(file)
       update(idx, { url, source: 'upload' })
     } finally { setUploading(null) }
+  }
+
+  async function handleAddImageBlocks(e) {
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+    setUploading('images')
+    try {
+      const urls = await Promise.all(files.map(f => uploadProductMedia(f)))
+      onChange([...blocks, ...urls.map(url => ({ type: 'image', url }))])
+    } finally { setUploading(null); e.target.value = '' }
   }
 
   function getYouTubeId(url) {
@@ -85,7 +95,7 @@ function BlockEditor({ blocks, onChange }) {
             </div>
 
             {block.type === 'text' && (
-              <textarea className="input resize-none w-full text-sm" rows={3}
+              <textarea className="input resize-y w-full text-sm" rows={3}
                 placeholder={editLang === 'zh' ? '中文内容…' : 'English content…'}
                 value={block.content?.[editLang] || ''}
                 onChange={e => update(idx, { content: { ...block.content, [editLang]: e.target.value } })} />
@@ -96,7 +106,7 @@ function BlockEditor({ blocks, onChange }) {
                 {block.url && <img src={block.url} className="max-h-40 rounded-lg object-cover" />}
                 <label className="btn-secondary text-xs cursor-pointer px-3 py-1.5 inline-block">
                   {uploading === idx ? '上传中…' : block.url ? '更换图片' : '上传图片'}
-                  <input type="file" accept="image/*" className="hidden" disabled={uploading === idx}
+                  <input type="file" accept="image/*" className="hidden" disabled={uploading !== null}
                     onChange={e => e.target.files[0] && handleMediaUpload(idx, e.target.files[0])} />
                 </label>
               </div>
@@ -119,7 +129,7 @@ function BlockEditor({ blocks, onChange }) {
                 ) : (
                   <label className="btn-secondary text-xs cursor-pointer px-3 py-1.5 inline-block">
                     {uploading === idx ? '上传中…' : block.url ? '更换视频' : '上传视频'}
-                    <input type="file" accept="video/*" className="hidden" disabled={uploading === idx}
+                    <input type="file" accept="video/*" className="hidden" disabled={uploading !== null}
                       onChange={e => e.target.files[0] && handleMediaUpload(idx, e.target.files[0])} />
                   </label>
                 )}
@@ -136,13 +146,18 @@ function BlockEditor({ blocks, onChange }) {
       </div>
 
       {/* Add buttons */}
-      <div className="flex gap-2">
-        {[['text', '+ 文字'], ['image', '+ 图片'], ['video', '+ 视频']].map(([type, label]) => (
+      <div className="flex gap-2 flex-wrap">
+        {[['text', '+ 文字'], ['video', '+ 视频']].map(([type, label]) => (
           <button key={type} type="button" onClick={() => addBlock(type)}
             className="btn-ghost text-xs py-1.5 px-3 border border-cheers-brown/20 hover:border-cheers-brown/50">
             {label}
           </button>
         ))}
+        <label className={`btn-ghost text-xs py-1.5 px-3 border border-cheers-brown/20 hover:border-cheers-brown/50 cursor-pointer ${uploading !== null ? 'opacity-50 pointer-events-none' : ''}`}>
+          {uploading === 'images' ? '上传中…' : '+ 图片'}
+          <input type="file" accept="image/*" multiple className="hidden"
+            disabled={uploading !== null} onChange={handleAddImageBlocks} />
+        </label>
       </div>
     </div>
   )
@@ -172,6 +187,8 @@ export default function ProductEditPage() {
   const [sizeInput, setSizeInput] = useState('')
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [dragImgIdx, setDragImgIdx] = useState(null)
+  const [dragOverImgIdx, setDragOverImgIdx] = useState(null)
 
   useEffect(() => {
     async function load() {
@@ -281,8 +298,28 @@ export default function ProductEditPage() {
           </div>
           <div className="grid grid-cols-4 gap-2">
             {form.imageUrls.map((url, idx) => (
-              <div key={idx} className="relative aspect-square">
-                <img src={url} alt="" className="w-full h-full object-cover rounded-xl border border-cheers-cream" />
+              <div
+                key={idx}
+                draggable
+                onDragStart={() => setDragImgIdx(idx)}
+                onDragOver={e => { e.preventDefault(); setDragOverImgIdx(idx) }}
+                onDrop={e => {
+                  e.preventDefault()
+                  if (dragImgIdx === null || dragImgIdx === idx) return
+                  setForm(f => {
+                    const urls = [...f.imageUrls]
+                    const [item] = urls.splice(dragImgIdx, 1)
+                    urls.splice(idx, 0, item)
+                    return { ...f, imageUrls: urls }
+                  })
+                  setDragImgIdx(null); setDragOverImgIdx(null)
+                }}
+                onDragEnd={() => { setDragImgIdx(null); setDragOverImgIdx(null) }}
+                className={`relative aspect-square cursor-grab active:cursor-grabbing transition-opacity
+                  ${dragImgIdx === idx ? 'opacity-40' : ''}
+                  ${dragOverImgIdx === idx && dragImgIdx !== idx ? 'ring-2 ring-cheers-brown ring-offset-1 rounded-xl' : ''}`}
+              >
+                <img src={url} alt="" className="w-full h-full object-cover rounded-xl border border-cheers-cream" draggable={false} />
                 {idx === 0 && (
                   <span className="absolute bottom-1 left-1 text-[10px] bg-cheers-brown text-cheers-cream px-1.5 py-0.5 rounded-full">主图</span>
                 )}
@@ -357,12 +394,12 @@ export default function ProductEditPage() {
         <div className="card p-4 space-y-3">
           <div>
             <label className="label">商品描述（中文）</label>
-            <textarea className="input resize-none" rows={3}
+            <textarea className="input resize-y" rows={3}
               value={form.description.zh} onChange={e => setForm(f => ({ ...f, description: { ...f.description, zh: e.target.value } }))} />
           </div>
           <div>
             <label className="label">Description (EN)</label>
-            <textarea className="input resize-none" rows={3}
+            <textarea className="input resize-y" rows={3}
               value={form.description.en} onChange={e => setForm(f => ({ ...f, description: { ...f.description, en: e.target.value } }))} />
           </div>
         </div>

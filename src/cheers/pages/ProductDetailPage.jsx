@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { getFirestore, doc, getDoc } from 'firebase/firestore'
 import app from '../../lib/firebase'
@@ -23,12 +23,28 @@ export default function ProductDetailPage() {
   const [sizeError, setSizeError] = useState(false)
   const [added, setAdded] = useState(false)
   const [selectedImg, setSelectedImg] = useState(0)
+  const [heartAnim, setHeartAnim] = useState(false)
+  const [cartAnim, setCartAnim] = useState(false)
+  const touchStartX = useRef(null)
+  const containerRef = useRef(null)
+  const trackRef = useRef(null)
+  const skipTrackEffect = useRef(false)
 
   useEffect(() => {
     getDoc(doc(db, 'cheers_products', id))
       .then(snap => { if (snap.exists()) setProduct({ id: snap.id, ...snap.data() }) })
       .finally(() => setLoading(false))
   }, [id])
+
+  // Sync carousel track when selectedImg changes (e.g. thumbnail click)
+  useEffect(() => {
+    if (!trackRef.current || !containerRef.current) return
+    if (skipTrackEffect.current) { skipTrackEffect.current = false; return }
+    const w = containerRef.current.clientWidth
+    if (!w) return
+    trackRef.current.style.transition = 'transform 0.35s ease'
+    trackRef.current.style.transform = `translateX(${-selectedImg * w}px)`
+  }, [selectedImg])
 
   if (loading) return (
     <div className="flex justify-center items-center min-h-[60vh]">
@@ -77,19 +93,23 @@ export default function ProductDetailPage() {
     }
     return null
   }
-  const wishlisted = isWishlisted(product.id)
 
+  const wishlisted = isWishlisted(product.id)
   const hasSizes = product?.sizes?.length > 0
 
   function handleAddToCart() {
     if (hasSizes && !selectedSize) { setSizeError(true); return }
     addToCart({ ...product, name }, qty, selectedSize ?? undefined)
     setAdded(true)
+    setCartAnim(true)
     setTimeout(() => setAdded(false), 2000)
+    setTimeout(() => setCartAnim(false), 400)
   }
 
   function handleWishlist() {
     wishlisted ? removeFromWishlist(product.id) : addToWishlist({ ...product, name })
+    setHeartAnim(true)
+    setTimeout(() => setHeartAnim(false), 400)
   }
 
   return (
@@ -99,22 +119,78 @@ export default function ProductDetailPage() {
       </Link>
 
       <div className="grid md:grid-cols-2 gap-8 mt-4">
-        {/* Images */}
+        {/* Images — swipe carousel */}
         {(() => {
           const imgs = product.imageUrls?.length ? product.imageUrls : product.imageUrl ? [product.imageUrl] : []
+          const n = imgs.length
+
+          function onTouchStart(e) {
+            if (n <= 1) return
+            touchStartX.current = e.touches[0].clientX
+            if (trackRef.current) trackRef.current.style.transition = 'none'
+          }
+
+          function onTouchMove(e) {
+            if (touchStartX.current === null || !trackRef.current || !containerRef.current || n <= 1) return
+            const delta = e.touches[0].clientX - touchStartX.current
+            const w = containerRef.current.clientWidth
+            // Rubber-band resistance at first/last image
+            const atStart = selectedImg === 0 && delta > 0
+            const atEnd = selectedImg === n - 1 && delta < 0
+            const offset = (atStart || atEnd) ? delta * 0.2 : delta
+            trackRef.current.style.transform = `translateX(${-selectedImg * w + offset}px)`
+          }
+
+          function onTouchEnd(e) {
+            if (touchStartX.current === null || !containerRef.current || n <= 1) return
+            const delta = e.changedTouches[0].clientX - touchStartX.current
+            const w = containerRef.current.clientWidth
+            let newIdx = selectedImg
+            if (delta < -50 && selectedImg < n - 1) newIdx = selectedImg + 1
+            else if (delta > 50 && selectedImg > 0) newIdx = selectedImg - 1
+            // Animate to final position directly — skip the useEffect to avoid double-fire
+            if (trackRef.current) {
+              trackRef.current.style.transition = 'transform 0.35s ease'
+              trackRef.current.style.transform = `translateX(${-newIdx * w}px)`
+            }
+            skipTrackEffect.current = true
+            setSelectedImg(newIdx)
+            touchStartX.current = null
+          }
+
           return (
             <div className="flex flex-col gap-3">
-              <div className="aspect-square rounded-2xl overflow-hidden bg-cheers-cream/20">
-                {imgs.length > 0
-                  ? <img src={imgs[selectedImg] || imgs[0]} alt={name} className="w-full h-full object-cover" />
-                  : <div className="w-full h-full flex items-center justify-center text-8xl">🛍</div>}
+              <div
+                ref={containerRef}
+                className="aspect-square rounded-2xl overflow-hidden bg-cheers-cream/20 select-none"
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
+              >
+                {n === 0 ? (
+                  <div className="w-full h-full flex items-center justify-center text-8xl">🛍</div>
+                ) : n === 1 ? (
+                  <img src={imgs[0]} alt={name} className="w-full h-full object-cover" />
+                ) : (
+                  <div
+                    ref={trackRef}
+                    className="flex h-full"
+                    style={{ width: `${n * 100}%` }}
+                  >
+                    {imgs.map((url, i) => (
+                      <div key={i} className="h-full flex-shrink-0" style={{ width: `${100 / n}%` }}>
+                        <img src={url} alt={name} className="w-full h-full object-cover" draggable={false} />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              {imgs.length > 1 && (
+              {n > 1 && (
                 <div className="flex gap-2 overflow-x-auto pb-1">
                   {imgs.map((url, i) => (
                     <button key={i} onClick={() => setSelectedImg(i)}
                       className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-colors ${selectedImg === i ? 'border-cheers-brown' : 'border-transparent'}`}>
-                      <img src={url} alt="" className="w-full h-full object-cover" />
+                      <img src={url} alt="" className="w-full h-full object-cover" draggable={false} />
                     </button>
                   ))}
                 </div>
@@ -134,15 +210,6 @@ export default function ProductDetailPage() {
           <p className="text-3xl font-bold text-cheers-brown mb-4">
             {t('common.rmPrefix')} {product.price?.toFixed(2)}
           </p>
-
-          {(description || blocks.length > 0) && (
-            <div className="space-y-4 mb-6">
-              {description && (
-                <p className="prose prose-sm text-cheers-dark-brown/70 leading-relaxed whitespace-pre-line">{description}</p>
-              )}
-              {blocks.map((b, i) => renderBlock(b, i))}
-            </div>
-          )}
 
           {hasSizes && product.inStock && (
             <div className="mb-4">
@@ -185,20 +252,29 @@ export default function ProductDetailPage() {
             <button
               onClick={handleAddToCart}
               disabled={!product.inStock}
-              className={`btn-primary flex-1 py-3 transition-all ${added ? 'bg-green-600' : ''}`}
+              className={`btn-primary flex-1 py-3 ${added ? 'bg-green-600' : ''} ${cartAnim ? 'animate-[cartBounce_0.4s_ease]' : ''}`}
             >
               {added ? (lang === 'zh' ? '已加入 ✓' : 'Added ✓') : t('product.addToCart')}
             </button>
             {user && (
               <button
                 onClick={handleWishlist}
-                className="btn-secondary px-4 py-3 text-xl"
+                className={`btn-secondary px-4 py-3 text-xl ${heartAnim ? 'animate-[heartPop_0.4s_ease]' : ''}`}
                 title={wishlisted ? t('product.removeFromWishlist') : t('product.addToWishlist')}
               >
                 {wishlisted ? '♥' : '♡'}
               </button>
             )}
           </div>
+
+          {(description || blocks.length > 0) && (
+            <div className="space-y-4 mt-6 pt-6 border-t border-cheers-cream">
+              {description && (
+                <p className="prose prose-sm text-cheers-dark-brown/70 leading-relaxed whitespace-pre-line">{description}</p>
+              )}
+              {blocks.map((b, i) => renderBlock(b, i))}
+            </div>
+          )}
         </div>
       </div>
     </div>

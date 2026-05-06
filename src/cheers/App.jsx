@@ -1,7 +1,7 @@
 import React, { Suspense, lazy } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { LangProvider } from './contexts/LangContext'
-import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { AuthProvider } from './contexts/AuthContext'
 import { CartProvider } from './contexts/CartContext'
 import { WishlistProvider } from './contexts/WishlistContext'
 import SnowEffect from './components/ui/SnowEffect'
@@ -9,6 +9,7 @@ import AnnouncementBanner from './components/ui/AnnouncementBanner'
 import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
 import ActivityFeed from './components/ui/ActivityFeed'
+import CartDrawer from './components/ui/CartDrawer'
 import ProtectedRoute from './components/ProtectedRoute'
 import AdminRoute from './components/AdminRoute'
 
@@ -51,65 +52,76 @@ function PageLoader() {
   )
 }
 
+function AppShell() {
+  const { pathname } = useLocation()
+  const isAdmin = pathname.startsWith('/admin')
+  const isCart = pathname === '/cart'
+
+  return (
+    <div className="page-content min-h-screen flex flex-col">
+      <Navbar />
+      {!isAdmin && <AnnouncementBanner />}
+      <main className="flex-1">
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/products" element={<ProductsPage />} />
+            <Route path="/products/:id" element={<ProductDetail />} />
+            <Route path="/cart" element={<CartPage />} />
+            <Route path="/tos" element={<PolicyPage type="tos" />} />
+            <Route path="/privacy" element={<PolicyPage type="privacy" />} />
+            <Route path="/refund" element={<PolicyPage type="refund" />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+
+            <Route element={<ProtectedRoute />}>
+              <Route path="/checkout" element={<CheckoutPage />} />
+              <Route path="/payment/:orderId" element={<PaymentPage />} />
+              <Route path="/orders" element={<OrdersPage />} />
+              <Route path="/wishlist" element={<WishlistPage />} />
+              <Route path="/account" element={<AccountPage />} />
+            </Route>
+
+            <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="trips" element={<AdminTrips />} />
+              <Route path="products" element={<AdminProducts />} />
+              <Route path="products/new" element={<AdminProductEdit />} />
+              <Route path="products/:id" element={<AdminProductEdit />} />
+              <Route path="categories" element={<AdminCategories />} />
+              <Route path="orders" element={<AdminOrders />} />
+              <Route path="settings/payment" element={<AdminPaymentSettings />} />
+              <Route path="settings/delivery" element={<AdminDelivery />} />
+              <Route path="settings/contact" element={<AdminContact />} />
+              <Route path="settings/policies" element={<AdminPolicies />} />
+              <Route path="settings/activity" element={<AdminActivity />} />
+              <Route path="settings/home" element={<AdminHomeSettings />} />
+              <Route path="admins" element={<AdminAdmins />} />
+              <Route path="orders/new" element={<AdminCreateOrder />} />
+              <Route path="coupons" element={<AdminCoupons />} />
+              <Route path="report" element={<AdminReport />} />
+            </Route>
+
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </main>
+      <Footer />
+      {!isAdmin && <ActivityFeed />}
+      {!isAdmin && !isCart && <CartDrawer />}
+    </div>
+  )
+}
+
 export default function CheersApp() {
   return (
     <LangProvider>
       <AuthProvider>
         <CartProvider>
           <WishlistProvider>
-            <BrowserRouter>
+            <BrowserRouter future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
               <SnowEffect />
-              <div className="page-content min-h-screen flex flex-col">
-                <Navbar />
-                <AnnouncementBanner />
-                <main className="flex-1">
-                  <Suspense fallback={<PageLoader />}>
-                    <Routes>
-                      <Route path="/" element={<HomePage />} />
-                      <Route path="/products" element={<ProductsPage />} />
-                      <Route path="/products/:id" element={<ProductDetail />} />
-                      <Route path="/cart" element={<CartPage />} />
-                      <Route path="/tos" element={<PolicyPage type="tos" />} />
-                      <Route path="/privacy" element={<PolicyPage type="privacy" />} />
-                      <Route path="/refund" element={<PolicyPage type="refund" />} />
-                      <Route path="/login" element={<LoginPage />} />
-                      <Route path="/register" element={<RegisterPage />} />
-
-                      <Route element={<ProtectedRoute />}>
-                        <Route path="/checkout" element={<CheckoutPage />} />
-                        <Route path="/payment/:orderId" element={<PaymentPage />} />
-                        <Route path="/orders" element={<OrdersPage />} />
-                        <Route path="/wishlist" element={<WishlistPage />} />
-                        <Route path="/account" element={<AccountPage />} />
-                      </Route>
-
-                      <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
-                        <Route index element={<AdminDashboard />} />
-                        <Route path="trips" element={<AdminTrips />} />
-                        <Route path="products" element={<AdminProducts />} />
-                        <Route path="products/new" element={<AdminProductEdit />} />
-                        <Route path="products/:id" element={<AdminProductEdit />} />
-                        <Route path="categories" element={<AdminCategories />} />
-                        <Route path="orders" element={<AdminOrders />} />
-                        <Route path="settings/payment" element={<AdminPaymentSettings />} />
-                        <Route path="settings/delivery" element={<AdminDelivery />} />
-                        <Route path="settings/contact" element={<AdminContact />} />
-                        <Route path="settings/policies" element={<AdminPolicies />} />
-                        <Route path="settings/activity" element={<AdminActivity />} />
-                        <Route path="settings/home" element={<AdminHomeSettings />} />
-                        <Route path="admins" element={<AdminAdmins />} />
-                        <Route path="orders/new" element={<AdminCreateOrder />} />
-                        <Route path="coupons" element={<AdminCoupons />} />
-                        <Route path="report" element={<AdminReport />} />
-                      </Route>
-
-                      <Route path="*" element={<Navigate to="/" replace />} />
-                    </Routes>
-                  </Suspense>
-                </main>
-                <Footer />
-                <ActivityFeed />
-              </div>
+              <AppShell />
             </BrowserRouter>
           </WishlistProvider>
         </CartProvider>

@@ -75,7 +75,7 @@ export default function PoliciesPage() {
       <div className="card p-4">
         <p className="text-xs text-cheers-brown/60 mb-2">{POLICIES.find(p => p.key === activeTab)?.label} · {activeLang === 'zh' ? '中文' : 'English'}</p>
         <textarea
-          className="input resize-none font-mono text-sm"
+          className="input resize-y font-mono text-sm"
           rows={16}
           value={policies[activeTab]?.[activeLang] || ''}
           onChange={e => setPolicies(prev => ({

@@ -246,7 +246,7 @@ export default function CreateOrderPage() {
               </div>
               <div>
                 <label className="label">地址</label>
-                <textarea className="input resize-none" rows={2} value={address.address}
+                <textarea className="input resize-y" rows={2} value={address.address}
                   onChange={e => setAddress(a => ({ ...a, address: e.target.value }))} />
               </div>
               <div className="grid sm:grid-cols-3 gap-3">
@@ -285,7 +285,7 @@ export default function CreateOrderPage() {
           </div>
           <div>
             <label className="label">备注</label>
-            <textarea className="input resize-none" rows={2} value={notes}
+            <textarea className="input resize-y" rows={2} value={notes}
               onChange={e => setNotes(e.target.value)} placeholder="来自 Instagram / 其他平台备注…" />
           </div>
           <div className="flex justify-between font-semibold text-cheers-dark-brown pt-2 border-t border-cheers-cream">
