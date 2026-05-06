@@ -87,45 +87,38 @@ export default function Footer() {
             <p className="text-xs text-cheers-cream/50 mt-1">{t('footer.tagline')}</p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-6 items-start">
-            {/* Social media */}
-            {activeSocial.length > 0 && (
-              <div>
-                <p className="text-xs text-cheers-cream/40 uppercase tracking-widest mb-2">
-                  {lang === 'zh' ? '关注我们' : 'Follow Us'}
-                </p>
-                <div className="flex items-center gap-3">
-                  {activeSocial.map(p => (
-                    <a key={p.key} href={social[p.key]} target="_blank" rel="noopener noreferrer"
-                      title={p.label}
-                      className="text-cheers-cream/50 hover:text-cheers-cream transition-colors">
-                      {p.icon}
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Links */}
+          {/* Social media */}
+          {activeSocial.length > 0 && (
             <div>
               <p className="text-xs text-cheers-cream/40 uppercase tracking-widest mb-2">
-                {lang === 'zh' ? '条款' : 'Legal'}
+                {lang === 'zh' ? '关注我们' : 'Follow Us'}
               </p>
-              <div className="flex flex-col gap-1 text-xs">
-                <Link to="/tos" className="hover:text-cheers-cream transition-colors">{t('footer.tos')}</Link>
-                <Link to="/privacy" className="hover:text-cheers-cream transition-colors">{t('footer.privacy')}</Link>
-                <Link to="/refund" className="hover:text-cheers-cream transition-colors">{t('footer.refund')}</Link>
+              <div className="flex items-center gap-3">
+                {activeSocial.map(p => (
+                  <a key={p.key} href={social[p.key]} target="_blank" rel="noopener noreferrer"
+                    title={p.label}
+                    className="text-cheers-cream/50 hover:text-cheers-cream transition-colors">
+                    {p.icon}
+                  </a>
+                ))}
               </div>
             </div>
-          </div>
+          )}
         </div>
 
-        <div className="mt-6 pt-4 border-t border-cheers-cream/10 text-center text-[11px] text-cheers-cream/30">
-          © {year} Cheers.co · {t('footer.rights')} ·{' '}
-          <a href="https://www.jeeprod.com" target="_blank" rel="noopener noreferrer"
-            className="hover:text-cheers-cream/60 transition-colors">
-            Powered by jeeprod.com
-          </a>
+        <div className="mt-6 pt-4 border-t border-cheers-cream/10 text-center space-y-2">
+          <p className="text-[11px] text-cheers-cream/30">
+            © {year} Cheers.co · {t('footer.rights')} ·{' '}
+            <a href="https://www.jeeprod.com" target="_blank" rel="noopener noreferrer"
+              className="hover:text-cheers-cream/60 transition-colors">
+              Powered by jeeprod.com
+            </a>
+          </p>
+          <div className="flex items-center justify-center gap-4 text-[11px] text-cheers-cream/30">
+            <Link to="/tos" className="hover:text-cheers-cream/60 transition-colors">{t('footer.tos')}</Link>
+            <Link to="/privacy" className="hover:text-cheers-cream/60 transition-colors">{t('footer.privacy')}</Link>
+            <Link to="/refund" className="hover:text-cheers-cream/60 transition-colors">{t('footer.refund')}</Link>
+          </div>
         </div>
       </div>
     </footer>
