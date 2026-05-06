@@ -27,9 +27,8 @@ export default function HomeSettingsPage() {
     subtitle: { zh: '精选日本好物，专业代购服务直送到您手中', en: 'Curated Japanese goods, delivered to your door' },
     cta: { zh: '浏览商品', en: 'Shop Now' },
   })
-  const [announcement, setAnnouncement] = useState({
-    active: false, color: 'yellow', text: { zh: '', en: '' },
-  })
+  const [announcements, setAnnouncements] = useState([])
+  const [announcementColor, setAnnouncementColor] = useState('yellow')
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
   const [uploading, setUploading] = useState(false)
@@ -48,7 +47,12 @@ export default function HomeSettingsPage() {
       if (settingsSnap.exists()) {
         const d = settingsSnap.data()
         if (d.hero) setHero(h => ({ ...h, ...d.hero }))
-        if (d.announcement) setAnnouncement(a => ({ ...a, ...d.announcement }))
+        if (d.announcements?.length) {
+          setAnnouncements(d.announcements)
+        } else if (d.announcement) {
+          setAnnouncements([d.announcement])
+        }
+        if (d.announcementColor) setAnnouncementColor(d.announcementColor)
         setHomepageCatIds(d.homepageCategoryIds || [])
         if (d.social) setSocial(s => ({ ...s, ...d.social }))
       }
@@ -67,13 +71,11 @@ export default function HomeSettingsPage() {
 
   async function handleSave() {
     setSaving(true)
-    await setDoc(doc(db, 'cheers_settings', 'global'), { hero, announcement, homepageCategoryIds: homepageCatIds, social }, { merge: true })
+    await setDoc(doc(db, 'cheers_settings', 'global'), { hero, announcements, announcementColor, homepageCategoryIds: homepageCatIds, social }, { merge: true })
     setSaving(false)
     setMsg('已保存')
     setTimeout(() => setMsg(''), 3000)
   }
-
-  const annoColor = ANNOUNCE_COLORS.find(c => c.key === announcement.color) || ANNOUNCE_COLORS[0]
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -144,44 +146,78 @@ export default function HomeSettingsPage() {
         ))}
       </div>
 
-      {/* Announcement Banner */}
+      {/* Announcement Banners */}
       <div className="card p-4 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-medium text-cheers-dark-brown">公告横幅</h2>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={announcement.active}
-              onChange={e => setAnnouncement(a => ({ ...a, active: e.target.checked }))}
-              className="w-4 h-4 accent-cheers-brown" />
-            <span className="text-sm text-cheers-brown">{announcement.active ? '显示中' : '已隐藏'}</span>
-          </label>
+          <button
+            onClick={() => setAnnouncements(a => [...a, { active: true, text: { zh: '', en: '' }, button: { text: { zh: '', en: '' }, url: '' } }])}
+            className="btn-secondary text-xs px-3 py-1.5">+ 新增横幅</button>
         </div>
 
-        <div>
-          <label className="label">公告文字</label>
-          <div className="grid grid-cols-2 gap-2">
-            <input className="input text-sm" placeholder="中文公告" value={announcement.text?.zh || ''}
-              onChange={e => setAnnouncement(a => ({ ...a, text: { ...a.text, zh: e.target.value } }))} />
-            <input className="input text-sm" placeholder="English announcement" value={announcement.text?.en || ''}
-              onChange={e => setAnnouncement(a => ({ ...a, text: { ...a.text, en: e.target.value } }))} />
-          </div>
-        </div>
-
-        <div>
-          <label className="label">颜色</label>
+        {/* Global color */}
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-cheers-brown">颜色</span>
           <div className="flex gap-2">
             {ANNOUNCE_COLORS.map(c => (
-              <button key={c.key} onClick={() => setAnnouncement(a => ({ ...a, color: c.key }))}
-                className={`w-8 h-8 rounded-full ${c.bg} ${c.text} text-xs font-bold flex items-center justify-center border-2 transition-all ${announcement.color === c.key ? 'border-cheers-brown scale-110' : 'border-transparent'}`}>
+              <button key={c.key} onClick={() => setAnnouncementColor(c.key)}
+                className={`w-8 h-8 rounded-full ${c.bg} ${c.text} text-xs font-bold flex items-center justify-center border-2 transition-all ${announcementColor === c.key ? 'border-cheers-brown scale-110' : 'border-transparent'}`}>
                 {c.label}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Preview */}
-        {(announcement.text?.zh || announcement.text?.en) && (
-          <div className={`rounded-lg px-4 py-2.5 text-sm font-medium text-center ${annoColor.bg} ${annoColor.text}`}>
-            {announcement.text?.zh || announcement.text?.en}
+        {announcements.length === 0 ? (
+          <p className="text-xs text-cheers-brown/40">暂无公告横幅，点击右上角新增</p>
+        ) : (
+          <div className="space-y-3">
+            {announcements.map((ann, i) => (
+              <div key={i} className="border border-cheers-cream rounded-xl p-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-cheers-dark-brown">横幅 {i + 1}</span>
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={ann.active}
+                        onChange={e => setAnnouncements(a => a.map((x, j) => j === i ? { ...x, active: e.target.checked } : x))}
+                        className="w-4 h-4 accent-cheers-brown" />
+                      <span className="text-xs text-cheers-brown">{ann.active ? '显示中' : '已隐藏'}</span>
+                    </label>
+                    <button onClick={() => setAnnouncements(a => a.filter((_, j) => j !== i))}
+                      className="text-xs text-red-400 hover:text-red-600">删除</button>
+                  </div>
+                </div>
+
+                {/* Banner text */}
+                <div>
+                  <p className="text-xs text-cheers-brown mb-1.5">公告文字</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input className="input text-sm" placeholder="中文公告"
+                      value={ann.text?.zh || ''}
+                      onChange={e => setAnnouncements(a => a.map((x, j) => j === i ? { ...x, text: { ...x.text, zh: e.target.value } } : x))} />
+                    <input className="input text-sm" placeholder="English"
+                      value={ann.text?.en || ''}
+                      onChange={e => setAnnouncements(a => a.map((x, j) => j === i ? { ...x, text: { ...x.text, en: e.target.value } } : x))} />
+                  </div>
+                </div>
+
+                {/* Optional button */}
+                <div>
+                  <p className="text-xs text-cheers-brown mb-1.5">按钮（选填）</p>
+                  <div className="grid grid-cols-2 gap-2 mb-2">
+                    <input className="input text-sm" placeholder="按钮文字（中文）"
+                      value={ann.button?.text?.zh || ''}
+                      onChange={e => setAnnouncements(a => a.map((x, j) => j === i ? { ...x, button: { ...x.button, text: { ...x.button?.text, zh: e.target.value } } } : x))} />
+                    <input className="input text-sm" placeholder="Button text (EN)"
+                      value={ann.button?.text?.en || ''}
+                      onChange={e => setAnnouncements(a => a.map((x, j) => j === i ? { ...x, button: { ...x.button, text: { ...x.button?.text, en: e.target.value } } } : x))} />
+                  </div>
+                  <input className="input text-sm w-full" placeholder="链接 URL (https://...)"
+                    value={ann.button?.url || ''}
+                    onChange={e => setAnnouncements(a => a.map((x, j) => j === i ? { ...x, button: { ...x.button, url: e.target.value } } : x))} />
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { getFirestore, collection, query, where, orderBy, getDocs } from 'firebase/firestore'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import app from '../../lib/firebase'
 import { useLang } from '../contexts/LangContext'
 import { useAuth } from '../contexts/AuthContext'

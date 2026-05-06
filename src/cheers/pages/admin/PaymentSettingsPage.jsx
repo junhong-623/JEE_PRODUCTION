@@ -104,13 +104,13 @@ export default function PaymentSettingsPage() {
           <h2 className="font-medium text-cheers-dark-brown">付款说明</h2>
           <div>
             <label className="label">说明（中文）</label>
-            <textarea className="input resize-none" rows={2}
+            <textarea className="input resize-y" rows={2}
               value={form.paymentNote.zh} onChange={e => setForm(f => ({ ...f, paymentNote: { ...f.paymentNote, zh: e.target.value } }))}
               placeholder="例：请转账定金 RM50 至以上账号" />
           </div>
           <div>
             <label className="label">Note (EN)</label>
-            <textarea className="input resize-none" rows={2}
+            <textarea className="input resize-y" rows={2}
               value={form.paymentNote.en} onChange={e => setForm(f => ({ ...f, paymentNote: { ...f.paymentNote, en: e.target.value } }))}
               placeholder="e.g. Please transfer RM50 deposit to the account above" />
           </div>

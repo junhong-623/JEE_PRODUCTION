@@ -82,31 +82,46 @@ export default function ActivityFeed() {
 
   const watchingCount = Math.floor(Math.random() * 12) + 2
 
+  function dismiss(e) { e.preventDefault(); e.stopPropagation(); setVisible(false) }
+
   return (
     <div
       className={`fixed z-50 transition-all duration-500
-        left-1/2 -translate-x-1/2 top-24 w-max max-w-[calc(100vw-2rem)]
+        left-1/2 -translate-x-1/2 top-[116px] w-max max-w-[calc(100vw-2rem)]
         sm:translate-x-0 sm:left-4 sm:top-auto sm:bottom-4 sm:max-w-xs sm:w-auto
         ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3 sm:translate-y-3'}`}
     >
-      <Link to={`/products/${product.id}`} className="block">
-        <div className="activity-feed-item bg-white/95 backdrop-blur-sm border border-cheers-cream rounded-full shadow-lg
-          px-3 py-1.5 flex items-center gap-2
-          sm:rounded-xl sm:px-4 sm:py-3 sm:gap-3">
+      <div className="activity-feed-item bg-white/95 backdrop-blur-sm border border-cheers-cream rounded-full shadow-lg
+        px-3 py-1.5 flex items-center gap-2 relative
+        sm:rounded-xl sm:px-4 sm:py-3 sm:gap-3">
+
+        <Link to={`/products/${product.id}`} className="flex items-center gap-2 sm:gap-3 min-w-0">
           <span className="text-base sm:text-2xl flex-shrink-0">{icon}</span>
-          <p className="text-[11px] sm:text-xs text-cheers-dark-brown leading-snug whitespace-nowrap">
-            {action === 'watching' ? (
-              <><span className="font-semibold">{watchingCount}</span> {t('activity.watching')} <span className="font-medium text-cheers-brown">{product.name?.zh || product.name}</span></>
-            ) : (
-              <><span className="font-semibold">{name}</span> {t(`activity.${action}`)} <span className="font-medium text-cheers-brown">{product.name?.zh || product.name}</span></>
-            )}
-            <span className="text-cheers-brown/50 ml-1">· {minutesAgo === 0 ? t('activity.justNow') : `${minutesAgo}${t('activity.minutesAgo')}`}</span>
-          </p>
+          <div className="leading-snug min-w-0">
+            <p className="text-[11px] sm:text-xs text-cheers-dark-brown truncate">
+              {action === 'watching' ? (
+                <><span className="font-semibold">{watchingCount}</span> {t('activity.watching')} <span className="font-medium text-cheers-brown">{product.name?.zh || product.name}</span></>
+              ) : (
+                <><span className="font-semibold">{name}</span> {t(`activity.${action}`)} <span className="font-medium text-cheers-brown">{product.name?.zh || product.name}</span></>
+              )}
+            </p>
+            <p className="text-[10px] sm:text-[11px] text-cheers-brown/40 mt-0.5">
+              {minutesAgo === 0 ? t('activity.justNow') : `${minutesAgo}${t('activity.minutesAgo')}`}
+            </p>
+          </div>
           {product.imageUrl && (
             <img src={product.imageUrl} alt="" className="w-6 h-6 sm:w-10 sm:h-10 rounded-full sm:rounded-lg object-cover flex-shrink-0" />
           )}
-        </div>
-      </Link>
+        </Link>
+
+        {/* Mobile: inline X */}
+        <button onClick={dismiss}
+          className="sm:hidden opacity-30 hover:opacity-70 text-base leading-none flex-shrink-0">×</button>
+
+        {/* Desktop: corner X */}
+        <button onClick={dismiss}
+          className="hidden sm:flex absolute -top-2.5 -right-2.5 w-5 h-5 rounded-full bg-white border border-cheers-cream shadow-sm items-center justify-center opacity-40 hover:opacity-90 text-xs transition-opacity">×</button>
+      </div>
     </div>
   )
 }

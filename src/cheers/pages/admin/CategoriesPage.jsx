@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from 'react'
-import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, getDoc } from 'firebase/firestore'
+import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, getDoc, writeBatch } from 'firebase/firestore'
 import app from '../../../lib/firebase'
 import { useLang } from '../../contexts/LangContext'
 
 const db = getFirestore(app)
+
+function getProdCatIds(p) {
+  if (p.categoryIds?.length) return p.categoryIds
+  return p.categoryId ? [p.categoryId] : []
+}
 
 async function uploadCoverImage(file) {
   const fd = new FormData()
@@ -23,6 +28,12 @@ export default function CategoriesPage() {
   const [form, setForm] = useState({ zh: '', en: '', tripId: '', parentId: '' })
   const [editing, setEditing] = useState(null)
   const [uploadingFor, setUploadingFor] = useState(null)
+  // DnD
+  const [draggedId, setDraggedId] = useState(null)
+  const [dragOverId, setDragOverId] = useState(null)
+  // Bulk category → product operations
+  const [selectedCats, setSelectedCats] = useState(new Set())
+  const [bulkCatLoading, setBulkCatLoading] = useState(false)
 
   async function load() {
     const [catSnap, tripSnap, settingsSnap] = await Promise.all([
@@ -70,21 +81,6 @@ export default function CategoriesPage() {
     load()
   }
 
-  async function handleMove(cat, direction) {
-    const siblings = categories
-      .filter(c => c.tripId === cat.tripId && (c.parentId || null) === (cat.parentId || null))
-      .sort((a, b) => a.order - b.order)
-    const idx = siblings.findIndex(c => c.id === cat.id)
-    const swapIdx = direction === 'up' ? idx - 1 : idx + 1
-    if (swapIdx < 0 || swapIdx >= siblings.length) return
-    const swap = siblings[swapIdx]
-    await Promise.all([
-      updateDoc(doc(db, 'cheers_categories', cat.id), { order: swap.order }),
-      updateDoc(doc(db, 'cheers_categories', swap.id), { order: cat.order }),
-    ])
-    load()
-  }
-
   async function handleCoverImage(id, file) {
     setUploadingFor(id)
     try {
@@ -100,12 +96,77 @@ export default function CategoriesPage() {
       .sort((a, b) => a.order - b.order)
   }
 
+  async function handleDrop(targetCat) {
+    if (!draggedId || draggedId === targetCat.id) { setDraggedId(null); setDragOverId(null); return }
+    const dragged = categories.find(c => c.id === draggedId)
+    if (!dragged) { setDraggedId(null); setDragOverId(null); return }
+    // Only allow drag within same parent level
+    if ((dragged.parentId || null) !== (targetCat.parentId || null) || dragged.tripId !== targetCat.tripId) {
+      setDraggedId(null); setDragOverId(null); return
+    }
+    const siblings = getSiblings(targetCat.tripId, targetCat.parentId)
+    const fromIdx = siblings.findIndex(c => c.id === draggedId)
+    const toIdx = siblings.findIndex(c => c.id === targetCat.id)
+    if (fromIdx === toIdx) { setDraggedId(null); setDragOverId(null); return }
+    const reordered = [...siblings]
+    const [item] = reordered.splice(fromIdx, 1)
+    reordered.splice(toIdx, 0, item)
+    const batch = writeBatch(db)
+    reordered.forEach((cat, i) => {
+      if (cat.order !== i) batch.update(doc(db, 'cheers_categories', cat.id), { order: i })
+    })
+    await batch.commit()
+    setDraggedId(null); setDragOverId(null)
+    load()
+  }
+
+  function toggleCat(id) {
+    setSelectedCats(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  }
+
+  async function handleCatBulkProducts(field, value) {
+    if (!selectedCats.size) return
+    setBulkCatLoading(true)
+    const snap = await getDocs(collection(db, 'cheers_products'))
+    const allProducts = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    const toUpdate = allProducts.filter(p => getProdCatIds(p).some(id => selectedCats.has(id)))
+    if (toUpdate.length) {
+      const batch = writeBatch(db)
+      toUpdate.forEach(p => batch.update(doc(db, 'cheers_products', p.id), { [field]: value }))
+      await batch.commit()
+    }
+    setSelectedCats(new Set())
+    setBulkCatLoading(false)
+  }
+
   function CatRow({ cat, depth, siblings }) {
-    const idx = siblings.findIndex(c => c.id === cat.id)
     const children = getSiblings(cat.tripId, cat.id)
+    const isDragging = draggedId === cat.id
+    const isDragOver = dragOverId === cat.id && draggedId !== cat.id
     return (
       <>
-        <div className={`px-4 py-2.5 flex items-center gap-3 ${depth > 0 ? 'bg-cheers-light-cream/60 border-l-2 border-cheers-cream ml-4' : ''}`}>
+        <div
+          className={`px-4 py-2.5 flex items-center gap-3 transition-colors border-t-2
+            ${depth > 0 ? 'bg-cheers-light-cream/60 border-l-2 border-cheers-cream ml-4' : ''}
+            ${isDragging ? 'opacity-40' : ''}
+            ${isDragOver ? 'border-t-cheers-brown bg-cheers-cream/30' : 'border-t-transparent'}`}
+          onDragOver={e => { e.preventDefault(); setDragOverId(cat.id) }}
+          onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverId(null) }}
+          onDrop={e => { e.preventDefault(); handleDrop(cat) }}
+          onDragEnd={() => { setDraggedId(null); setDragOverId(null) }}
+        >
+          {/* Drag handle — only this element is draggable */}
+          <span
+            draggable
+            onDragStart={e => { e.stopPropagation(); setDraggedId(cat.id) }}
+            className="flex-shrink-0 text-cheers-brown/30 hover:text-cheers-brown/70 cursor-grab active:cursor-grabbing text-base select-none leading-none px-0.5"
+          >⠿</span>
+
+          {/* Bulk checkbox */}
+          <input type="checkbox" className="w-4 h-4 accent-cheers-brown flex-shrink-0 cursor-pointer"
+            checked={selectedCats.has(cat.id)} onChange={() => toggleCat(cat.id)}
+            onClick={e => e.stopPropagation()} />
+
           {/* Cover image */}
           <label htmlFor={`cov-${cat.id}`} className="relative flex-shrink-0 cursor-pointer group">
             {cat.coverImage
@@ -127,15 +188,6 @@ export default function CategoriesPage() {
                 <p className="text-sm font-medium text-cheers-dark-brown leading-tight">{cat.name?.zh}</p>
                 <p className="text-xs text-cheers-brown/50">{cat.name?.en}</p>
               </div>
-
-              {/* Order arrows */}
-              <div className="flex flex-col flex-shrink-0">
-                <button onClick={() => handleMove(cat, 'up')} disabled={idx === 0}
-                  className="text-cheers-brown/40 hover:text-cheers-brown disabled:opacity-20 leading-none px-1 text-xs">▲</button>
-                <button onClick={() => handleMove(cat, 'down')} disabled={idx === siblings.length - 1}
-                  className="text-cheers-brown/40 hover:text-cheers-brown disabled:opacity-20 leading-none px-1 text-xs">▼</button>
-              </div>
-
               <div className="flex gap-2 flex-shrink-0">
                 <button onClick={() => setEditing(cat.id)} className="btn-ghost text-xs py-1 px-2">{t('admin.edit')}</button>
                 <button onClick={() => handleDelete(cat.id)} className="text-red-400 hover:text-red-600 text-xs">{t('admin.delete')}</button>
@@ -229,6 +281,23 @@ export default function CategoriesPage() {
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Floating bulk action bar */}
+      {selectedCats.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-white rounded-2xl shadow-xl border border-cheers-cream px-4 py-3 flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-medium text-cheers-dark-brown">已选 {selectedCats.size} 个分类的商品</span>
+          <button onClick={() => handleCatBulkProducts('inStock', true)} disabled={bulkCatLoading}
+            className="btn-primary text-xs py-1.5 px-3 disabled:opacity-50">接单中</button>
+          <button onClick={() => handleCatBulkProducts('inStock', false)} disabled={bulkCatLoading}
+            className="text-xs py-1.5 px-3 rounded-lg border border-red-300 text-red-500 hover:bg-red-50 disabled:opacity-50">停止接单</button>
+          <button onClick={() => handleCatBulkProducts('featured', true)} disabled={bulkCatLoading}
+            className="text-xs py-1.5 px-3 rounded-lg border border-cheers-brown/30 text-cheers-brown hover:bg-cheers-cream disabled:opacity-50">⭐ 精选</button>
+          <button onClick={() => handleCatBulkProducts('featured', false)} disabled={bulkCatLoading}
+            className="text-xs py-1.5 px-3 rounded-lg border border-cheers-brown/20 text-cheers-brown/60 hover:bg-cheers-cream disabled:opacity-50">取消精选</button>
+          <button onClick={() => setSelectedCats(new Set())}
+            className="text-sm text-cheers-brown/50 hover:text-cheers-brown ml-1">取消</button>
         </div>
       )}
     </div>
