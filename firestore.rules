@@ -122,7 +122,7 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
     match /cheers_users/{uid} {
-      allow read: if isAdmin();
+      allow read: if isAdmin() || request.auth.uid == uid;
       allow create, update: if signedIn() && request.auth.uid == uid;
     }
 

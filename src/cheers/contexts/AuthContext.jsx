@@ -20,16 +20,12 @@ export function AuthProvider({ children }) {
 
   async function writeUserProfile(u) {
     try {
-      const userRef = doc(db, 'cheers_users', u.uid)
-      const snap = await getDoc(userRef)
-      const isNew = !snap.exists()
-      await setDoc(userRef, {
+      await setDoc(doc(db, 'cheers_users', u.uid), {
         email: (u.email || '').toLowerCase(),
         displayName: u.displayName || '',
         lastSeen: serverTimestamp(),
       }, { merge: true })
-      return isNew
-    } catch { return false }
+    } catch {}
   }
 
   async function grantCouponIfNew(uid) {
@@ -103,11 +99,9 @@ export function AuthProvider({ children }) {
 
   const loginWithGoogle = async () => {
     const cred = await signInWithPopup(auth, new GoogleAuthProvider())
-    const isNew = await writeUserProfile(cred.user)
-    if (isNew) {
-      const rank = await grantCouponIfNew(cred.user.uid)
-      if (rank) setNewCouponGrant({ rank, code: 'EARLY100' })
-    }
+    await writeUserProfile(cred.user)
+    const rank = await grantCouponIfNew(cred.user.uid)
+    if (rank) setNewCouponGrant({ rank, code: 'EARLY100' })
     return cred
   }
 
