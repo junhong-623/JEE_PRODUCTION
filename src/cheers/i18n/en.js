@@ -83,7 +83,7 @@ export default {
     dashboard: 'Dashboard', trips: 'Trips', products: 'Products',
     categories: 'Categories', orders: 'Orders', settings: 'Settings',
     payment: 'Payment', delivery: 'Delivery', contact: 'Contact',
-    policies: 'Policies', activity: 'Activity Feed', admins: 'Admins', coupons: 'Coupons',
+    policies: 'Policies', activity: 'Activity Feed', admins: 'Admins', coupons: 'Coupons', homeSettings: 'Home Settings',
     save: 'Save', saving: 'Saving…', saved: 'Saved',
     add: 'Add', edit: 'Edit', delete: 'Delete', cancel: 'Cancel',
     confirm: 'Confirm', upload: 'Upload Image',
