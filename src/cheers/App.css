@@ -75,6 +75,12 @@ h1, h2, h3 {
 }
 .animate-slide-up { animation: slide-up 0.25s ease forwards; }
 
+@keyframes cheers-marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.animate-marquee { animation: cheers-marquee 22s linear infinite; }
+
 /* Coupon ticket */
 .coupon-ticket {
   position: relative;

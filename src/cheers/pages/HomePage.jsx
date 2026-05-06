@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { getFirestore, collection, query, where, getDocs, doc, getDoc, orderBy, limit } from 'firebase/firestore'
+import { Link } from 'react-router-dom'
+import { getFirestore, collection, query, where, getDocs, doc, getDoc, limit } from 'firebase/firestore'
 import app from '../../lib/firebase'
 import { useLang } from '../contexts/LangContext'
 import ProductCard from '../components/ui/ProductCard'
@@ -9,10 +9,8 @@ const db = getFirestore(app)
 
 export default function HomePage() {
   const { t, lang } = useLang()
-  const navigate = useNavigate()
   const [activeTrip, setActiveTrip] = useState(null)
   const [featured, setFeatured] = useState([])
-  const [categories, setCategories] = useState([])
   const [hero, setHero] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -25,24 +23,17 @@ export default function HomePage() {
         if (settings.hero) setHero(settings.hero)
 
         if (activeTripId) {
-          const [tripDoc, productsSnap, catsSnap] = await Promise.all([
+          const [tripDoc, productsSnap] = await Promise.all([
             getDoc(doc(db, 'cheers_trips', activeTripId)),
             getDocs(query(collection(db, 'cheers_products'),
               where('tripId', '==', activeTripId),
               where('featured', '==', true),
               where('inStock', '==', true),
               limit(8))),
-            getDocs(query(collection(db, 'cheers_categories'),
-              where('tripId', '==', activeTripId),
-              orderBy('order'))),
           ])
 
           if (tripDoc.exists()) setActiveTrip({ id: tripDoc.id, ...tripDoc.data() })
           setFeatured(productsSnap.docs.map(d => ({ id: d.id, ...d.data() })))
-          // Only root categories (no parentId) for nav bar
-          setCategories(catsSnap.docs
-            .map(d => ({ id: d.id, ...d.data() }))
-            .filter(c => !c.parentId))
         }
       } catch (e) {
         console.error(e)
@@ -102,33 +93,6 @@ export default function HomePage() {
         <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-cheers-cream/40 blur-3xl" />
         <div className="absolute -bottom-8 -left-8 w-48 h-48 rounded-full bg-cheers-cream/30 blur-2xl" />
       </section>
-
-      {/* Category nav bar */}
-      {categories.length > 0 && (
-        <div className="border-b border-cheers-cream bg-white sticky top-0 z-10 shadow-sm">
-          <div className="max-w-6xl mx-auto px-4">
-            <div className="flex gap-2 overflow-x-auto py-3 scrollbar-hide">
-              <button onClick={() => navigate('/products')}
-                className="flex-shrink-0 flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-cheers-brown/20 text-sm text-cheers-brown hover:border-cheers-brown hover:bg-cheers-cream/30 transition-colors">
-                {lang === 'zh' ? '全部' : 'All'}
-              </button>
-              {categories.map(cat => {
-                const name = cat.name?.[lang] || cat.name?.zh || cat.name?.en
-                return (
-                  <button key={cat.id} onClick={() => navigate(`/products?category=${cat.id}`)}
-                    className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-cheers-brown/20 text-sm text-cheers-brown hover:border-cheers-brown hover:bg-cheers-cream/30 transition-colors whitespace-nowrap">
-                    {cat.coverImage
-                      ? <img src={cat.coverImage} className="w-5 h-5 rounded-full object-cover" />
-                      : <span className="text-base leading-none">{cat.name?.zh?.[0] || '◆'}</span>
-                    }
-                    {name}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Featured products */}
       <section className="max-w-6xl mx-auto px-4 py-12">
