@@ -26,6 +26,7 @@ const PolicyPage      = lazy(() => import('./pages/PolicyPage'))
 
 const AdminLayout          = lazy(() => import('./pages/admin/AdminLayout'))
 const AdminDashboard       = lazy(() => import('./pages/admin/DashboardPage'))
+const AdminReport          = lazy(() => import('./pages/admin/ReportPage'))
 const AdminTrips           = lazy(() => import('./pages/admin/TripsPage'))
 const AdminProducts        = lazy(() => import('./pages/admin/ProductsPage'))
 const AdminProductEdit     = lazy(() => import('./pages/admin/ProductEditPage'))
@@ -99,6 +100,7 @@ export default function CheersApp() {
                         <Route path="admins" element={<AdminAdmins />} />
                         <Route path="orders/new" element={<AdminCreateOrder />} />
                         <Route path="coupons" element={<AdminCoupons />} />
+                        <Route path="report" element={<AdminReport />} />
                       </Route>
 
                       <Route path="*" element={<Navigate to="/" replace />} />

@@ -6,18 +6,19 @@ import { useLang } from '../../contexts/LangContext'
 
 const db = getFirestore(app)
 
-const STATUSES = ['pending', 'confirmed', 'purchasing', 'shipped', 'completed']
+const STATUSES = ['pending', 'confirmed', 'purchasing', 'procured', 'shipped', 'completed']
 const STATUS_COLORS = {
   pending:    'bg-yellow-100 text-yellow-800',
   confirmed:  'bg-blue-100 text-blue-800',
   purchasing: 'bg-purple-100 text-purple-800',
+  procured:   'bg-pink-100 text-pink-800',
   shipped:    'bg-indigo-100 text-indigo-800',
   completed:  'bg-green-100 text-green-800',
 }
 
 const STATUS_ZH = {
   pending: '待确认', confirmed: '已接单',
-  purchasing: '采购中', shipped: '已发货', completed: '已完成',
+  purchasing: '采购中', procured: '已采购', shipped: '已发货', completed: '已完成',
 }
 
 function buildWhatsApp(order) {

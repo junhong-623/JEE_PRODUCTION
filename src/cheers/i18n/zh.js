@@ -49,7 +49,7 @@ export default {
     viewDetails: '查看详情',
     status: {
       pending: '待确认', confirmed: '已接单',
-      purchasing: '采购中', shipped: '已发货', completed: '已完成',
+      purchasing: '采购中', procured: '已采购', shipped: '已发货', completed: '已完成',
     },
   },
   wishlist: {
@@ -83,7 +83,7 @@ export default {
     dashboard: '仪表盘', trips: '行程管理', products: '商品管理',
     categories: '分类管理', orders: '订单管理', settings: '设置',
     payment: '付款设置', delivery: '配送设置', contact: '联系方式',
-    policies: '条款管理', activity: '动态 Feed', admins: '管理员', coupons: '优惠券', homeSettings: '主页设置',
+    policies: '条款管理', activity: '动态 Feed', admins: '管理员', coupons: '优惠券', homeSettings: '主页设置', report: '报表',
     save: '保存', saving: '保存中…', saved: '已保存',
     add: '新增', edit: '编辑', delete: '删除', cancel: '取消',
     confirm: '确认', upload: '上传图片',
