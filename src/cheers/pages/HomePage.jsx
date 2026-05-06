@@ -111,18 +111,22 @@ export default function HomePage() {
             {homepageCats.map(cat => {
               const name = cat.name?.[lang] || cat.name?.zh || cat.name?.en || ''
               return (
-                <div key={cat.id} className="relative rounded-2xl overflow-hidden h-36 group cursor-pointer"
+                <div key={cat.id} className="group block card hover:shadow-md transition-shadow duration-200 cursor-pointer"
                   onClick={() => navigate(`/products?category=${cat.id}`)}>
-                  {cat.coverImage
-                    ? <img src={cat.coverImage} alt={name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                    : <div className="w-full h-full bg-gradient-to-br from-cheers-brown/20 to-cheers-cream" />
-                  }
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-3">
-                    <p className="text-white font-semibold text-sm leading-tight drop-shadow">{name}</p>
-                    <button className="mt-1.5 text-xs bg-white/20 hover:bg-white/35 text-white px-2.5 py-0.5 rounded-full transition-colors">
-                      {lang === 'zh' ? '去逛逛 →' : 'Shop →'}
-                    </button>
+                  <div className="relative aspect-square overflow-hidden bg-cheers-cream/20">
+                    {cat.coverImage
+                      ? <img src={cat.coverImage} alt={name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      : <div className="w-full h-full flex items-center justify-center text-cheers-brown/20 text-5xl">🗂</div>
+                    }
+                  </div>
+                  <div className="p-3">
+                    <h3 className="text-sm font-medium text-cheers-dark-brown line-clamp-2 leading-snug">{name}</h3>
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-xs text-cheers-brown/40">{lang === 'zh' ? '点击浏览' : 'Browse'}</span>
+                      <button className="text-xs btn-primary py-1 px-2">
+                        {lang === 'zh' ? '去逛逛' : 'Shop'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               )

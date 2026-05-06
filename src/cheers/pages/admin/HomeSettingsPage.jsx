@@ -35,6 +35,9 @@ export default function HomeSettingsPage() {
   const [uploading, setUploading] = useState(false)
   const [allCategories, setAllCategories] = useState([])
   const [homepageCatIds, setHomepageCatIds] = useState([])
+  const [social, setSocial] = useState({
+    instagram: '', facebook: '', tiktok: '', youtube: '', xiaohongshu: '', whatsapp: '', twitter: '',
+  })
 
   useEffect(() => {
     async function load() {
@@ -47,6 +50,7 @@ export default function HomeSettingsPage() {
         if (d.hero) setHero(h => ({ ...h, ...d.hero }))
         if (d.announcement) setAnnouncement(a => ({ ...a, ...d.announcement }))
         setHomepageCatIds(d.homepageCategoryIds || [])
+        if (d.social) setSocial(s => ({ ...s, ...d.social }))
       }
       setAllCategories(catsSnap.docs.map(d => ({ id: d.id, ...d.data() })))
     }
@@ -63,7 +67,7 @@ export default function HomeSettingsPage() {
 
   async function handleSave() {
     setSaving(true)
-    await setDoc(doc(db, 'cheers_settings', 'global'), { hero, announcement, homepageCategoryIds: homepageCatIds }, { merge: true })
+    await setDoc(doc(db, 'cheers_settings', 'global'), { hero, announcement, homepageCategoryIds: homepageCatIds, social }, { merge: true })
     setSaving(false)
     setMsg('已保存')
     setTimeout(() => setMsg(''), 3000)
@@ -180,6 +184,32 @@ export default function HomeSettingsPage() {
             {announcement.text?.zh || announcement.text?.en}
           </div>
         )}
+      </div>
+
+      {/* Social media links */}
+      <div className="card p-4 space-y-3">
+        <div>
+          <h2 className="font-medium text-cheers-dark-brown mb-1">社交媒体 · Follow Us</h2>
+          <p className="text-xs text-cheers-brown/50 mb-3">填写链接后显示在 Footer。留空则不显示。</p>
+          <div className="space-y-2">
+            {[
+              { key: 'instagram',    label: 'Instagram',  placeholder: 'https://instagram.com/yourpage' },
+              { key: 'facebook',     label: 'Facebook',   placeholder: 'https://facebook.com/yourpage' },
+              { key: 'tiktok',       label: 'TikTok',     placeholder: 'https://tiktok.com/@yourpage' },
+              { key: 'youtube',      label: 'YouTube',    placeholder: 'https://youtube.com/@yourchannel' },
+              { key: 'xiaohongshu',  label: '小红书',     placeholder: 'https://xiaohongshu.com/user/...' },
+              { key: 'whatsapp',     label: 'WhatsApp',   placeholder: 'https://wa.me/601234567890' },
+              { key: 'twitter',      label: 'X (Twitter)', placeholder: 'https://x.com/yourhandle' },
+            ].map(({ key, label, placeholder }) => (
+              <div key={key} className="grid grid-cols-[100px_1fr] items-center gap-2">
+                <label className="text-sm text-cheers-brown">{label}</label>
+                <input className="input text-sm" placeholder={placeholder}
+                  value={social[key] || ''}
+                  onChange={e => setSocial(s => ({ ...s, [key]: e.target.value }))} />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Homepage category cards */}
