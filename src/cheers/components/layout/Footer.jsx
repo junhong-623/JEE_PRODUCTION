@@ -42,8 +42,32 @@ const PLATFORMS = [
   {
     key: 'xiaohongshu', label: '小红书',
     icon: (
-      <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-        <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm2.5 6.5h-1.25v1.25H14.5v1.25h-1.25V12H12v-1h-1.25v1.5H9.5v-5h1.25v1.25H12V7.5h1.25V6.5H14.5v2zm-5 5h5v4h-5v-4z"/>
+      <svg viewBox="0 0 24 24" className="w-5 h-5">
+        {/* background follows text color */}
+        <rect x="2" y="2" width="20" height="20" rx="6" fill="currentColor"/>
+
+        {/* cleaner handwritten RED */}
+        <path
+          d="M7 14 
+            Q7 10 10 10 
+            Q12.5 10 12.5 12 
+            Q12.5 14 10 14 
+            L8.5 14 
+            
+            M14 10 
+            L17 10 
+            Q18.5 10 18.5 11.5 
+            Q18.5 13 17 13 
+            L14 13 
+            
+            M14 13 
+            L17 15"
+          fill="none"
+          stroke="white"
+          strokeWidth="1.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </svg>
     ),
   },
