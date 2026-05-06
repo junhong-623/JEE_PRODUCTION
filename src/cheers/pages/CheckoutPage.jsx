@@ -314,9 +314,9 @@ export default function CheckoutPage() {
       await clearCart()
       if (addonInfo) sessionStorage.removeItem('cheers_addon')
 
-      // Fire-and-forget admin notification (temporarily disabled)
+      // Fire-and-forget admin notification email
       const { notificationEmail, emailjsTemplateId } = settings || {}
-      if (false && notificationEmail && emailjsTemplateId) {
+      if (notificationEmail && emailjsTemplateId) {
         const deliveryInfo = deliveryType === 'face-to-face' ? `面交 · ${location}` : `邮寄 · ${region === 'east' ? '东马' : '西马'} · ${form.postcode} ${form.city}, ${form.state}`
         emailjs.send(import.meta.env.VITE_CHEERS_EMAILJS_SERVICE_ID, emailjsTemplateId, {
           to_email: notificationEmail, order_id: orderId, customer_name: form.name,
