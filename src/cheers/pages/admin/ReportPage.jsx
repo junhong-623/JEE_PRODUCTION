@@ -101,22 +101,29 @@ export default function ReportPage() {
     }
 
     // Auto-update order status: check orders containing this product
+    // Includes 'procured' orders so they can be downgraded if coverage drops
+    const MUTABLE = ['pending', 'confirmed', 'purchasing', 'procured']
     let liveOrders = [...currentOrders]
     const affected = liveOrders.filter(o =>
-      PRE_PROCURED.includes(o.status) && o.items?.some(i => getKey(i) === key)
+      MUTABLE.includes(o.status) && o.items?.some(i => getKey(i) === key)
     )
 
     for (const order of affected) {
-      const preProcPool = liveOrders.filter(o => PRE_PROCURED.includes(o.status))
+      const mutablePool = liveOrders.filter(o => MUTABLE.includes(o.status))
       const allCovered = (order.items || []).every(item => {
         const iKey = getKey(item)
         const purchased = newTracking[iKey] || 0
-        const alloc = computeAlloc(preProcPool, iKey, purchased)
+        const alloc = computeAlloc(mutablePool, iKey, purchased)
         return (alloc[order.id]?.allocated || 0) >= item.quantity
       })
-      if (allCovered) {
+      if (allCovered && PRE_PROCURED.includes(order.status)) {
+        // Upgrade: pre-procured → procured
         await updateDoc(doc(db, 'cheers_orders', order.id), { status: 'procured' })
         liveOrders = liveOrders.map(o => o.id === order.id ? { ...o, status: 'procured' } : o)
+      } else if (!allCovered && order.status === 'procured') {
+        // Downgrade: procured → purchasing (qty reduced, e.g. returned goods)
+        await updateDoc(doc(db, 'cheers_orders', order.id), { status: 'purchasing' })
+        liveOrders = liveOrders.map(o => o.id === order.id ? { ...o, status: 'purchasing' } : o)
       }
     }
     setOrders(liveOrders)
@@ -332,10 +339,16 @@ function ProcurementTab({ orders, products, categories, tracking, procStatuses, 
                       </p>
                       <p className="text-xs text-cheers-brown/40">RM {item.price?.toFixed(2)} / 件</p>
                     </div>
-                    {/* Qty input */}
+                    {/* Qty input + 全部 button */}
                     <div className="flex items-center gap-1.5 flex-shrink-0" onClick={e => e.stopPropagation()}>
                       <QtyInput itemKey={item.key} max={item.qty} tracking={tracking} orders={orders} onQtyChange={onQtyChange} />
                       <span className="text-xs text-cheers-brown/50">/ {item.qty}</span>
+                      {(tracking[item.key] || 0) < item.qty && (
+                        <button onClick={() => onQtyChange(item.key, item.qty, orders)}
+                          className="text-[10px] border border-cheers-brown/30 text-cheers-brown hover:bg-cheers-cream/50 px-1.5 py-0.5 rounded transition-colors">
+                          全部
+                        </button>
+                      )}
                     </div>
                     <span className="text-cheers-brown/30 text-xs">{isOpen ? '▲' : '▼'}</span>
                   </div>
