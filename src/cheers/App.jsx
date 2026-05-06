@@ -1,10 +1,11 @@
 import React, { Suspense, lazy } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { LangProvider } from './contexts/LangContext'
-import { AuthProvider } from './contexts/AuthContext'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { CartProvider } from './contexts/CartContext'
 import { WishlistProvider } from './contexts/WishlistContext'
 import SnowEffect from './components/ui/SnowEffect'
+import AnnouncementBanner from './components/ui/AnnouncementBanner'
 import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
 import ActivityFeed from './components/ui/ActivityFeed'
@@ -35,6 +36,7 @@ const AdminDelivery        = lazy(() => import('./pages/admin/DeliverySettingsPa
 const AdminContact         = lazy(() => import('./pages/admin/ContactSettingsPage'))
 const AdminPolicies        = lazy(() => import('./pages/admin/PoliciesPage'))
 const AdminActivity        = lazy(() => import('./pages/admin/ActivitySettingsPage'))
+const AdminHomeSettings    = lazy(() => import('./pages/admin/HomeSettingsPage'))
 const AdminAdmins          = lazy(() => import('./pages/admin/AdminsPage'))
 const AdminCreateOrder     = lazy(() => import('./pages/admin/CreateOrderPage'))
 const AdminCoupons         = lazy(() => import('./pages/admin/CouponsPage'))
@@ -58,6 +60,7 @@ export default function CheersApp() {
               <SnowEffect />
               <div className="page-content min-h-screen flex flex-col">
                 <Navbar />
+                <AnnouncementBanner />
                 <main className="flex-1">
                   <Suspense fallback={<PageLoader />}>
                     <Routes>
@@ -92,6 +95,7 @@ export default function CheersApp() {
                         <Route path="settings/contact" element={<AdminContact />} />
                         <Route path="settings/policies" element={<AdminPolicies />} />
                         <Route path="settings/activity" element={<AdminActivity />} />
+                        <Route path="settings/home" element={<AdminHomeSettings />} />
                         <Route path="admins" element={<AdminAdmins />} />
                         <Route path="orders/new" element={<AdminCreateOrder />} />
                         <Route path="coupons" element={<AdminCoupons />} />

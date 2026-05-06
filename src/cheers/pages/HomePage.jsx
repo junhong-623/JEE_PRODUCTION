@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { getFirestore, collection, query, where, getDocs, doc, getDoc, orderBy, limit } from 'firebase/firestore'
 import app from '../../lib/firebase'
 import { useLang } from '../contexts/LangContext'
@@ -9,8 +9,11 @@ const db = getFirestore(app)
 
 export default function HomePage() {
   const { t, lang } = useLang()
+  const navigate = useNavigate()
   const [activeTrip, setActiveTrip] = useState(null)
   const [featured, setFeatured] = useState([])
+  const [categories, setCategories] = useState([])
+  const [hero, setHero] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -19,19 +22,27 @@ export default function HomePage() {
         const settingsDoc = await getDoc(doc(db, 'cheers_settings', 'global'))
         const settings = settingsDoc.exists() ? settingsDoc.data() : {}
         const activeTripId = settings.activeTripId
+        if (settings.hero) setHero(settings.hero)
 
         if (activeTripId) {
-          const tripDoc = await getDoc(doc(db, 'cheers_trips', activeTripId))
-          if (tripDoc.exists()) setActiveTrip({ id: tripDoc.id, ...tripDoc.data() })
-
-          const snap = await getDocs(
-            query(collection(db, 'cheers_products'),
+          const [tripDoc, productsSnap, catsSnap] = await Promise.all([
+            getDoc(doc(db, 'cheers_trips', activeTripId)),
+            getDocs(query(collection(db, 'cheers_products'),
               where('tripId', '==', activeTripId),
               where('featured', '==', true),
               where('inStock', '==', true),
-              limit(8))
-          )
-          setFeatured(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+              limit(8))),
+            getDocs(query(collection(db, 'cheers_categories'),
+              where('tripId', '==', activeTripId),
+              orderBy('order'))),
+          ])
+
+          if (tripDoc.exists()) setActiveTrip({ id: tripDoc.id, ...tripDoc.data() })
+          setFeatured(productsSnap.docs.map(d => ({ id: d.id, ...d.data() })))
+          // Only root categories (no parentId) for nav bar
+          setCategories(catsSnap.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .filter(c => !c.parentId))
         }
       } catch (e) {
         console.error(e)
@@ -45,17 +56,27 @@ export default function HomePage() {
   const tripName = activeTrip?.country?.[lang] || activeTrip?.country?.zh || ''
   const deadline = activeTrip?.endDate?.toDate?.()?.toLocaleDateString(lang === 'zh' ? 'zh-MY' : 'en-MY') || ''
 
+  const heroTitle    = hero?.title?.[lang]    || hero?.title?.zh    || t('home.hero.title')
+  const heroSubtitle = hero?.subtitle?.[lang] || hero?.subtitle?.zh || t('home.hero.subtitle')
+  const heroCta      = hero?.cta?.[lang]      || hero?.cta?.zh      || t('home.hero.cta')
+
   return (
     <div>
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-cheers-cream via-cheers-light-cream to-white py-20 px-4">
         <div className="max-w-4xl mx-auto text-center relative z-10">
-          <div className="text-6xl mb-4">🗾</div>
+          {/* Icon — emoji or image */}
+          {hero?.iconType === 'image' && hero?.imageUrl ? (
+            <img src={hero.imageUrl} alt="" className="w-16 h-16 rounded-2xl object-cover mx-auto mb-4 shadow-sm" />
+          ) : (
+            <div className="text-6xl mb-4">{hero?.emoji || '🗾'}</div>
+          )}
+
           <h1 className="font-serif text-4xl md:text-5xl text-cheers-dark-brown font-bold mb-4 leading-tight">
-            {t('home.hero.title')}
+            {heroTitle}
           </h1>
           <p className="text-cheers-brown/70 text-lg mb-8 max-w-xl mx-auto">
-            {t('home.hero.subtitle')}
+            {heroSubtitle}
           </p>
 
           {activeTrip && (
@@ -74,14 +95,40 @@ export default function HomePage() {
           )}
 
           <Link to="/products" className="btn-primary text-base px-8 py-3 inline-block">
-            {t('home.hero.cta')}
+            {heroCta}
           </Link>
         </div>
 
-        {/* Decorative Japanese circles */}
         <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-cheers-cream/40 blur-3xl" />
         <div className="absolute -bottom-8 -left-8 w-48 h-48 rounded-full bg-cheers-cream/30 blur-2xl" />
       </section>
+
+      {/* Category nav bar */}
+      {categories.length > 0 && (
+        <div className="border-b border-cheers-cream bg-white sticky top-0 z-10 shadow-sm">
+          <div className="max-w-6xl mx-auto px-4">
+            <div className="flex gap-2 overflow-x-auto py-3 scrollbar-hide">
+              <button onClick={() => navigate('/products')}
+                className="flex-shrink-0 flex items-center gap-1.5 px-4 py-1.5 rounded-full border border-cheers-brown/20 text-sm text-cheers-brown hover:border-cheers-brown hover:bg-cheers-cream/30 transition-colors">
+                {lang === 'zh' ? '全部' : 'All'}
+              </button>
+              {categories.map(cat => {
+                const name = cat.name?.[lang] || cat.name?.zh || cat.name?.en
+                return (
+                  <button key={cat.id} onClick={() => navigate(`/products?category=${cat.id}`)}
+                    className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-cheers-brown/20 text-sm text-cheers-brown hover:border-cheers-brown hover:bg-cheers-cream/30 transition-colors whitespace-nowrap">
+                    {cat.coverImage
+                      ? <img src={cat.coverImage} className="w-5 h-5 rounded-full object-cover" />
+                      : <span className="text-base leading-none">{cat.name?.zh?.[0] || '◆'}</span>
+                    }
+                    {name}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Featured products */}
       <section className="max-w-6xl mx-auto px-4 py-12">
