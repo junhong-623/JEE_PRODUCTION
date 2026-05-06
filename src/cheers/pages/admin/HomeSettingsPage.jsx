@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { getFirestore, doc, getDoc, setDoc } from 'firebase/firestore'
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query, orderBy } from 'firebase/firestore'
 import app from '../../../lib/firebase'
 
 const db = getFirestore(app)
@@ -33,14 +33,24 @@ export default function HomeSettingsPage() {
   const [saving, setSaving] = useState(false)
   const [msg, setMsg] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [allCategories, setAllCategories] = useState([])
+  const [homepageCatIds, setHomepageCatIds] = useState([])
 
   useEffect(() => {
-    getDoc(doc(db, 'cheers_settings', 'global')).then(snap => {
-      if (!snap.exists()) return
-      const d = snap.data()
-      if (d.hero) setHero(h => ({ ...h, ...d.hero }))
-      if (d.announcement) setAnnouncement(a => ({ ...a, ...d.announcement }))
-    })
+    async function load() {
+      const [settingsSnap, catsSnap] = await Promise.all([
+        getDoc(doc(db, 'cheers_settings', 'global')),
+        getDocs(query(collection(db, 'cheers_categories'), orderBy('order'))),
+      ])
+      if (settingsSnap.exists()) {
+        const d = settingsSnap.data()
+        if (d.hero) setHero(h => ({ ...h, ...d.hero }))
+        if (d.announcement) setAnnouncement(a => ({ ...a, ...d.announcement }))
+        setHomepageCatIds(d.homepageCategoryIds || [])
+      }
+      setAllCategories(catsSnap.docs.map(d => ({ id: d.id, ...d.data() })))
+    }
+    load()
   }, [])
 
   async function handleHeroImage(file) {
@@ -53,7 +63,7 @@ export default function HomeSettingsPage() {
 
   async function handleSave() {
     setSaving(true)
-    await setDoc(doc(db, 'cheers_settings', 'global'), { hero, announcement }, { merge: true })
+    await setDoc(doc(db, 'cheers_settings', 'global'), { hero, announcement, homepageCategoryIds: homepageCatIds }, { merge: true })
     setSaving(false)
     setMsg('已保存')
     setTimeout(() => setMsg(''), 3000)
@@ -170,6 +180,31 @@ export default function HomeSettingsPage() {
             {announcement.text?.zh || announcement.text?.en}
           </div>
         )}
+      </div>
+
+      {/* Homepage category cards */}
+      <div className="card p-4 space-y-3">
+        <div>
+          <h2 className="font-medium text-cheers-dark-brown mb-1">首页分类展示</h2>
+          <p className="text-xs text-cheers-brown/50 mb-3">勾选后在主页显示为分类卡片，顾客点击「去逛逛」直接进入该分类商品页。</p>
+          {allCategories.filter(c => !c.parentId).length === 0 ? (
+            <p className="text-xs text-cheers-brown/40">暂无根分类</p>
+          ) : (
+            <div className="space-y-2 max-h-56 overflow-y-auto">
+              {allCategories.filter(c => !c.parentId).map(cat => (
+                <label key={cat.id} className="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" className="w-4 h-4 accent-cheers-brown"
+                    checked={homepageCatIds.includes(cat.id)}
+                    onChange={e => setHomepageCatIds(prev =>
+                      e.target.checked ? [...prev, cat.id] : prev.filter(id => id !== cat.id)
+                    )} />
+                  {cat.coverImage && <img src={cat.coverImage} className="w-8 h-8 rounded object-cover" />}
+                  <span className="text-sm text-cheers-dark-brown">{cat.name?.zh || cat.name?.en}</span>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <button onClick={handleSave} disabled={saving} className="btn-primary py-2.5 px-8">

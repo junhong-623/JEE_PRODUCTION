@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { getFirestore, collection, query, where, getDocs, doc, getDoc, limit } from 'firebase/firestore'
+import { Link, useNavigate } from 'react-router-dom'
+import { getFirestore, collection, query, where, getDocs, doc, getDoc, limit, orderBy } from 'firebase/firestore'
 import app from '../../lib/firebase'
 import { useLang } from '../contexts/LangContext'
 import ProductCard from '../components/ui/ProductCard'
@@ -9,9 +9,11 @@ const db = getFirestore(app)
 
 export default function HomePage() {
   const { t, lang } = useLang()
+  const navigate = useNavigate()
   const [activeTrip, setActiveTrip] = useState(null)
   const [featured, setFeatured] = useState([])
   const [hero, setHero] = useState(null)
+  const [homepageCats, setHomepageCats] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -23,17 +25,25 @@ export default function HomePage() {
         if (settings.hero) setHero(settings.hero)
 
         if (activeTripId) {
-          const [tripDoc, productsSnap] = await Promise.all([
+          const homepageCatIds = settings.homepageCategoryIds || []
+          const [tripDoc, productsSnap, catsSnap] = await Promise.all([
             getDoc(doc(db, 'cheers_trips', activeTripId)),
             getDocs(query(collection(db, 'cheers_products'),
               where('tripId', '==', activeTripId),
               where('featured', '==', true),
               where('inStock', '==', true),
               limit(8))),
+            homepageCatIds.length
+              ? getDocs(query(collection(db, 'cheers_categories'), orderBy('order')))
+              : Promise.resolve(null),
           ])
 
           if (tripDoc.exists()) setActiveTrip({ id: tripDoc.id, ...tripDoc.data() })
           setFeatured(productsSnap.docs.map(d => ({ id: d.id, ...d.data() })))
+          if (catsSnap) {
+            const allCats = catsSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+            setHomepageCats(homepageCatIds.map(id => allCats.find(c => c.id === id)).filter(Boolean))
+          }
         }
       } catch (e) {
         console.error(e)
@@ -93,6 +103,33 @@ export default function HomePage() {
         <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-cheers-cream/40 blur-3xl" />
         <div className="absolute -bottom-8 -left-8 w-48 h-48 rounded-full bg-cheers-cream/30 blur-2xl" />
       </section>
+
+      {/* Homepage category cards */}
+      {homepageCats.length > 0 && (
+        <section className="max-w-6xl mx-auto px-4 pt-10 pb-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {homepageCats.map(cat => {
+              const name = cat.name?.[lang] || cat.name?.zh || cat.name?.en || ''
+              return (
+                <div key={cat.id} className="relative rounded-2xl overflow-hidden h-36 group cursor-pointer"
+                  onClick={() => navigate(`/products?category=${cat.id}`)}>
+                  {cat.coverImage
+                    ? <img src={cat.coverImage} alt={name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    : <div className="w-full h-full bg-gradient-to-br from-cheers-brown/20 to-cheers-cream" />
+                  }
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-3">
+                    <p className="text-white font-semibold text-sm leading-tight drop-shadow">{name}</p>
+                    <button className="mt-1.5 text-xs bg-white/20 hover:bg-white/35 text-white px-2.5 py-0.5 rounded-full transition-colors">
+                      {lang === 'zh' ? '去逛逛 →' : 'Shop →'}
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Featured products */}
       <section className="max-w-6xl mx-auto px-4 py-12">
