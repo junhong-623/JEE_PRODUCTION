@@ -85,7 +85,7 @@ export default function ActivityFeed() {
   return (
     <div
       className={`fixed z-50 transition-all duration-500
-        left-1/2 -translate-x-1/2 top-16 w-max max-w-[calc(100vw-2rem)]
+        left-1/2 -translate-x-1/2 top-24 w-max max-w-[calc(100vw-2rem)]
         sm:translate-x-0 sm:left-4 sm:top-auto sm:bottom-4 sm:max-w-xs sm:w-auto
         ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3 sm:translate-y-3'}`}
     >
