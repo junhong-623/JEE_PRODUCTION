@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { getFirestore, collection, query, where, getDocs, doc, getDoc, orderBy } from 'firebase/firestore'
 import app from '../../lib/firebase'
 import { useLang } from '../contexts/LangContext'
@@ -8,12 +9,21 @@ const db = getFirestore(app)
 
 export default function ProductsPage() {
   const { t, lang } = useLang()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
-  const [activeCategory, setActiveCategory] = useState('all')
   const [loading, setLoading] = useState(true)
   const [activeTripId, setActiveTripId] = useState(null)
   const [search, setSearch] = useState('')
+
+  const activeCategory = searchParams.get('category') || 'all'
+
+  function setActiveCategory(catId) {
+    const next = new URLSearchParams(searchParams)
+    if (catId === 'all') next.delete('category')
+    else next.set('category', catId)
+    setSearchParams(next, { replace: true })
+  }
 
   useEffect(() => {
     async function load() {
@@ -40,8 +50,15 @@ export default function ProductsPage() {
     load()
   }, [])
 
+  // Build set of matching category IDs (include sub-categories of selected root)
+  const matchingCatIds = (() => {
+    if (activeCategory === 'all') return null
+    const childIds = categories.filter(c => c.parentId === activeCategory).map(c => c.id)
+    return new Set([activeCategory, ...childIds])
+  })()
+
   const filtered = products.filter(p => {
-    const matchCat = activeCategory === 'all' || p.categoryId === activeCategory
+    const matchCat = !matchingCatIds || matchingCatIds.has(p.categoryId)
     const name = p.name?.[lang] || p.name?.zh || ''
     const matchSearch = !search || name.toLowerCase().includes(search.toLowerCase())
     return matchCat && matchSearch
