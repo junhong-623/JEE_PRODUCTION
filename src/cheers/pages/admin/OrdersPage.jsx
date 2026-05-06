@@ -123,6 +123,9 @@ export default function AdminOrdersPage() {
                       <span className={`badge-status ${STATUS_COLORS[order.status] || 'bg-gray-100 text-gray-600'}`}>
                         {t(`orders.status.${order.status}`)}
                       </span>
+                      {order.paymentSubmitted && (
+                        <span className="badge-status bg-green-100 text-green-700">💰 已付款</span>
+                      )}
                       {order.source === 'manual' && (
                         <span className="badge-status bg-orange-100 text-orange-700">手动</span>
                       )}

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { useParams, useLocation } from 'react-router-dom'
-import { getFirestore, doc, getDoc } from 'firebase/firestore'
+import { useParams, useLocation, useNavigate } from 'react-router-dom'
+import { getFirestore, doc, getDoc, updateDoc } from 'firebase/firestore'
 import app from '../../lib/firebase'
 import { useLang } from '../contexts/LangContext'
 
@@ -9,11 +9,14 @@ const db = getFirestore(app)
 export default function PaymentPage() {
   const { orderId } = useParams()
   const location = useLocation()
+  const navigate = useNavigate()
   const { t, lang } = useLang()
   const state = location.state || {}
 
   const [settings, setSettings] = useState(null)
   const [order, setOrder] = useState(null)
+  const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -22,7 +25,11 @@ export default function PaymentPage() {
         getDoc(doc(db, 'cheers_orders', orderId)),
       ])
       if (settingsSnap.exists()) setSettings(settingsSnap.data())
-      if (orderSnap.exists()) setOrder({ id: orderSnap.id, ...orderSnap.data() })
+      if (orderSnap.exists()) {
+        const o = { id: orderSnap.id, ...orderSnap.data() }
+        setOrder(o)
+        if (o.paymentSubmitted) setSubmitted(true)
+      }
     }
     load()
   }, [orderId])
@@ -44,6 +51,13 @@ export default function PaymentPage() {
       `${lang === 'zh' ? '您好！我的订单号是' : 'Hi! My order ID is'} ${displayOrderId}\n${lang === 'zh' ? '付款金额：' : 'Amount paid: '}RM ${payAmount.toFixed(2)}`
     )
     return `https://wa.me/${settings.whatsappNumber?.replace(/\D/g, '')}?text=${msg}`
+  }
+
+  async function handleSubmitPayment() {
+    setSubmitting(true)
+    await updateDoc(doc(db, 'cheers_orders', orderId), { paymentSubmitted: true })
+    setSubmitted(true)
+    setSubmitting(false)
   }
 
   function buildTelegramLink() {
@@ -89,10 +103,34 @@ export default function PaymentPage() {
           </div>
         )}
 
+        {/* Admin-configured payment note (bank account, instructions etc.) */}
+        {(settings.paymentNote?.zh || settings.paymentNote?.en) && (
+          <div className="bg-cheers-cream/40 rounded-xl p-4 text-sm text-cheers-dark-brown/80 whitespace-pre-line leading-relaxed">
+            {settings.paymentNote?.[lang] || settings.paymentNote?.zh || settings.paymentNote?.en}
+          </div>
+        )}
+
+        {/* "I've paid" confirmation */}
+        <div className="text-center">
+          {submitted ? (
+            <div className="bg-green-50 border border-green-200 rounded-xl py-4 px-4">
+              <p className="text-green-700 font-medium text-sm">✅ {lang === 'zh' ? '已收到您的付款通知，请等待确认' : 'Payment notification received, please wait for confirmation'}</p>
+              <button onClick={() => navigate('/orders')}
+                className="mt-3 text-xs text-green-600 hover:text-green-800 underline">
+                {lang === 'zh' ? '查看我的订单 →' : 'View my orders →'}
+              </button>
+            </div>
+          ) : (
+            <button onClick={handleSubmitPayment} disabled={submitting}
+              className="w-full btn-primary py-3 text-base font-semibold">
+              {submitting ? '…' : (lang === 'zh' ? '✅ 我已完成付款' : '✅ I have paid')}
+            </button>
+          )}
+        </div>
+
         {/* Contact note */}
         <div className="text-center">
           <p className="text-sm text-cheers-brown/70 mb-3">{t('payment.contact')}</p>
-          <p className="text-xs text-cheers-brown/50 mb-4">{t('payment.note')}</p>
 
           <div className="flex flex-col gap-3">
             {(settings.chatTool === 'whatsapp' || settings.chatTool === 'both') && settings.whatsappNumber && (
