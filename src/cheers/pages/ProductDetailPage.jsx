@@ -44,6 +44,39 @@ export default function ProductDetailPage() {
 
   const name = product.name?.[lang] || product.name?.zh || ''
   const description = product.description?.[lang] || product.description?.zh || ''
+  const blocks = product.descriptionBlocks || []
+
+  function getYouTubeId(url) {
+    const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([^&?/\s]+)/)
+    return m?.[1] || null
+  }
+
+  function renderBlock(block, idx) {
+    if (block.type === 'text') {
+      const text = block.content?.[lang] || block.content?.zh || ''
+      if (!text) return null
+      return <p key={idx} className="text-cheers-dark-brown/70 leading-relaxed whitespace-pre-line">{text}</p>
+    }
+    if (block.type === 'image') {
+      if (!block.url) return null
+      return <img key={idx} src={block.url} alt="" className="w-full rounded-xl object-cover" />
+    }
+    if (block.type === 'video') {
+      if (!block.url) return null
+      const ytId = getYouTubeId(block.url)
+      if (ytId) {
+        return (
+          <div key={idx} className="relative w-full rounded-xl overflow-hidden" style={{ paddingBottom: '56.25%' }}>
+            <iframe src={`https://www.youtube.com/embed/${ytId}`} className="absolute inset-0 w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen title="video" />
+          </div>
+        )
+      }
+      return <video key={idx} src={block.url} controls className="w-full rounded-xl" />
+    }
+    return null
+  }
   const wishlisted = isWishlisted(product.id)
 
   const hasSizes = product?.sizes?.length > 0
@@ -102,9 +135,12 @@ export default function ProductDetailPage() {
             {t('common.rmPrefix')} {product.price?.toFixed(2)}
           </p>
 
-          {description && (
-            <div className="prose prose-sm text-cheers-dark-brown/70 mb-6 leading-relaxed whitespace-pre-line">
-              {description}
+          {(description || blocks.length > 0) && (
+            <div className="space-y-4 mb-6">
+              {description && (
+                <p className="prose prose-sm text-cheers-dark-brown/70 leading-relaxed whitespace-pre-line">{description}</p>
+              )}
+              {blocks.map((b, i) => renderBlock(b, i))}
             </div>
           )}
 

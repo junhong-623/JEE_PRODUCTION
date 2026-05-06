@@ -3,10 +3,150 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { getFirestore, doc, getDoc, setDoc, addDoc, collection, getDocs, query, orderBy } from 'firebase/firestore'
 import app from '../../../lib/firebase'
 import { useLang } from '../../contexts/LangContext'
-import { uploadProductImage } from '../../lib/cloudinary'
+import { uploadProductImage, uploadProductMedia } from '../../lib/cloudinary'
 
 const db = getFirestore(app)
 const MAX_IMAGES = 8
+
+// ── Block Editor ─────────────────────────────────────────────────────────────
+const BLOCK_LANG_TABS = ['zh', 'en']
+
+function BlockEditor({ blocks, onChange }) {
+  const [editLang, setEditLang] = useState('zh')
+  const [uploading, setUploading] = useState(null) // index being uploaded
+
+  function addBlock(type) {
+    const b = type === 'text'
+      ? { type: 'text', content: { zh: '', en: '' } }
+      : type === 'image'
+      ? { type: 'image', url: '' }
+      : { type: 'video', url: '', source: 'url' }
+    onChange([...blocks, b])
+  }
+
+  function update(idx, patch) {
+    onChange(blocks.map((b, i) => i === idx ? { ...b, ...patch } : b))
+  }
+
+  function move(idx, dir) {
+    const arr = [...blocks]
+    const swap = idx + (dir === 'up' ? -1 : 1)
+    if (swap < 0 || swap >= arr.length) return
+    ;[arr[idx], arr[swap]] = [arr[swap], arr[idx]]
+    onChange(arr)
+  }
+
+  async function handleMediaUpload(idx, file) {
+    setUploading(idx)
+    try {
+      const url = await uploadProductMedia(file)
+      update(idx, { url, source: 'upload' })
+    } finally { setUploading(null) }
+  }
+
+  function getYouTubeId(url) {
+    const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([^&?/\s]+)/)
+    return m?.[1] || null
+  }
+
+  return (
+    <div className="card p-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-medium text-cheers-dark-brown">富媒体内容</h3>
+          <p className="text-xs text-cheers-brown/50">图片、视频、补充说明，显示在商品描述下方</p>
+        </div>
+        <div className="flex gap-1 text-xs">
+          {BLOCK_LANG_TABS.map(l => (
+            <button key={l} type="button" onClick={() => setEditLang(l)}
+              className={`px-2 py-1 rounded font-medium transition-colors ${editLang === l ? 'bg-cheers-brown text-cheers-cream' : 'text-cheers-brown/60 hover:text-cheers-brown'}`}>
+              {l.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Block list */}
+      <div className="space-y-3">
+        {blocks.map((block, idx) => (
+          <div key={idx} className="border border-cheers-cream rounded-xl p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-cheers-brown/60 uppercase tracking-wide">
+                {block.type === 'text' ? '文字' : block.type === 'image' ? '图片' : '视频'}
+              </span>
+              <div className="flex items-center gap-1">
+                <button type="button" onClick={() => move(idx, 'up')} disabled={idx === 0}
+                  className="text-cheers-brown/40 hover:text-cheers-brown disabled:opacity-20 px-1 text-xs">▲</button>
+                <button type="button" onClick={() => move(idx, 'down')} disabled={idx === blocks.length - 1}
+                  className="text-cheers-brown/40 hover:text-cheers-brown disabled:opacity-20 px-1 text-xs">▼</button>
+                <button type="button" onClick={() => onChange(blocks.filter((_, i) => i !== idx))}
+                  className="text-red-400 hover:text-red-600 px-1 text-sm ml-1">×</button>
+              </div>
+            </div>
+
+            {block.type === 'text' && (
+              <textarea className="input resize-none w-full text-sm" rows={3}
+                placeholder={editLang === 'zh' ? '中文内容…' : 'English content…'}
+                value={block.content?.[editLang] || ''}
+                onChange={e => update(idx, { content: { ...block.content, [editLang]: e.target.value } })} />
+            )}
+
+            {block.type === 'image' && (
+              <div className="space-y-2">
+                {block.url && <img src={block.url} className="max-h-40 rounded-lg object-cover" />}
+                <label className="btn-secondary text-xs cursor-pointer px-3 py-1.5 inline-block">
+                  {uploading === idx ? '上传中…' : block.url ? '更换图片' : '上传图片'}
+                  <input type="file" accept="image/*" className="hidden" disabled={uploading === idx}
+                    onChange={e => e.target.files[0] && handleMediaUpload(idx, e.target.files[0])} />
+                </label>
+              </div>
+            )}
+
+            {block.type === 'video' && (
+              <div className="space-y-2">
+                <div className="flex gap-2 text-xs">
+                  {['url', 'upload'].map(src => (
+                    <label key={src} className="flex items-center gap-1 cursor-pointer">
+                      <input type="radio" name={`vsrc-${idx}`} checked={block.source === src}
+                        onChange={() => update(idx, { source: src, url: '' })} className="accent-cheers-brown" />
+                      {src === 'url' ? '输入链接' : '上传视频'}
+                    </label>
+                  ))}
+                </div>
+                {block.source === 'url' ? (
+                  <input className="input text-sm" placeholder="YouTube / 视频链接"
+                    value={block.url || ''} onChange={e => update(idx, { url: e.target.value })} />
+                ) : (
+                  <label className="btn-secondary text-xs cursor-pointer px-3 py-1.5 inline-block">
+                    {uploading === idx ? '上传中…' : block.url ? '更换视频' : '上传视频'}
+                    <input type="file" accept="video/*" className="hidden" disabled={uploading === idx}
+                      onChange={e => e.target.files[0] && handleMediaUpload(idx, e.target.files[0])} />
+                  </label>
+                )}
+                {block.url && block.source === 'url' && getYouTubeId(block.url) && (
+                  <div className="text-xs text-green-600">✓ YouTube 视频已识别</div>
+                )}
+                {block.url && block.source === 'upload' && (
+                  <video src={block.url} controls className="max-h-32 rounded-lg w-full" />
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Add buttons */}
+      <div className="flex gap-2">
+        {[['text', '+ 文字'], ['image', '+ 图片'], ['video', '+ 视频']].map(([type, label]) => (
+          <button key={type} type="button" onClick={() => addBlock(type)}
+            className="btn-ghost text-xs py-1.5 px-3 border border-cheers-brown/20 hover:border-cheers-brown/50">
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export default function ProductEditPage() {
   const { id } = useParams()
@@ -27,6 +167,7 @@ export default function ProductEditPage() {
     featured: false,
     imageUrls: [],
     sizes: [],
+    descriptionBlocks: [],
   })
   const [sizeInput, setSizeInput] = useState('')
   const [uploading, setUploading] = useState(false)
@@ -56,6 +197,7 @@ export default function ProductEditPage() {
             featured: data.featured ?? false,
             imageUrls,
             sizes: data.sizes || [],
+            descriptionBlocks: data.descriptionBlocks || [],
           })
           if (data.tripId) {
             const catSnap = await getDocs(query(collection(db, 'cheers_categories'), orderBy('order')))
@@ -108,6 +250,7 @@ export default function ProductEditPage() {
       imageUrls: form.imageUrls,
       imageUrl: form.imageUrls[0] || '',
       sizes: form.sizes,
+      descriptionBlocks: form.descriptionBlocks,
     }
     try {
       if (isNew) {
@@ -207,6 +350,12 @@ export default function ProductEditPage() {
               value={form.description.en} onChange={e => setForm(f => ({ ...f, description: { ...f.description, en: e.target.value } }))} />
           </div>
         </div>
+
+        {/* Rich media blocks */}
+        <BlockEditor
+          blocks={form.descriptionBlocks}
+          onChange={blocks => setForm(f => ({ ...f, descriptionBlocks: blocks }))}
+        />
 
         {/* Sizes */}
         <div className="card p-4 space-y-3">
