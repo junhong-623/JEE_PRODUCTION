@@ -6,6 +6,11 @@ import { useLang } from '../../contexts/LangContext'
 
 const db = getFirestore(app)
 
+function getProdCatIds(p) {
+  if (p.categoryIds?.length) return p.categoryIds
+  return p.categoryId ? [p.categoryId] : []
+}
+
 export default function AdminProductsPage() {
   const { t } = useLang()
   const [products, setProducts] = useState([])
@@ -36,7 +41,7 @@ export default function AdminProductsPage() {
     load()
   }
 
-  const filtered = filter === 'all' ? products : products.filter(p => p.categoryId === filter)
+  const filtered = filter === 'all' ? products : products.filter(p => getProdCatIds(p).includes(filter))
   const activeCats = categories.filter(c => c.tripId === activeTrip)
 
   return (
@@ -55,7 +60,7 @@ export default function AdminProductsPage() {
         {activeCats.map(cat => (
           <button key={cat.id} onClick={() => setFilter(cat.id)}
             className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${filter === cat.id ? 'bg-cheers-brown text-cheers-cream' : 'border border-cheers-brown/30 text-cheers-brown'}`}>
-            {cat.name?.zh} ({products.filter(p => p.categoryId === cat.id).length})
+            {cat.name?.zh} ({products.filter(p => getProdCatIds(p).includes(cat.id)).length})
           </button>
         ))}
       </div>
@@ -69,7 +74,9 @@ export default function AdminProductsPage() {
           ) : (
             <div className="divide-y divide-cheers-cream">
               {filtered.map(product => {
-                const cat = categories.find(c => c.id === product.categoryId)
+                const catNames = getProdCatIds(product)
+                  .map(id => categories.find(c => c.id === id)?.name?.zh)
+                  .filter(Boolean).join('、') || '未分类'
                 return (
                   <div key={product.id} className="p-4 flex items-center gap-4">
                     {product.imageUrl ? (
@@ -80,7 +87,7 @@ export default function AdminProductsPage() {
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-cheers-dark-brown text-sm truncate">{product.name?.zh}</p>
                       <p className="text-xs text-cheers-brown/50 mt-0.5">
-                        RM {product.price?.toFixed(2)} · {cat?.name?.zh || '未分类'} ·
+                        RM {product.price?.toFixed(2)} · {catNames} ·
                         <span className={product.inStock ? ' text-green-600' : ' text-red-500'}>
                           {product.inStock ? ' 接单中' : ' 已截单'}
                         </span>

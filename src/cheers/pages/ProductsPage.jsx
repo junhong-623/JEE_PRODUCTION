@@ -7,6 +7,11 @@ import ProductCard from '../components/ui/ProductCard'
 
 const db = getFirestore(app)
 
+function getProdCatIds(p) {
+  if (p.categoryIds?.length) return p.categoryIds
+  return p.categoryId ? [p.categoryId] : []
+}
+
 export default function ProductsPage() {
   const { t, lang } = useLang()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -70,7 +75,7 @@ export default function ProductsPage() {
   })()
 
   const filtered = products.filter(p => {
-    const matchCat = !matchingCatIds || matchingCatIds.has(p.categoryId)
+    const matchCat = !matchingCatIds || getProdCatIds(p).some(id => matchingCatIds.has(id))
     const name = p.name?.[lang] || p.name?.zh || ''
     const matchSearch = !search || name.toLowerCase().includes(search.toLowerCase())
     return matchCat && matchSearch
