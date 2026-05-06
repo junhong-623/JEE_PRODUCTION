@@ -318,13 +318,13 @@ export default function CheckoutPage() {
       const { notificationEmail, emailjsTemplateId } = settings || {}
       if (false && notificationEmail && emailjsTemplateId) {
         const deliveryInfo = deliveryType === 'face-to-face' ? `面交 · ${location}` : `邮寄 · ${region === 'east' ? '东马' : '西马'} · ${form.postcode} ${form.city}, ${form.state}`
-        emailjs.send(import.meta.env.VITE_EMAILJS_SERVICE_ID, emailjsTemplateId, {
+        emailjs.send(import.meta.env.VITE_CHEERS_EMAILJS_SERVICE_ID, emailjsTemplateId, {
           to_email: notificationEmail, order_id: orderId, customer_name: form.name,
           customer_email: user.email, customer_phone: form.phone || '—',
           order_items: items.map(i => `${i.name}${i.size ? ` (${i.size})` : ''} × ${i.quantity}  RM${(i.price * i.quantity).toFixed(2)}`).join('\n'),
           order_total: `RM ${total.toFixed(2)}`, delivery_info: deliveryInfo,
           order_date: new Date().toLocaleString('zh-MY'),
-        }, import.meta.env.VITE_EMAILJS_PUBLIC_KEY).catch(() => {})
+        }, import.meta.env.VITE_CHEERS_EMAILJS_PUBLIC_KEY).catch(() => {})
       }
 
       navigate(`/payment/${ref.id}`, { state: { orderId, total, paymentMode: settings?.paymentMode } })
