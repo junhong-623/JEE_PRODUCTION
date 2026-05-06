@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { getFirestore, collection, getDocs, doc, updateDoc, query, orderBy } from 'firebase/firestore'
+import { getFirestore, collection, getDocs, doc, updateDoc, query, orderBy, writeBatch } from 'firebase/firestore'
 import { Link } from 'react-router-dom'
 import app from '../../../lib/firebase'
 import { useLang } from '../../contexts/LangContext'
@@ -43,6 +43,9 @@ export default function AdminOrdersPage() {
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('all')
   const [expanded, setExpanded] = useState(null)
+  const [selected, setSelected] = useState(new Set())
+  const [bulkStatus, setBulkStatus] = useState('')
+  const [bulkLoading, setBulkLoading] = useState(false)
 
   async function load() {
     const snap = await getDocs(query(collection(db, 'cheers_orders'), orderBy('createdAt', 'desc')))
@@ -59,6 +62,23 @@ export default function AdminOrdersPage() {
 
   const filtered = statusFilter === 'all' ? orders : orders.filter(o => o.status === statusFilter)
 
+  function toggleSelect(id) {
+    setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  }
+  function toggleSelectAll() {
+    setSelected(prev => prev.size === filtered.length ? new Set() : new Set(filtered.map(o => o.id)))
+  }
+
+  async function handleBulkStatus() {
+    if (!bulkStatus || !selected.size) return
+    setBulkLoading(true)
+    const batch = writeBatch(db)
+    selected.forEach(id => batch.update(doc(db, 'cheers_orders', id), { status: bulkStatus }))
+    await batch.commit()
+    setOrders(prev => prev.map(o => selected.has(o.id) ? { ...o, status: bulkStatus } : o))
+    setSelected(new Set()); setBulkStatus(''); setBulkLoading(false)
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -67,15 +87,19 @@ export default function AdminOrdersPage() {
       </div>
 
       {/* Status filter tabs */}
-      <div className="flex gap-2 flex-wrap mb-4">
+      <div className="flex gap-2 flex-wrap mb-4 items-center">
         {['all', ...STATUSES].map(s => (
-          <button key={s} onClick={() => setStatusFilter(s)}
+          <button key={s} onClick={() => { setStatusFilter(s); setSelected(new Set()) }}
             className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
               statusFilter === s ? 'bg-cheers-brown text-cheers-cream' : 'border border-cheers-brown/30 text-cheers-brown'
             }`}>
             {s === 'all' ? `全部 (${orders.length})` : `${t(`orders.status.${s}`)} (${orders.filter(o => o.status === s).length})`}
           </button>
         ))}
+        <button onClick={toggleSelectAll}
+          className="ml-auto text-xs text-cheers-brown/60 hover:text-cheers-brown border border-cheers-brown/20 px-2.5 py-1 rounded-full">
+          {selected.size === filtered.length && filtered.length > 0 ? '取消全选' : `全选 (${filtered.length})`}
+        </button>
       </div>
 
       {loading ? (
@@ -88,7 +112,11 @@ export default function AdminOrdersPage() {
             const waLink = buildWhatsApp(order)
             return (
               <div key={order.id} className="card overflow-hidden">
-                <div className="p-4 flex items-start gap-4 cursor-pointer" onClick={() => setExpanded(e => e === order.id ? null : order.id)}>
+                <div className="p-4 flex items-start gap-3">
+                  <input type="checkbox" className="w-4 h-4 accent-cheers-brown flex-shrink-0 mt-0.5 cursor-pointer"
+                    checked={selected.has(order.id)} onChange={() => toggleSelect(order.id)}
+                    onClick={e => e.stopPropagation()} />
+                <div className="flex-1 flex items-start gap-4 cursor-pointer" onClick={() => setExpanded(e => e === order.id ? null : order.id)}>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-medium text-cheers-dark-brown text-sm">{order.orderId || order.id}</p>
@@ -111,6 +139,7 @@ export default function AdminOrdersPage() {
                     <p className="font-semibold text-cheers-brown">RM {order.total?.toFixed(2)}</p>
                     <p className="text-xs text-cheers-brown/50">{order.items?.length} 件</p>
                   </div>
+                </div>
                 </div>
 
                 {expanded === order.id && (
@@ -184,6 +213,24 @@ export default function AdminOrdersPage() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* Floating bulk action bar */}
+      {selected.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-white rounded-2xl shadow-xl border border-cheers-cream px-4 py-3 flex items-center gap-3 flex-wrap">
+          <span className="text-sm font-medium text-cheers-dark-brown">已选 {selected.size} 单</span>
+          <select value={bulkStatus} onChange={e => setBulkStatus(e.target.value)}
+            className="input text-sm py-1.5 min-w-[120px]">
+            <option value="">选择新状态…</option>
+            {STATUSES.map(s => <option key={s} value={s}>{STATUS_ZH[s]}</option>)}
+          </select>
+          <button onClick={handleBulkStatus} disabled={!bulkStatus || bulkLoading}
+            className="btn-primary text-sm py-1.5 px-4 disabled:opacity-50">
+            {bulkLoading ? '…' : '确认'}
+          </button>
+          <button onClick={() => { setSelected(new Set()); setBulkStatus('') }}
+            className="text-sm text-cheers-brown/50 hover:text-cheers-brown">取消</button>
         </div>
       )}
     </div>
