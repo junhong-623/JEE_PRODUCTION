@@ -91,7 +91,16 @@ export default function OrdersPage() {
                       {' · '}{order.items?.length} {lang === 'zh' ? '件' : 'items'}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3 flex-shrink-0">
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {order.status === 'pending' && !order.paymentSubmitted && (
+                      <Link to={`/payment/${order.id}`} onClick={e => e.stopPropagation()}
+                        className="text-xs btn-primary py-1 px-2.5">
+                        {lang === 'zh' ? '前往付款' : 'Pay Now'}
+                      </Link>
+                    )}
+                    {order.paymentSubmitted && (
+                      <span className="text-xs text-green-600 font-medium">💰 {lang === 'zh' ? '已付款' : 'Paid'}</span>
+                    )}
                     <span className="font-semibold text-cheers-brown text-sm">
                       {t('common.rmPrefix')} {order.total?.toFixed(2)}
                     </span>
@@ -151,6 +160,12 @@ export default function OrdersPage() {
                       </div>
                     </div>
 
+                    {order.status === 'pending' && !order.paymentSubmitted && (
+                      <Link to={`/payment/${order.id}`}
+                        className="w-full btn-primary text-sm py-2.5 text-center block">
+                        💳 {lang === 'zh' ? '前往付款' : 'Pay Now'}
+                      </Link>
+                    )}
                     {canAddon && (
                       <button onClick={e => { e.stopPropagation(); handleAddon(order) }}
                         className="w-full btn-secondary text-sm py-2">
