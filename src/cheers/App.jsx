@@ -1,5 +1,8 @@
-import React, { Suspense, lazy } from 'react'
+import React, { Suspense, lazy, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { getFirestore, doc, getDoc } from 'firebase/firestore'
+import app from './lib/firebase'
+import { applyFonts } from './lib/fontConfig'
 import { LangProvider } from './contexts/LangContext'
 import { AuthProvider } from './contexts/AuthContext'
 import { CartProvider } from './contexts/CartContext'
@@ -42,7 +45,10 @@ const AdminHomeSettings    = lazy(() => import('./pages/admin/HomeSettingsPage')
 const AdminAdmins          = lazy(() => import('./pages/admin/AdminsPage'))
 const AdminCreateOrder     = lazy(() => import('./pages/admin/CreateOrderPage'))
 const AdminCoupons         = lazy(() => import('./pages/admin/CouponsPage'))
+const AdminFontSettings    = lazy(() => import('./pages/admin/FontSettingsPage'))
 const AccountPage          = lazy(() => import('./pages/AccountPage'))
+
+const db = getFirestore(app)
 
 function PageLoader() {
   return (
@@ -56,6 +62,15 @@ function AppShell() {
   const { pathname } = useLocation()
   const isAdmin = pathname.startsWith('/admin')
   const isCart = pathname === '/cart'
+
+  useEffect(() => {
+    getDoc(doc(db, 'cheers_settings', 'global')).then(snap => {
+      if (snap.exists()) {
+        const { fontEn, fontZh } = snap.data()
+        if (fontEn || fontZh) applyFonts(fontEn, fontZh)
+      }
+    }).catch(() => {})
+  }, [])
 
   return (
     <div className="page-content min-h-screen flex flex-col">
@@ -96,6 +111,7 @@ function AppShell() {
               <Route path="settings/policies" element={<AdminPolicies />} />
               <Route path="settings/activity" element={<AdminActivity />} />
               <Route path="settings/home" element={<AdminHomeSettings />} />
+              <Route path="settings/fonts" element={<AdminFontSettings />} />
               <Route path="admins" element={<AdminAdmins />} />
               <Route path="orders/new" element={<AdminCreateOrder />} />
               <Route path="coupons" element={<AdminCoupons />} />

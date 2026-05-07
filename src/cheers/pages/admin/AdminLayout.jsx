@@ -19,6 +19,7 @@ const NAV = [
   { to: '/admin/settings/policies', label: 'admin.policies', icon: '📄' },
   { to: '/admin/settings/activity', label: 'admin.activity', icon: '⚡' },
   { to: '/admin/settings/home', label: 'admin.homeSettings', icon: '🏠' },
+  { to: '/admin/settings/fonts', label: 'admin.fontSettings', icon: '🔤' },
 ]
 
 export default function AdminLayout() {
