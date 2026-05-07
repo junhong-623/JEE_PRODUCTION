@@ -21,10 +21,14 @@ export default function ProductDetailPage() {
   const [qty, setQty] = useState(1)
   const [selectedSize, setSelectedSize] = useState(null)
   const [sizeError, setSizeError] = useState(false)
+  const [selectedColor, setSelectedColor] = useState(null)
+  const [colorError, setColorError] = useState(false)
   const [added, setAdded] = useState(false)
   const [selectedImg, setSelectedImg] = useState(0)
   const [heartAnim, setHeartAnim] = useState(false)
   const [cartAnim, setCartAnim] = useState(false)
+  const [zoomOpen, setZoomOpen] = useState(false)
+  const [zoomImg, setZoomImg] = useState(null)
   const touchStartX = useRef(null)
   const containerRef = useRef(null)
   const trackRef = useRef(null)
@@ -96,10 +100,21 @@ export default function ProductDetailPage() {
 
   const wishlisted = isWishlisted(product.id)
   const hasSizes = product?.sizes?.length > 0
+  const hasColors = product?.colors?.length > 0
+
+  function handleSelectColor(color) {
+    setSelectedColor(color)
+    setColorError(false)
+    if (!color.imageUrl) return
+    const imgs = product.imageUrls?.length ? product.imageUrls : product.imageUrl ? [product.imageUrl] : []
+    const idx = imgs.indexOf(color.imageUrl)
+    if (idx !== -1) setSelectedImg(idx)
+  }
 
   function handleAddToCart() {
+    if (hasColors && !selectedColor) { setColorError(true); return }
     if (hasSizes && !selectedSize) { setSizeError(true); return }
-    addToCart({ ...product, name }, qty, selectedSize ?? undefined)
+    addToCart({ ...product, name }, qty, selectedSize ?? undefined, selectedColor?.label ?? undefined)
     setAdded(true)
     setCartAnim(true)
     setTimeout(() => setAdded(false), 2000)
@@ -162,10 +177,11 @@ export default function ProductDetailPage() {
             <div className="flex flex-col gap-3 min-w-0">
               <div
                 ref={containerRef}
-                className="aspect-square rounded-2xl overflow-hidden bg-cheers-cream/20 select-none"
+                className="aspect-square rounded-2xl overflow-hidden bg-cheers-cream/20 select-none cursor-zoom-in"
                 onTouchStart={onTouchStart}
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}
+                onClick={() => { if (n > 0) { setZoomImg(imgs[selectedImg]); setZoomOpen(true) } }}
               >
                 {n === 0 ? (
                   <div className="w-full h-full flex items-center justify-center text-8xl">🛍</div>
@@ -212,6 +228,34 @@ export default function ProductDetailPage() {
           <p className="text-3xl font-bold text-cheers-brown mb-4">
             {t('common.rmPrefix')} {product.price?.toFixed(2)}
           </p>
+
+          {hasColors && product.inStock && (
+            <div className="mb-4">
+              <p className="label mb-2">
+                {lang === 'zh' ? '选择颜色' : 'Select Color'}
+                {colorError && <span className="text-red-400 ml-2 text-xs">{lang === 'zh' ? '请选择颜色' : 'Please select a color'}</span>}
+              </p>
+              <div className="flex flex-wrap gap-2 items-center">
+                {product.colors.map((color, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    title={color.label}
+                    onClick={() => handleSelectColor(color)}
+                    className={`w-8 h-8 rounded-full border-2 transition-all ${
+                      selectedColor?.label === color.label
+                        ? 'border-cheers-brown scale-110 shadow-md'
+                        : 'border-transparent hover:border-cheers-brown/40'
+                    }`}
+                    style={{ background: color.hex }}
+                  />
+                ))}
+              </div>
+              {selectedColor && (
+                <p className="text-xs text-cheers-brown/70 mt-1.5">{selectedColor.label}</p>
+              )}
+            </div>
+          )}
 
           {hasSizes && product.inStock && (
             <div className="mb-4">
@@ -279,6 +323,25 @@ export default function ProductDetailPage() {
           )}
         </div>
       </div>
+
+      {zoomOpen && zoomImg && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+          onClick={() => setZoomOpen(false)}
+        >
+          <button
+            className="absolute top-4 right-4 text-white text-3xl leading-none w-10 h-10 flex items-center justify-center hover:text-white/70"
+            onClick={() => setZoomOpen(false)}
+          >×</button>
+          <img
+            src={zoomImg}
+            alt={name}
+            className="max-w-full max-h-full object-contain"
+            style={{ touchAction: 'pinch-zoom' }}
+            onClick={e => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   )
 }

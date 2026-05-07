@@ -182,9 +182,11 @@ export default function ProductEditPage() {
     featured: false,
     imageUrls: [],
     sizes: [],
+    colors: [],
     descriptionBlocks: [],
   })
   const [sizeInput, setSizeInput] = useState('')
+  const [colorInput, setColorInput] = useState({ label: '', hex: '#000000', imageUrl: null })
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [dragImgIdx, setDragImgIdx] = useState(null)
@@ -214,6 +216,7 @@ export default function ProductEditPage() {
             featured: data.featured ?? false,
             imageUrls,
             sizes: data.sizes || [],
+            colors: data.colors || [],
             descriptionBlocks: data.descriptionBlocks || [],
           })
           if (data.tripId) {
@@ -268,6 +271,7 @@ export default function ProductEditPage() {
       imageUrls: form.imageUrls,
       imageUrl: form.imageUrls[0] || '',
       sizes: form.sizes,
+      colors: form.colors,
       descriptionBlocks: form.descriptionBlocks,
     }
     try {
@@ -438,6 +442,59 @@ export default function ProductEditPage() {
                   {size}
                   <button type="button" onClick={() => setForm(f => ({ ...f, sizes: f.sizes.filter(s => s !== size) }))}
                     className="text-cheers-brown/50 hover:text-cheers-brown leading-none">×</button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Colors */}
+        <div className="card p-4 space-y-3">
+          <label className="label mb-0">颜色（可选）</label>
+          <p className="text-xs text-cheers-brown/50">适用于有颜色变体的商品。可关联对应商品图片，顾客选色时自动切换图片。</p>
+          <div className="flex gap-2 flex-wrap items-end">
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-cheers-brown/60">颜色名称</span>
+              <input className="input text-sm" placeholder="如：红色 / Navy Blue" value={colorInput.label}
+                onChange={e => setColorInput(c => ({ ...c, label: e.target.value }))}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    const v = colorInput.label.trim()
+                    if (v) { setForm(f => ({ ...f, colors: [...f.colors, { ...colorInput, label: v }] })); setColorInput({ label: '', hex: '#000000', imageUrl: null }) }
+                  }
+                }} />
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-cheers-brown/60">色块</span>
+              <input type="color" value={colorInput.hex}
+                onChange={e => setColorInput(c => ({ ...c, hex: e.target.value }))}
+                className="w-10 h-9 rounded-lg border border-cheers-cream cursor-pointer p-0.5" />
+            </div>
+            <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
+              <span className="text-xs text-cheers-brown/60">关联图片（可选）</span>
+              <select className="input text-sm" value={colorInput.imageUrl || ''}
+                onChange={e => setColorInput(c => ({ ...c, imageUrl: e.target.value || null }))}>
+                <option value="">不关联图片</option>
+                {form.imageUrls.map((url, i) => (
+                  <option key={i} value={url}>图片 {i + 1}</option>
+                ))}
+              </select>
+            </div>
+            <button type="button" className="btn-secondary px-4 h-9" onClick={() => {
+              const v = colorInput.label.trim()
+              if (v) { setForm(f => ({ ...f, colors: [...f.colors, { ...colorInput, label: v }] })); setColorInput({ label: '', hex: '#000000', imageUrl: null }) }
+            }}>添加</button>
+          </div>
+          {form.colors.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {form.colors.map((color, idx) => (
+                <span key={idx} className="inline-flex items-center gap-2 bg-cheers-cream text-cheers-dark-brown text-sm px-3 py-1.5 rounded-full">
+                  <span className="w-4 h-4 rounded-full border border-cheers-brown/20 flex-shrink-0" style={{ background: color.hex }} />
+                  <span>{color.label}</span>
+                  {color.imageUrl && <span className="text-xs text-cheers-brown/50">·图{form.imageUrls.indexOf(color.imageUrl) + 1}</span>}
+                  <button type="button" onClick={() => setForm(f => ({ ...f, colors: f.colors.filter((_, i) => i !== idx) }))}
+                    className="text-cheers-brown/50 hover:text-cheers-brown leading-none ml-0.5">×</button>
                 </span>
               ))}
             </div>

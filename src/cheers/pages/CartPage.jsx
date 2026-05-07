@@ -48,7 +48,7 @@ export default function CartPage() {
   }
 
   function confirmRemove() {
-    if (confirmItem) removeFromCart(confirmItem.productId, confirmItem.size)
+    if (confirmItem) removeFromCart(confirmItem.productId, confirmItem.size, confirmItem.color)
     setConfirmItem(null)
   }
 
@@ -84,7 +84,7 @@ export default function CartPage() {
 
       <div className="space-y-3 mb-6">
         {items.map(item => (
-          <div key={`${item.productId}-${item.size || ''}`} className="card p-4 flex items-center gap-4">
+          <div key={`${item.productId}-${item.size || ''}-${item.color || ''}`} className="card p-4 flex items-center gap-4">
             {item.imageUrl ? (
               <img src={item.imageUrl} alt={item.name} className="w-16 h-16 object-cover rounded-lg flex-shrink-0" />
             ) : (
@@ -92,14 +92,16 @@ export default function CartPage() {
             )}
             <div className="flex-1 min-w-0">
               <p className="font-medium text-cheers-dark-brown text-sm line-clamp-2">{item.name}</p>
-              {item.size && <p className="text-xs text-cheers-brown/60 mt-0.5">{lang === 'zh' ? '尺码' : 'Size'}: {item.size}</p>}
+              {(item.color || item.size) && (
+                <p className="text-xs text-cheers-brown/60 mt-0.5">{[item.color, item.size].filter(Boolean).join(' · ')}</p>
+              )}
               <p className="text-cheers-brown text-sm mt-0.5">{t('common.rmPrefix')} {item.price?.toFixed(2)}</p>
             </div>
             <div className="flex items-center border border-cheers-cream rounded-lg overflow-hidden flex-shrink-0">
-              <button onClick={() => updateQuantity(item.productId, item.quantity - 1, item.size)}
+              <button onClick={() => updateQuantity(item.productId, item.quantity - 1, item.size, item.color)}
                 className="px-2.5 py-1.5 text-cheers-brown hover:bg-cheers-cream/50 text-sm">−</button>
               <span className="px-3 py-1.5 text-cheers-dark-brown text-sm font-medium min-w-[2rem] text-center">{item.quantity}</span>
-              <button onClick={() => updateQuantity(item.productId, item.quantity + 1, item.size)}
+              <button onClick={() => updateQuantity(item.productId, item.quantity + 1, item.size, item.color)}
                 className="px-2.5 py-1.5 text-cheers-brown hover:bg-cheers-cream/50 text-sm">+</button>
             </div>
             <div className="text-right flex-shrink-0 min-w-[80px]">

@@ -30,9 +30,10 @@ function buildWhatsApp(order) {
   // Normalise to Malaysian E.164 (no +): 012x → 6012x, already 60x stays
   if (phone.startsWith('0')) phone = '60' + phone.slice(1)
   else if (!phone.startsWith('60')) phone = '60' + phone
-  const items = (order.items || []).map(i =>
-    `• ${i.name}${i.size ? ` (${i.size})` : ''} × ${i.quantity}  RM${(i.price * i.quantity).toFixed(2)}`
-  ).join('\n')
+  const items = (order.items || []).map(i => {
+    const variant = [i.color, i.size].filter(Boolean).join(' · ')
+    return `• ${i.name}${variant ? ` (${variant})` : ''} × ${i.quantity}  RM${(i.price * i.quantity).toFixed(2)}`
+  }).join('\n')
   const delivery = order.delivery?.type === 'face-to-face'
     ? `面交 · ${order.delivery.location}`
     : `邮寄 · ${order.delivery?.address || ''}, ${order.delivery?.city || ''} ${order.delivery?.postcode || ''}`
@@ -183,7 +184,11 @@ export default function AdminOrdersPage() {
                       <div className="space-y-1">
                         {order.items?.map((item, i) => (
                           <div key={i} className="flex justify-between text-sm text-cheers-dark-brown/80">
-                            <span>{item.name}{item.size ? ` (${item.size})` : ''} × {item.quantity}</span>
+                            <span>
+                              {item.name}
+                              {(item.color || item.size) && ` (${[item.color, item.size].filter(Boolean).join(' · ')})`}
+                              {' × '}{item.quantity}
+                            </span>
                             <span>RM {(item.price * item.quantity).toFixed(2)}</span>
                           </div>
                         ))}
