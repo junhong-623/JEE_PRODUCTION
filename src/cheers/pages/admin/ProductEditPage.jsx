@@ -394,26 +394,6 @@ export default function ProductEditPage() {
           </div>
         </div>
 
-        {/* Description */}
-        <div className="card p-4 space-y-3">
-          <div>
-            <label className="label">商品描述（中文）</label>
-            <textarea className="input resize-y" rows={3}
-              value={form.description.zh} onChange={e => setForm(f => ({ ...f, description: { ...f.description, zh: e.target.value } }))} />
-          </div>
-          <div>
-            <label className="label">Description (EN)</label>
-            <textarea className="input resize-y" rows={3}
-              value={form.description.en} onChange={e => setForm(f => ({ ...f, description: { ...f.description, en: e.target.value } }))} />
-          </div>
-        </div>
-
-        {/* Rich media blocks */}
-        <BlockEditor
-          blocks={form.descriptionBlocks}
-          onChange={blocks => setForm(f => ({ ...f, descriptionBlocks: blocks }))}
-        />
-
         {/* Sizes */}
         <div className="card p-4 space-y-3">
           <label className="label mb-0">尺码（可选）</label>
@@ -493,6 +473,26 @@ export default function ProductEditPage() {
             </div>
           )}
         </div>
+
+        {/* Description */}
+        <div className="card p-4 space-y-3">
+          <div>
+            <label className="label">商品描述（中文）</label>
+            <textarea className="input resize-y" rows={3}
+              value={form.description.zh} onChange={e => setForm(f => ({ ...f, description: { ...f.description, zh: e.target.value } }))} />
+          </div>
+          <div>
+            <label className="label">Description (EN)</label>
+            <textarea className="input resize-y" rows={3}
+              value={form.description.en} onChange={e => setForm(f => ({ ...f, description: { ...f.description, en: e.target.value } }))} />
+          </div>
+        </div>
+
+        {/* Rich media blocks */}
+        <BlockEditor
+          blocks={form.descriptionBlocks}
+          onChange={blocks => setForm(f => ({ ...f, descriptionBlocks: blocks }))}
+        />
 
         {/* Options */}
         <div className="card p-4 flex flex-col gap-3">
