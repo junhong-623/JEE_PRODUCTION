@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { getFirestore, doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore'
 import app from '../../lib/firebase'
 import { useAuth } from './AuthContext'
@@ -17,13 +17,15 @@ function saveLocal(items) {
 export function CartProvider({ children }) {
   const { user } = useAuth()
   const [items, setItems] = useState([])
-  const [synced, setSynced] = useState(false)
+  // useRef instead of useState so the flag is never stale inside the onSnapshot closure
+  const mergedRef = useRef(false)
 
   // Load from Firestore when logged in, merge local cart
   useEffect(() => {
+    mergedRef.current = false  // reset on every user change
+
     if (!user) {
       setItems(loadLocal())
-      setSynced(true)
       return
     }
 
@@ -33,8 +35,9 @@ export function CartProvider({ children }) {
     const unsub = onSnapshot(ref, async (snap) => {
       const remote = snap.exists() ? (snap.data().items || []) : []
 
-      if (!synced && localItems.length > 0) {
-        // Merge: add local items not in remote
+      if (!mergedRef.current && localItems.length > 0) {
+        // Set flag BEFORE the async write to block any re-entrant snapshot
+        mergedRef.current = true
         const merged = [...remote]
         for (const localItem of localItems) {
           const idx = merged.findIndex(i => i.productId === localItem.productId && i.size === localItem.size && i.color === localItem.color)
@@ -44,13 +47,13 @@ export function CartProvider({ children }) {
             merged.push(localItem)
           }
         }
-        await setDoc(ref, { items: merged }, { merge: true })
         saveLocal([])
+        await setDoc(ref, { items: merged }, { merge: true })
         setItems(merged)
       } else {
+        mergedRef.current = true
         setItems(remote)
       }
-      setSynced(true)
     })
 
     return unsub
