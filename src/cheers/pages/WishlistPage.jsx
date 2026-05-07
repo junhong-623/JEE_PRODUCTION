@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useLang } from '../contexts/LangContext'
 import { useWishlist } from '../contexts/WishlistContext'
 import { useCart } from '../contexts/CartContext'
+import { optimizeUrl } from '../lib/cloudinary'
 
 export default function WishlistPage() {
   const { t, lang } = useLang()
@@ -27,7 +28,7 @@ export default function WishlistPage() {
           <div key={item.productId} className="card p-4 flex items-center gap-4">
             <Link to={`/products/${item.productId}`} className="flex-shrink-0">
               {item.imageUrl ? (
-                <img src={item.imageUrl} alt="" className="w-16 h-16 object-cover rounded-lg" />
+                <img src={optimizeUrl(item.imageUrl, { width: 200 })} alt="" className="w-16 h-16 object-cover rounded-lg" />
               ) : (
                 <div className="w-16 h-16 rounded-lg bg-cheers-cream/40 flex items-center justify-center text-2xl">🛍</div>
               )}

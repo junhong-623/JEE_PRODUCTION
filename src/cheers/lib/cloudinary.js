@@ -1,6 +1,13 @@
 const CLOUD = 'db2ixn8zh'
 const PRESET = 'H-Agency'
 
+export function optimizeUrl(url, { width, quality = 'auto', format = 'auto' } = {}) {
+  if (!url || !url.includes('res.cloudinary.com')) return url
+  const transforms = [`f_${format}`, `q_${quality}`]
+  if (width) transforms.push(`w_${width}`)
+  return url.replace('/upload/', `/upload/${transforms.join(',')}/`)
+}
+
 async function upload(file, folder, resourceType = 'image') {
   const form = new FormData()
   form.append('file', file)

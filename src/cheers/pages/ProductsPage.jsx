@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { getFirestore, collection, query, where, getDocs, doc, getDoc, orderBy } from 'firebase/firestore'
 import app from '../../lib/firebase'
@@ -20,6 +20,8 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true)
   const [activeTripId, setActiveTripId] = useState(null)
   const [search, setSearch] = useState('')
+  const rootCatRef = useRef(null)
+  const subCatRef  = useRef(null)
 
   const activeCategory = searchParams.get('category') || 'all'
 
@@ -64,6 +66,18 @@ export default function ProductsPage() {
     : activeCatObj?.parentId || activeCategory   // sub → parent; root → itself
   const activeSubCats = activeRootId ? getChildren(activeRootId) : []
 
+  useEffect(() => {
+    function attach(el) {
+      if (!el) return
+      const fn = e => { e.preventDefault(); el.scrollLeft += e.deltaY + e.deltaX }
+      el.addEventListener('wheel', fn, { passive: false })
+      return () => el.removeEventListener('wheel', fn)
+    }
+    const d1 = attach(rootCatRef.current)
+    const d2 = attach(subCatRef.current)
+    return () => { d1?.(); d2?.() }
+  }, [activeSubCats.length])
+
   // Products to show: include all sub-category products when root is selected
   const matchingCatIds = (() => {
     if (activeCategory === 'all') return null
@@ -97,7 +111,7 @@ export default function ProductsPage() {
       {/* Category filter — root row */}
       {rootCats.length > 0 && (
         <div className="space-y-2 mb-6">
-          <div className="flex gap-2 overflow-x-auto no-scrollbar touch-pan-x pb-1">
+          <div ref={rootCatRef} className="flex gap-2 overflow-x-auto no-scrollbar touch-pan-x pb-1">
             <button onClick={() => setActiveCategory('all')}
               className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 activeCategory === 'all' ? 'bg-cheers-brown text-cheers-cream' : 'border border-cheers-brown/30 text-cheers-brown hover:border-cheers-brown'
@@ -116,7 +130,7 @@ export default function ProductsPage() {
 
           {/* Sub-category row — only shown after clicking a root with children */}
           {activeSubCats.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto no-scrollbar touch-pan-x pb-1 pl-3 border-l-2 border-cheers-cream">
+            <div ref={subCatRef} className="flex gap-2 overflow-x-auto no-scrollbar touch-pan-x pb-1 pl-3 border-l-2 border-cheers-cream">
               <button onClick={() => setActiveCategory(activeRootId)}
                 className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                   activeCategory === activeRootId ? 'bg-cheers-brown/80 text-cheers-cream' : 'border border-cheers-brown/20 text-cheers-brown/70 hover:border-cheers-brown/50'

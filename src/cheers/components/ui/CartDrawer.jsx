@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '../../contexts/CartContext'
 import { useLang } from '../../contexts/LangContext'
+import { optimizeUrl } from '../../lib/cloudinary'
 
 export default function CartDrawer() {
   const { items, totalItems, subtotal, removeFromCart, updateQuantity } = useCart()
@@ -62,7 +63,7 @@ export default function CartDrawer() {
               ) : items.map(item => (
                 <div key={`${item.productId}-${item.size ?? ''}-${item.color ?? ''}`} className="flex gap-3">
                   {item.imageUrl
-                    ? <img src={item.imageUrl} alt="" className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
+                    ? <img src={optimizeUrl(item.imageUrl, { width: 120 })} alt="" className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
                     : <div className="w-16 h-16 rounded-xl bg-cheers-cream/40 flex items-center justify-center text-2xl flex-shrink-0">🛍</div>
                   }
                   <div className="flex-1 min-w-0">

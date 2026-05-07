@@ -3,6 +3,7 @@ import { getFirestore, collection, query, where, getDocs, limit } from 'firebase
 import { Link } from 'react-router-dom'
 import app from '../../../lib/firebase'
 import { useLang } from '../../contexts/LangContext'
+import { optimizeUrl } from '../../lib/cloudinary'
 
 const db = getFirestore(app)
 
@@ -19,7 +20,7 @@ function randomName() { return NAMES[Math.floor(Math.random() * NAMES.length)] }
 function randomAction() { return ACTIONS[Math.floor(Math.random() * ACTIONS.length)] }
 
 export default function ActivityFeed() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const [enabled, setEnabled] = useState(false)
   const [products, setProducts] = useState([])
   const [current, setCurrent] = useState(null)
@@ -99,18 +100,21 @@ export default function ActivityFeed() {
           <span className="text-base sm:text-2xl flex-shrink-0">{icon}</span>
           <div className="leading-snug min-w-0">
             <p className="text-[11px] sm:text-xs text-cheers-dark-brown truncate">
-              {action === 'watching' ? (
-                <><span className="font-semibold">{watchingCount}</span> {t('activity.watching')} <span className="font-medium text-cheers-brown">{product.name?.zh || product.name}</span></>
-              ) : (
-                <><span className="font-semibold">{name}</span> {t(`activity.${action}`)} <span className="font-medium text-cheers-brown">{product.name?.zh || product.name}</span></>
-              )}
+              {(() => {
+                const productName = product.name?.[lang] || product.name?.zh || product.name?.en || product.name || ''
+                return action === 'watching' ? (
+                  <><span className="font-semibold">{watchingCount}</span> {t('activity.watching')} <span className="font-serif font-medium text-cheers-brown">{productName}</span></>
+                ) : (
+                  <><span className="font-semibold">{name}</span> {t(`activity.${action}`)} <span className="font-serif font-medium text-cheers-brown">{productName}</span></>
+                )
+              })()}
             </p>
             <p className="text-[10px] sm:text-[11px] text-cheers-brown/40 mt-0.5">
               {minutesAgo === 0 ? t('activity.justNow') : `${minutesAgo}${t('activity.minutesAgo')}`}
             </p>
           </div>
           {product.imageUrl && (
-            <img src={product.imageUrl} alt="" className="w-6 h-6 sm:w-10 sm:h-10 rounded-full sm:rounded-lg object-cover flex-shrink-0" />
+            <img src={optimizeUrl(product.imageUrl, { width: 80 })} alt="" className="w-6 h-6 sm:w-10 sm:h-10 rounded-full sm:rounded-lg object-cover flex-shrink-0" />
           )}
         </Link>
 
