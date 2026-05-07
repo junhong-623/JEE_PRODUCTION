@@ -101,18 +101,18 @@ export default function OrdersPage() {
       <h1 className="font-serif text-2xl text-cheers-dark-brown mb-5">{t('orders.title')}</h1>
 
       {/* Status tabs */}
-      <div className="flex gap-1.5 flex-wrap mb-5 border-b border-cheers-cream pb-3 overflow-x-auto">
+      <div className="flex overflow-x-auto border-b border-cheers-cream mb-5 no-scrollbar">
         {ORDER_TABS.map(tab => {
           const count = tab.key === 'all' ? orders.length : orders.filter(o => matchTab(o, tab.key)).length
           return (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+              className={`flex-shrink-0 px-3 py-2 text-sm font-medium border-b-2 -mb-px whitespace-nowrap transition-colors ${
                 activeTab === tab.key
-                  ? 'bg-cheers-brown text-cheers-cream'
-                  : 'border border-cheers-brown/20 text-cheers-brown/70 hover:border-cheers-brown/50'
+                  ? 'border-cheers-brown text-cheers-brown'
+                  : 'border-transparent text-cheers-brown/50 hover:text-cheers-brown'
               }`}>
               {lang === 'zh' ? tab.zh : tab.en}
-              {count > 0 && <span className="ml-1 opacity-70">({count})</span>}
+              {count > 0 && <span className="ml-1 text-xs opacity-60">({count})</span>}
             </button>
           )
         })}

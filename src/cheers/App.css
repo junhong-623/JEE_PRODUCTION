@@ -120,6 +120,10 @@ h1, h2, h3 {
 }
 .animate-slide-in-right { animation: slide-in-right 0.3s ease forwards; }
 
+/* Hide scrollbar while keeping scroll behaviour */
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
 /* Scrollbar styling */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--cheers-light-cream); }

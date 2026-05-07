@@ -225,18 +225,18 @@ function OrdersTab({ user, lang, t }) {
   return (
     <div>
       {/* Status tabs */}
-      <div className="flex gap-1.5 flex-wrap mb-4 pb-3 border-b border-cheers-cream overflow-x-auto">
+      <div className="flex overflow-x-auto border-b border-cheers-cream mb-4 no-scrollbar">
         {ORDER_TABS.map(tab => {
           const count = tab.key === 'all' ? orders.length : orders.filter(o => matchTab(o, tab.key)).length
           return (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+              className={`flex-shrink-0 px-3 py-2 text-sm font-medium border-b-2 -mb-px whitespace-nowrap transition-colors ${
                 activeTab === tab.key
-                  ? 'bg-cheers-brown text-cheers-cream'
-                  : 'border border-cheers-brown/20 text-cheers-brown/70 hover:border-cheers-brown/50'
+                  ? 'border-cheers-brown text-cheers-brown'
+                  : 'border-transparent text-cheers-brown/50 hover:text-cheers-brown'
               }`}>
               {lang === 'zh' ? tab.zh : tab.en}
-              {count > 0 && <span className="ml-1 opacity-70">({count})</span>}
+              {count > 0 && <span className="ml-1 text-xs opacity-60">({count})</span>}
             </button>
           )
         })}
@@ -428,7 +428,7 @@ export default function AccountPage() {
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-1 overflow-x-auto pb-1 mb-6 border-b border-cheers-cream">
+      <div className="flex overflow-x-auto mb-6 border-b border-cheers-cream no-scrollbar">
         {TABS.map(tb => (
           <button key={tb.key} onClick={() => setTab(tb.key)}
             className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-t-lg transition-colors border-b-2 -mb-px ${
