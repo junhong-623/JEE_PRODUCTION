@@ -60,26 +60,30 @@ export default function CartDrawer() {
                   <p className="text-sm">{lang === 'zh' ? '购物车是空的' : 'Your cart is empty'}</p>
                 </div>
               ) : items.map(item => (
-                <div key={`${item.productId}-${item.size ?? ''}`} className="flex gap-3">
+                <div key={`${item.productId}-${item.size ?? ''}-${item.color ?? ''}`} className="flex gap-3">
                   {item.imageUrl
                     ? <img src={item.imageUrl} alt="" className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
                     : <div className="w-16 h-16 rounded-xl bg-cheers-cream/40 flex items-center justify-center text-2xl flex-shrink-0">🛍</div>
                   }
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-cheers-dark-brown truncate">{item.name}</p>
-                    {item.size && <p className="text-xs text-cheers-brown/50 mt-0.5">{item.size}</p>}
+                    {(item.size || item.color) && (
+                      <p className="text-xs text-cheers-brown/50 mt-0.5">
+                        {[item.color, item.size].filter(Boolean).join(' · ')}
+                      </p>
+                    )}
                     <p className="text-sm font-semibold text-cheers-brown mt-1">
                       RM {(item.price * item.quantity).toFixed(2)}
                     </p>
                     <div className="flex items-center gap-2 mt-2">
                       <div className="flex items-center border border-cheers-cream rounded-lg overflow-hidden">
-                        <button onClick={() => updateQuantity(item.productId, item.quantity - 1, item.size)}
+                        <button onClick={() => updateQuantity(item.productId, item.quantity - 1, item.size, item.color)}
                           className="px-2.5 py-1 text-cheers-brown hover:bg-cheers-cream/50 transition-colors text-sm">−</button>
                         <span className="px-3 py-1 text-cheers-dark-brown text-sm min-w-[2rem] text-center">{item.quantity}</span>
-                        <button onClick={() => updateQuantity(item.productId, item.quantity + 1, item.size)}
+                        <button onClick={() => updateQuantity(item.productId, item.quantity + 1, item.size, item.color)}
                           className="px-2.5 py-1 text-cheers-brown hover:bg-cheers-cream/50 transition-colors text-sm">+</button>
                       </div>
-                      <button onClick={() => removeFromCart(item.productId, item.size)}
+                      <button onClick={() => removeFromCart(item.productId, item.size, item.color)}
                         className="text-xs text-red-400 hover:text-red-600 ml-auto">
                         {lang === 'zh' ? '删除' : 'Remove'}
                       </button>

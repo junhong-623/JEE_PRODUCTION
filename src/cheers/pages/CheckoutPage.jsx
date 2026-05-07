@@ -643,8 +643,12 @@ export default function CheckoutPage() {
           <h2 className="font-medium text-cheers-dark-brown mb-3">{t('checkout.orderSummary')}</h2>
           <div className="space-y-2 mb-3">
             {items.map(item => (
-              <div key={`${item.productId}-${item.size}`} className="flex justify-between text-sm">
-                <span className="text-cheers-dark-brown/70 truncate flex-1 mr-2">{item.name}{item.size ? ` (${item.size})` : ''} × {item.quantity}</span>
+              <div key={`${item.productId}-${item.size ?? ''}-${item.color ?? ''}`} className="flex justify-between text-sm">
+                <span className="text-cheers-dark-brown/70 truncate flex-1 mr-2">
+                  {item.name}
+                  {(item.color || item.size) && ` (${[item.color, item.size].filter(Boolean).join(' · ')})`}
+                  {' × '}{item.quantity}
+                </span>
                 <span className="text-cheers-dark-brown flex-shrink-0">RM {(item.price * item.quantity).toFixed(2)}</span>
               </div>
             ))}

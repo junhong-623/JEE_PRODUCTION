@@ -189,7 +189,10 @@ export default function OrdersPage() {
                         {order.items?.map((item, i) => (
                           <div key={i} className="flex justify-between text-sm">
                             <span className="text-cheers-dark-brown/80 truncate flex-1 mr-2">
-                              {item.name}{item.size && <span className="text-cheers-brown/60 ml-1">({item.size})</span>}
+                              {item.name}
+                              {(item.color || item.size) && (
+                                <span className="text-cheers-brown/60 ml-1">({[item.color, item.size].filter(Boolean).join(' · ')})</span>
+                              )}
                               {' × '}{item.quantity}
                             </span>
                             <span className="text-cheers-dark-brown flex-shrink-0">

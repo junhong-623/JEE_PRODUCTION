@@ -286,7 +286,11 @@ function OrdersTab({ user, lang, t }) {
                     <div className="space-y-1">
                       {order.items?.map((item, i) => (
                         <div key={i} className="flex justify-between text-sm">
-                          <span className="text-cheers-dark-brown/80 flex-1 mr-2">{item.name}{item.size ? ` (${item.size})` : ''} × {item.quantity}</span>
+                          <span className="text-cheers-dark-brown/80 flex-1 mr-2">
+                            {item.name}
+                            {(item.color || item.size) && ` (${[item.color, item.size].filter(Boolean).join(' · ')})`}
+                            {' × '}{item.quantity}
+                          </span>
                           <span>RM {(item.price * item.quantity).toFixed(2)}</span>
                         </div>
                       ))}

@@ -37,7 +37,7 @@ export function CartProvider({ children }) {
         // Merge: add local items not in remote
         const merged = [...remote]
         for (const localItem of localItems) {
-          const idx = merged.findIndex(i => i.productId === localItem.productId)
+          const idx = merged.findIndex(i => i.productId === localItem.productId && i.size === localItem.size && i.color === localItem.color)
           if (idx >= 0) {
             merged[idx] = { ...merged[idx], quantity: merged[idx].quantity + localItem.quantity }
           } else {
@@ -65,9 +65,9 @@ export function CartProvider({ children }) {
     }
   }, [user])
 
-  const addToCart = useCallback(async (product, quantity = 1, size = undefined) => {
+  const addToCart = useCallback(async (product, quantity = 1, size = undefined, color = undefined) => {
     setItems(prev => {
-      const idx = prev.findIndex(i => i.productId === product.id && i.size === size)
+      const idx = prev.findIndex(i => i.productId === product.id && i.size === size && i.color === color)
       let next
       if (idx >= 0) {
         next = prev.map((i, index) =>
@@ -83,6 +83,7 @@ export function CartProvider({ children }) {
           imageUrl: product.imageUrl || '',
           quantity,
           ...(size !== undefined && { size }),
+          ...(color !== undefined && { color }),
         }]
       }
       if (user) {
@@ -94,9 +95,9 @@ export function CartProvider({ children }) {
     })
   }, [user])
 
-  const removeFromCart = useCallback(async (productId, size = undefined) => {
+  const removeFromCart = useCallback(async (productId, size = undefined, color = undefined) => {
     setItems(prev => {
-      const next = prev.filter(i => !(i.productId === productId && i.size === size))
+      const next = prev.filter(i => !(i.productId === productId && i.size === size && i.color === color))
       if (user) {
         setDoc(doc(db, 'cheers_carts', user.uid), { items: next }, { merge: true })
       } else {
@@ -106,10 +107,10 @@ export function CartProvider({ children }) {
     })
   }, [user])
 
-  const updateQuantity = useCallback(async (productId, quantity, size = undefined) => {
-    if (quantity < 1) return removeFromCart(productId, size)
+  const updateQuantity = useCallback(async (productId, quantity, size = undefined, color = undefined) => {
+    if (quantity < 1) return removeFromCart(productId, size, color)
     setItems(prev => {
-      const next = prev.map(i => i.productId === productId && i.size === size ? { ...i, quantity } : i)
+      const next = prev.map(i => i.productId === productId && i.size === size && i.color === color ? { ...i, quantity } : i)
       if (user) {
         setDoc(doc(db, 'cheers_carts', user.uid), { items: next }, { merge: true })
       } else {
