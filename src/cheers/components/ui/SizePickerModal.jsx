@@ -6,10 +6,13 @@ export default function SizePickerModal({ product, onClose }) {
   const { t, lang } = useLang()
   const { addToCart } = useCart()
   const [selectedSize, setSelectedSize] = useState(null)
+  const [selectedColor, setSelectedColor] = useState(null)
   const [qty, setQty] = useState(1)
   const [added, setAdded] = useState(false)
 
-  // Close on backdrop click or Escape key
+  const hasSizes = product.sizes?.length > 0
+  const hasColors = product.colors?.length > 0
+
   useEffect(() => {
     function onKey(e) { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
@@ -19,23 +22,27 @@ export default function SizePickerModal({ product, onClose }) {
   const name = product.name?.[lang] || product.name?.zh || product.name || ''
 
   function handleAdd() {
-    if (!selectedSize) return
-    addToCart({ ...product, name }, qty, selectedSize)
+    if (hasColors && !selectedColor) return
+    if (hasSizes && !selectedSize) return
+    addToCart({ ...product, name }, qty, selectedSize ?? undefined, selectedColor?.label ?? undefined)
     setAdded(true)
     setTimeout(() => { onClose() }, 900)
   }
+
+  const missingVariant = (hasColors && !selectedColor)
+    ? (lang === 'zh' ? '请先选择颜色' : 'Select a color first')
+    : (hasSizes && !selectedSize)
+    ? (lang === 'zh' ? '请先选择尺码' : 'Select a size first')
+    : null
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-cheers-dark-brown/40 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Sheet */}
       <div className="relative w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden animate-slide-up">
-        {/* Close */}
         <button
           onClick={onClose}
           className="absolute top-3 right-3 w-7 h-7 rounded-full bg-cheers-cream/60 flex items-center justify-center text-cheers-brown hover:bg-cheers-cream transition-colors z-10"
@@ -44,7 +51,6 @@ export default function SizePickerModal({ product, onClose }) {
         </button>
 
         <div className="flex gap-4 p-4 border-b border-cheers-cream">
-          {/* Thumbnail */}
           <div className="w-20 h-20 rounded-xl overflow-hidden bg-cheers-cream/30 flex-shrink-0">
             {product.imageUrl
               ? <img src={product.imageUrl} alt={name} className="w-full h-full object-cover" />
@@ -57,30 +63,54 @@ export default function SizePickerModal({ product, onClose }) {
         </div>
 
         <div className="p-4 space-y-4">
-          {/* Size grid */}
-          <div>
-            <p className="text-xs font-medium text-cheers-brown mb-2">
-              {lang === 'zh' ? '选择尺码' : 'Select Size'}
-              {!selectedSize && <span className="text-red-400 ml-1">*</span>}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {(product.sizes || []).map(size => (
-                <button
-                  key={size}
-                  onClick={() => setSelectedSize(size)}
-                  className={`min-w-[3rem] px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
-                    selectedSize === size
-                      ? 'border-cheers-brown bg-cheers-brown text-cheers-cream'
-                      : 'border-cheers-cream text-cheers-dark-brown hover:border-cheers-brown/50'
-                  }`}
-                >
-                  {size}
-                </button>
-              ))}
+          {hasColors && (
+            <div>
+              <p className="text-xs font-medium text-cheers-brown mb-2">
+                {lang === 'zh' ? '选择颜色' : 'Select Color'}
+                {!selectedColor && <span className="text-red-400 ml-1">*</span>}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {product.colors.map((color, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setSelectedColor(color)}
+                    className={`min-w-[3rem] px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
+                      selectedColor?.label === color.label
+                        ? 'border-cheers-brown bg-cheers-brown text-cheers-cream'
+                        : 'border-cheers-cream text-cheers-dark-brown hover:border-cheers-brown/50'
+                    }`}
+                  >
+                    {color.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Quantity */}
+          {hasSizes && (
+            <div>
+              <p className="text-xs font-medium text-cheers-brown mb-2">
+                {lang === 'zh' ? '选择尺码' : 'Select Size'}
+                {!selectedSize && <span className="text-red-400 ml-1">*</span>}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {product.sizes.map(size => (
+                  <button
+                    key={size}
+                    onClick={() => setSelectedSize(size)}
+                    className={`min-w-[3rem] px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
+                      selectedSize === size
+                        ? 'border-cheers-brown bg-cheers-brown text-cheers-cream'
+                        : 'border-cheers-cream text-cheers-dark-brown hover:border-cheers-brown/50'
+                    }`}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center gap-3">
             <p className="text-xs font-medium text-cheers-brown">{t('cart.quantity')}</p>
             <div className="flex items-center border border-cheers-cream rounded-lg overflow-hidden">
@@ -92,17 +122,14 @@ export default function SizePickerModal({ product, onClose }) {
             </div>
           </div>
 
-          {/* Add button */}
           <button
             onClick={handleAdd}
-            disabled={!selectedSize || added}
+            disabled={!!missingVariant || added}
             className={`btn-primary w-full py-3 transition-all ${added ? 'bg-green-600' : ''} disabled:opacity-40`}
           >
             {added
               ? (lang === 'zh' ? '已加入 ✓' : 'Added ✓')
-              : !selectedSize
-                ? (lang === 'zh' ? '请先选择尺码' : 'Select a size first')
-                : t('product.addToCart')}
+              : missingVariant || t('product.addToCart')}
           </button>
         </div>
       </div>
