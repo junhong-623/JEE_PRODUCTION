@@ -45,16 +45,6 @@ function BlockEditor({ blocks, onChange, productImages = [] }) {
     } finally { setUploading(null) }
   }
 
-  async function handleAddImageBlocks(e) {
-    const files = Array.from(e.target.files || [])
-    if (!files.length) return
-    setUploading('images')
-    try {
-      const urls = await Promise.all(files.map(f => uploadProductMedia(f)))
-      onChange([...blocks, ...urls.map(url => ({ type: 'image', url }))])
-    } finally { setUploading(null); e.target.value = '' }
-  }
-
   function getYouTubeId(url) {
     const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([^&?/\s]+)/)
     return m?.[1] || null
@@ -170,17 +160,12 @@ function BlockEditor({ blocks, onChange, productImages = [] }) {
 
       {/* Add buttons */}
       <div className="flex gap-2 flex-wrap">
-        {[['text', '+ 文字'], ['video', '+ 视频']].map(([type, label]) => (
+        {[['text', '+ 文字'], ['image', '+ 图片'], ['video', '+ 视频']].map(([type, label]) => (
           <button key={type} type="button" onClick={() => addBlock(type)}
             className="btn-ghost text-xs py-1.5 px-3 border border-cheers-brown/20 hover:border-cheers-brown/50">
             {label}
           </button>
         ))}
-        <label className={`btn-ghost text-xs py-1.5 px-3 border border-cheers-brown/20 hover:border-cheers-brown/50 cursor-pointer ${uploading !== null ? 'opacity-50 pointer-events-none' : ''}`}>
-          {uploading === 'images' ? '上传中…' : '+ 图片'}
-          <input type="file" accept="image/*" multiple className="hidden"
-            disabled={uploading !== null} onChange={handleAddImageBlocks} />
-        </label>
       </div>
     </div>
   )
