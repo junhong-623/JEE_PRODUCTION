@@ -7,6 +7,7 @@ import { useLang } from '../contexts/LangContext'
 import { useCart } from '../contexts/CartContext'
 import { useAuth } from '../contexts/AuthContext'
 import CouponTicket, { applyDiscount, formatDiscount, computeSavings, findBestCoupon, findNearMissCoupon, isCouponEligible } from '../components/ui/CouponTicket'
+import { optimizeUrl } from '../lib/cloudinary'
 
 const db = getFirestore(app)
 
@@ -86,7 +87,7 @@ function UpsellModal({ coupon, shortfall, products, lang, onClose }) {
               <div key={p.id} className="flex items-center gap-3 bg-white rounded-xl px-3 py-2.5 transition-colors">
                 <div className="cursor-pointer flex items-center gap-3 flex-1 min-w-0" onClick={() => { onClose(); nav(`/products/${p.id}`) }}>
                   {img
-                    ? <img src={img} alt={name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+                    ? <img src={optimizeUrl(img, { width: 120 })} alt={name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
                     : <div className="w-12 h-12 rounded-lg bg-cheers-cream flex-shrink-0" />
                   }
                   <div className="flex-1 min-w-0">

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useLang } from '../contexts/LangContext'
 import { useCart } from '../contexts/CartContext'
 import { useAuth } from '../contexts/AuthContext'
+import { optimizeUrl } from '../lib/cloudinary'
 
 function ConfirmModal({ itemName, onConfirm, onCancel, lang }) {
   return (
@@ -86,7 +87,7 @@ export default function CartPage() {
         {items.map(item => (
           <div key={`${item.productId}-${item.size || ''}-${item.color || ''}`} className="card p-4 flex items-center gap-4">
             {item.imageUrl ? (
-              <img src={item.imageUrl} alt={item.name} className="w-16 h-16 object-cover rounded-lg flex-shrink-0" />
+              <img src={optimizeUrl(item.imageUrl, { width: 120 })} alt={item.name} className="w-16 h-16 object-cover rounded-lg flex-shrink-0" />
             ) : (
               <div className="w-16 h-16 rounded-lg bg-cheers-cream/40 flex items-center justify-center text-2xl flex-shrink-0">🛍</div>
             )}

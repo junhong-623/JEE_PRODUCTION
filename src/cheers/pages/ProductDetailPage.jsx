@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { getFirestore, doc, getDoc } from 'firebase/firestore'
 import app from '../../lib/firebase'
+import { optimizeUrl } from '../lib/cloudinary'
 import { useLang } from '../contexts/LangContext'
 import { useCart } from '../contexts/CartContext'
 import { useWishlist } from '../contexts/WishlistContext'
@@ -186,7 +187,7 @@ export default function ProductDetailPage() {
                 {n === 0 ? (
                   <div className="w-full h-full flex items-center justify-center text-8xl">🛍</div>
                 ) : n === 1 ? (
-                  <img src={imgs[0]} alt={name} className="w-full h-full object-cover" />
+                  <img src={optimizeUrl(imgs[0], { width: 900 })} alt={name} className="w-full h-full object-cover" />
                 ) : (
                   <div
                     ref={trackRef}
@@ -195,7 +196,7 @@ export default function ProductDetailPage() {
                   >
                     {imgs.map((url, i) => (
                       <div key={i} className="h-full flex-shrink-0" style={{ width: `${100 / n}%` }}>
-                        <img src={url} alt={name} className="w-full h-full object-cover" draggable={false} />
+                        <img src={optimizeUrl(url, { width: 900 })} alt={name} className="w-full h-full object-cover" draggable={false} />
                       </div>
                     ))}
                   </div>
@@ -207,7 +208,7 @@ export default function ProductDetailPage() {
                     {imgs.map((url, i) => (
                       <button key={i} onClick={() => setSelectedImg(i)}
                         className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-colors ${selectedImg === i ? 'border-cheers-brown' : 'border-transparent'}`}>
-                        <img src={url} alt="" className="w-full h-full object-cover" draggable={false} />
+                        <img src={optimizeUrl(url, { width: 120 })} alt="" className="w-full h-full object-cover" draggable={false} />
                       </button>
                     ))}
                   </div>
@@ -356,7 +357,7 @@ export default function ProductDetailPage() {
             >›</button>
           )}
           <img
-            src={imgs[zoomIdx]}
+            src={optimizeUrl(imgs[zoomIdx], { width: 1400 })}
             alt={name}
             className="max-w-full max-h-full object-contain"
             onClick={e => e.stopPropagation()}

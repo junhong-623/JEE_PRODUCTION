@@ -5,6 +5,7 @@ import { useCart } from '../../contexts/CartContext'
 import { useWishlist } from '../../contexts/WishlistContext'
 import { useAuth } from '../../contexts/AuthContext'
 import SizePickerModal from './SizePickerModal'
+import { optimizeUrl } from '../../lib/cloudinary'
 
 export default function ProductCard({ product }) {
   const { t, lang } = useLang()
@@ -60,7 +61,7 @@ export default function ProductCard({ product }) {
         <div className="relative aspect-square overflow-hidden bg-cheers-cream/20">
           {product.imageUrl ? (
             <img
-              src={product.imageUrl}
+              src={optimizeUrl(product.imageUrl, { width: 400 })}
               alt={name}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
