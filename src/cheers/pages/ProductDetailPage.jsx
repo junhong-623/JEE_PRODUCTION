@@ -28,8 +28,9 @@ export default function ProductDetailPage() {
   const [heartAnim, setHeartAnim] = useState(false)
   const [cartAnim, setCartAnim] = useState(false)
   const [zoomOpen, setZoomOpen] = useState(false)
-  const [zoomImg, setZoomImg] = useState(null)
+  const [zoomIdx, setZoomIdx] = useState(0)
   const touchStartX = useRef(null)
+  const zoomTouchStartX = useRef(null)
   const containerRef = useRef(null)
   const trackRef = useRef(null)
   const skipTrackEffect = useRef(false)
@@ -65,6 +66,7 @@ export default function ProductDetailPage() {
   const name = product.name?.[lang] || product.name?.zh || ''
   const description = product.description?.[lang] || product.description?.zh || ''
   const blocks = product.descriptionBlocks || []
+  const imgs = product.imageUrls?.length ? product.imageUrls : product.imageUrl ? [product.imageUrl] : []
 
   function getYouTubeId(url) {
     const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([^&?/\s]+)/)
@@ -106,7 +108,6 @@ export default function ProductDetailPage() {
     setSelectedColor(color)
     setColorError(false)
     if (!color.imageUrl) return
-    const imgs = product.imageUrls?.length ? product.imageUrls : product.imageUrl ? [product.imageUrl] : []
     const idx = imgs.indexOf(color.imageUrl)
     if (idx !== -1) setSelectedImg(idx)
   }
@@ -136,7 +137,6 @@ export default function ProductDetailPage() {
       <div className="grid md:grid-cols-2 gap-8 mt-4">
         {/* Images — swipe carousel */}
         {(() => {
-          const imgs = product.imageUrls?.length ? product.imageUrls : product.imageUrl ? [product.imageUrl] : []
           const n = imgs.length
 
           function onTouchStart(e) {
@@ -181,7 +181,7 @@ export default function ProductDetailPage() {
                 onTouchStart={onTouchStart}
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}
-                onClick={() => { if (n > 0) { setZoomImg(imgs[selectedImg]); setZoomOpen(true) } }}
+                onClick={() => { if (n > 0) { setZoomIdx(selectedImg); setZoomOpen(true) } }}
               >
                 {n === 0 ? (
                   <div className="w-full h-full flex items-center justify-center text-8xl">🛍</div>
@@ -235,25 +235,22 @@ export default function ProductDetailPage() {
                 {lang === 'zh' ? '选择颜色' : 'Select Color'}
                 {colorError && <span className="text-red-400 ml-2 text-xs">{lang === 'zh' ? '请选择颜色' : 'Please select a color'}</span>}
               </p>
-              <div className="flex flex-wrap gap-2 items-center">
+              <div className="flex flex-wrap gap-2">
                 {product.colors.map((color, i) => (
                   <button
                     key={i}
                     type="button"
-                    title={color.label}
                     onClick={() => handleSelectColor(color)}
-                    className={`w-8 h-8 rounded-full border-2 transition-all ${
+                    className={`min-w-[3.5rem] px-4 py-2 rounded-lg border font-medium transition-colors ${
                       selectedColor?.label === color.label
-                        ? 'border-cheers-brown scale-110 shadow-md'
-                        : 'border-transparent hover:border-cheers-brown/40'
+                        ? 'border-cheers-brown bg-cheers-brown text-cheers-cream'
+                        : 'border-cheers-cream text-cheers-dark-brown hover:border-cheers-brown/50'
                     }`}
-                    style={{ background: color.hex }}
-                  />
+                  >
+                    {color.label}
+                  </button>
                 ))}
               </div>
-              {selectedColor && (
-                <p className="text-xs text-cheers-brown/70 mt-1.5">{selectedColor.label}</p>
-              )}
             </div>
           )}
 
@@ -324,22 +321,53 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {zoomOpen && zoomImg && (
+      {zoomOpen && imgs.length > 0 && (
         <div
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center select-none"
           onClick={() => setZoomOpen(false)}
+          onTouchStart={e => {
+            zoomTouchStartX.current = e.touches.length === 1 ? e.touches[0].clientX : null
+          }}
+          onTouchEnd={e => {
+            if (zoomTouchStartX.current === null) return
+            const delta = e.changedTouches[0].clientX - zoomTouchStartX.current
+            zoomTouchStartX.current = null
+            if (delta < -50 && zoomIdx < imgs.length - 1) {
+              const next = zoomIdx + 1; setZoomIdx(next); setSelectedImg(next)
+            } else if (delta > 50 && zoomIdx > 0) {
+              const next = zoomIdx - 1; setZoomIdx(next); setSelectedImg(next)
+            }
+          }}
         >
           <button
-            className="absolute top-4 right-4 text-white text-3xl leading-none w-10 h-10 flex items-center justify-center hover:text-white/70"
+            className="absolute top-4 right-4 text-white text-3xl leading-none w-10 h-10 flex items-center justify-center hover:text-white/70 z-10"
             onClick={() => setZoomOpen(false)}
           >×</button>
+          {imgs.length > 1 && zoomIdx > 0 && (
+            <button
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-white text-4xl w-10 h-10 flex items-center justify-center hover:text-white/70 z-10"
+              onClick={e => { e.stopPropagation(); const next = zoomIdx - 1; setZoomIdx(next); setSelectedImg(next) }}
+            >‹</button>
+          )}
+          {imgs.length > 1 && zoomIdx < imgs.length - 1 && (
+            <button
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-white text-4xl w-10 h-10 flex items-center justify-center hover:text-white/70 z-10"
+              onClick={e => { e.stopPropagation(); const next = zoomIdx + 1; setZoomIdx(next); setSelectedImg(next) }}
+            >›</button>
+          )}
           <img
-            src={zoomImg}
+            src={imgs[zoomIdx]}
             alt={name}
             className="max-w-full max-h-full object-contain"
-            style={{ touchAction: 'pinch-zoom' }}
             onClick={e => e.stopPropagation()}
           />
+          {imgs.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+              {imgs.map((_, i) => (
+                <div key={i} className={`w-1.5 h-1.5 rounded-full transition-colors ${i === zoomIdx ? 'bg-white' : 'bg-white/40'}`} />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
