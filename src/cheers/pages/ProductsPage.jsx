@@ -23,18 +23,6 @@ export default function ProductsPage() {
   const rootCatRef = useRef(null)
   const subCatRef  = useRef(null)
 
-  useEffect(() => {
-    function attach(el) {
-      if (!el) return
-      const fn = e => { e.preventDefault(); el.scrollLeft += e.deltaY + e.deltaX }
-      el.addEventListener('wheel', fn, { passive: false })
-      return () => el.removeEventListener('wheel', fn)
-    }
-    const d1 = attach(rootCatRef.current)
-    const d2 = attach(subCatRef.current)
-    return () => { d1?.(); d2?.() }
-  }, [activeSubCats.length])
-
   const activeCategory = searchParams.get('category') || 'all'
 
   function setActiveCategory(catId) {
@@ -77,6 +65,18 @@ export default function ProductsPage() {
   const activeRootId = activeCategory === 'all' ? null
     : activeCatObj?.parentId || activeCategory   // sub → parent; root → itself
   const activeSubCats = activeRootId ? getChildren(activeRootId) : []
+
+  useEffect(() => {
+    function attach(el) {
+      if (!el) return
+      const fn = e => { e.preventDefault(); el.scrollLeft += e.deltaY + e.deltaX }
+      el.addEventListener('wheel', fn, { passive: false })
+      return () => el.removeEventListener('wheel', fn)
+    }
+    const d1 = attach(rootCatRef.current)
+    const d2 = attach(subCatRef.current)
+    return () => { d1?.(); d2?.() }
+  }, [activeSubCats.length])
 
   // Products to show: include all sub-category products when root is selected
   const matchingCatIds = (() => {
