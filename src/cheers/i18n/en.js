@@ -50,6 +50,7 @@ export default {
     status: {
       pending: 'Pending', confirmed: 'Confirmed',
       purchasing: 'Purchasing', procured: 'Procured', shipped: 'Shipped', completed: 'Completed',
+      cancelled: 'Cancelled', return_refund: 'Refund',
     },
   },
   wishlist: {

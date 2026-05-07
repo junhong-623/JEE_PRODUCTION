@@ -50,6 +50,7 @@ export default {
     status: {
       pending: '待确认', confirmed: '已接单',
       purchasing: '采购中', procured: '已采购', shipped: '已发货', completed: '已完成',
+      cancelled: '已取消', return_refund: '退款退货',
     },
   },
   wishlist: {

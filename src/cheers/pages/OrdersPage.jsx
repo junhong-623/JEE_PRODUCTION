@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { getFirestore, collection, query, where, orderBy, getDocs } from 'firebase/firestore'
+import { getFirestore, collection, query, where, orderBy, getDocs, doc, updateDoc } from 'firebase/firestore'
 import { useNavigate, Link } from 'react-router-dom'
 import app from '../../lib/firebase'
 import { useLang } from '../contexts/LangContext'
@@ -8,11 +8,35 @@ import { useAuth } from '../contexts/AuthContext'
 const db = getFirestore(app)
 
 const STATUS_COLORS = {
-  pending:    'bg-yellow-100 text-yellow-800',
-  confirmed:  'bg-blue-100 text-blue-800',
-  purchasing: 'bg-purple-100 text-purple-800',
-  shipped:    'bg-indigo-100 text-indigo-800',
-  completed:  'bg-green-100 text-green-800',
+  pending:      'bg-yellow-100 text-yellow-800',
+  confirmed:    'bg-blue-100 text-blue-800',
+  purchasing:   'bg-purple-100 text-purple-800',
+  shipped:      'bg-indigo-100 text-indigo-800',
+  completed:    'bg-green-100 text-green-800',
+  cancelled:    'bg-red-100 text-red-700',
+  return_refund:'bg-orange-100 text-orange-700',
+}
+
+const ORDER_TABS = [
+  { key: 'all',          zh: '全部',     en: 'All' },
+  { key: 'to_pay',       zh: '待付款',   en: 'To Pay' },
+  { key: 'to_ship',      zh: '待发货',   en: 'To Ship' },
+  { key: 'to_receive',   zh: '待收货',   en: 'To Receive' },
+  { key: 'completed',    zh: '已完成',   en: 'Completed' },
+  { key: 'cancelled',    zh: '已取消',   en: 'Cancelled' },
+  { key: 'return_refund',zh: '退款退货', en: 'Refund' },
+]
+
+function matchTab(order, tab) {
+  switch (tab) {
+    case 'to_pay':        return order.status === 'pending' && !order.paymentSubmitted
+    case 'to_ship':       return (order.status === 'pending' && !!order.paymentSubmitted) || ['confirmed','purchasing','procured'].includes(order.status)
+    case 'to_receive':    return order.status === 'shipped'
+    case 'completed':     return order.status === 'completed'
+    case 'cancelled':     return order.status === 'cancelled'
+    case 'return_refund': return order.status === 'return_refund'
+    default:              return true
+  }
 }
 
 const ADDON_ELIGIBLE = ['pending', 'confirmed', 'purchasing']
@@ -24,6 +48,7 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(null)
+  const [activeTab, setActiveTab] = useState('all')
 
   useEffect(() => {
     if (!user) return
@@ -45,30 +70,72 @@ export default function OrdersPage() {
     navigate('/products')
   }
 
+  function handleContinueShopping(order) {
+    sessionStorage.setItem('cheers_update_order', JSON.stringify({
+      orderDocId: order.id,
+      orderId: order.orderId || order.id,
+      delivery: order.delivery,
+      existingItems: order.items,
+      existingSubtotal: order.subtotal,
+      existingShippingFee: order.shippingFee || 0,
+    }))
+    navigate('/products')
+  }
+
+  async function handleCancel(orderId) {
+    if (!confirm(lang === 'zh' ? '确认取消此订单？取消后不可恢复。' : 'Cancel this order? This cannot be undone.')) return
+    await updateDoc(doc(db, 'cheers_orders', orderId), { status: 'cancelled' })
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'cancelled' } : o))
+  }
+
   if (loading) return (
     <div className="flex justify-center items-center min-h-[60vh]">
       <div className="w-8 h-8 border-2 border-cheers-brown border-t-transparent rounded-full animate-spin" />
     </div>
   )
 
+  const tabOrders = orders.filter(o => matchTab(o, activeTab))
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
-      <h1 className="font-serif text-2xl text-cheers-dark-brown mb-6">{t('orders.title')}</h1>
+      <h1 className="font-serif text-2xl text-cheers-dark-brown mb-5">{t('orders.title')}</h1>
 
-      {orders.length === 0 ? (
+      {/* Status tabs */}
+      <div className="flex gap-1.5 flex-wrap mb-5 border-b border-cheers-cream pb-3 overflow-x-auto">
+        {ORDER_TABS.map(tab => {
+          const count = tab.key === 'all' ? orders.length : orders.filter(o => matchTab(o, tab.key)).length
+          return (
+            <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                activeTab === tab.key
+                  ? 'bg-cheers-brown text-cheers-cream'
+                  : 'border border-cheers-brown/20 text-cheers-brown/70 hover:border-cheers-brown/50'
+              }`}>
+              {lang === 'zh' ? tab.zh : tab.en}
+              {count > 0 && <span className="ml-1 opacity-70">({count})</span>}
+            </button>
+          )
+        })}
+      </div>
+
+      {tabOrders.length === 0 ? (
         <div className="text-center py-20 text-cheers-brown/50">
           <div className="text-5xl mb-3">📦</div>
-          <p className="mb-4">{t('orders.empty')}</p>
-          <button onClick={() => navigate('/products')} className="btn-primary">
-            {lang === 'zh' ? '去逛逛' : 'Browse Products'}
-          </button>
+          <p className="mb-4">{activeTab === 'all' ? t('orders.empty') : (lang === 'zh' ? '此分类暂无订单' : 'No orders in this category')}</p>
+          {activeTab === 'all' && (
+            <button onClick={() => navigate('/products')} className="btn-primary">
+              {lang === 'zh' ? '去逛逛' : 'Browse Products'}
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-3">
-          {orders.map(order => {
+          {tabOrders.map(order => {
             const isOpen = expanded === order.id
             const isFaceToFace = order.delivery?.type === 'face-to-face'
             const canAddon = ADDON_ELIGIBLE.includes(order.status) && !order.isAddon
+            const canCancel = order.status === 'pending' && !order.paymentSubmitted
+            const canAddItems = order.status === 'pending' && !order.paymentSubmitted
 
             return (
               <div key={order.id} className="card overflow-hidden">
@@ -92,7 +159,7 @@ export default function OrdersPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    {order.status === 'pending' && !order.paymentSubmitted && (
+                    {canCancel && (
                       <Link to={`/payment/${order.id}`} onClick={e => e.stopPropagation()}
                         className="text-xs btn-primary py-1 px-2.5">
                         {lang === 'zh' ? '前往付款' : 'Pay Now'}
@@ -160,13 +227,27 @@ export default function OrdersPage() {
                       </div>
                     </div>
 
-                    {order.status === 'pending' && !order.paymentSubmitted && (
+                    {canCancel && (
                       <Link to={`/payment/${order.id}`}
                         className="w-full btn-primary text-sm py-2.5 text-center block">
                         💳 {lang === 'zh' ? '前往付款' : 'Pay Now'}
                       </Link>
                     )}
-                    {canAddon && (
+
+                    {canAddItems && (
+                      <div className="flex gap-2">
+                        <button onClick={e => { e.stopPropagation(); handleContinueShopping(order) }}
+                          className="flex-1 btn-secondary text-sm py-2">
+                          🛍 {lang === 'zh' ? '继续购物（加入此单）' : 'Add More Items'}
+                        </button>
+                        <button onClick={e => { e.stopPropagation(); handleCancel(order.id) }}
+                          className="flex-1 text-sm py-2 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors">
+                          {lang === 'zh' ? '取消订单' : 'Cancel Order'}
+                        </button>
+                      </div>
+                    )}
+
+                    {canAddon && !canAddItems && (
                       <button onClick={e => { e.stopPropagation(); handleAddon(order) }}
                         className="w-full btn-secondary text-sm py-2">
                         📦 {lang === 'zh' ? '加单（免邮费合并配送）' : 'Add-on (free shipping, same address)'}
