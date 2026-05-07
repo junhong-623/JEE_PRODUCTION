@@ -46,6 +46,7 @@ const AdminAdmins          = lazy(() => import('./pages/admin/AdminsPage'))
 const AdminCreateOrder     = lazy(() => import('./pages/admin/CreateOrderPage'))
 const AdminCoupons         = lazy(() => import('./pages/admin/CouponsPage'))
 const AdminFontSettings    = lazy(() => import('./pages/admin/FontSettingsPage'))
+const AdminGuide           = lazy(() => import('./pages/admin/GuidePage'))
 const AccountPage          = lazy(() => import('./pages/AccountPage'))
 
 const db = getFirestore(app)
@@ -117,6 +118,7 @@ function AppShell() {
               <Route path="coupons" element={<AdminCoupons />} />
               <Route path="report" element={<AdminReport />} />
             </Route>
+            <Route path="/admin/guide" element={<AdminRoute><AdminGuide /></AdminRoute>} />
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
