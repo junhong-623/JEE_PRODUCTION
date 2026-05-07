@@ -14,6 +14,7 @@ const BLOCK_LANG_TABS = ['zh', 'en']
 function BlockEditor({ blocks, onChange, productImages = [] }) {
   const [editLang, setEditLang] = useState('zh')
   const [uploading, setUploading] = useState(null) // block index or 'images' for multi-upload
+  const [pickerIdx, setPickerIdx] = useState(null)
 
   function addBlock(type) {
     const b = type === 'text'
@@ -104,26 +105,33 @@ function BlockEditor({ blocks, onChange, productImages = [] }) {
             {block.type === 'image' && (
               <div className="space-y-2">
                 {block.url && <img src={block.url} className="max-h-40 rounded-lg object-cover" />}
-                {productImages.length > 0 && (
-                  <div>
-                    <p className="text-xs text-cheers-brown/50 mb-1.5">从商品图片选择</p>
-                    <div className="flex gap-1.5 flex-wrap">
-                      {productImages.map((url, i) => (
-                        <button key={i} type="button" onClick={() => update(idx, { url })}
-                          className={`w-12 h-12 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-colors ${
-                            block.url === url ? 'border-cheers-brown' : 'border-transparent hover:border-cheers-brown/40'
-                          }`}>
-                          <img src={url} alt="" className="w-full h-full object-cover" draggable={false} />
-                        </button>
-                      ))}
-                    </div>
+                <div className="flex gap-2 flex-wrap">
+                  <label className="btn-secondary text-xs cursor-pointer px-3 py-1.5 inline-block">
+                    {uploading === idx ? '上传中…' : block.url ? '更换图片' : '上传图片'}
+                    <input type="file" accept="image/*" className="hidden" disabled={uploading !== null}
+                      onChange={e => e.target.files[0] && handleMediaUpload(idx, e.target.files[0])} />
+                  </label>
+                  {productImages.length > 0 && (
+                    <button type="button"
+                      onClick={() => setPickerIdx(pickerIdx === idx ? null : idx)}
+                      className="btn-ghost text-xs py-1.5 px-3 border border-cheers-brown/20 hover:border-cheers-brown/50">
+                      {pickerIdx === idx ? '收起' : '从商品图片选'}
+                    </button>
+                  )}
+                </div>
+                {pickerIdx === idx && (
+                  <div className="flex gap-1.5 flex-wrap">
+                    {productImages.map((url, i) => (
+                      <button key={i} type="button"
+                        onClick={() => { update(idx, { url }); setPickerIdx(null) }}
+                        className={`w-12 h-12 rounded-lg overflow-hidden border-2 flex-shrink-0 transition-colors ${
+                          block.url === url ? 'border-cheers-brown' : 'border-transparent hover:border-cheers-brown/40'
+                        }`}>
+                        <img src={url} alt="" className="w-full h-full object-cover" draggable={false} />
+                      </button>
+                    ))}
                   </div>
                 )}
-                <label className="btn-secondary text-xs cursor-pointer px-3 py-1.5 inline-block">
-                  {uploading === idx ? '上传中…' : block.url ? '上传新图片' : '上传图片'}
-                  <input type="file" accept="image/*" className="hidden" disabled={uploading !== null}
-                    onChange={e => e.target.files[0] && handleMediaUpload(idx, e.target.files[0])} />
-                </label>
               </div>
             )}
 
