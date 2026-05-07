@@ -6,19 +6,22 @@ import { useLang } from '../../contexts/LangContext'
 
 const db = getFirestore(app)
 
-const STATUSES = ['pending', 'confirmed', 'purchasing', 'procured', 'shipped', 'completed']
+const STATUSES = ['pending', 'confirmed', 'purchasing', 'procured', 'shipped', 'completed', 'cancelled', 'return_refund']
 const STATUS_COLORS = {
-  pending:    'bg-yellow-100 text-yellow-800',
-  confirmed:  'bg-blue-100 text-blue-800',
-  purchasing: 'bg-purple-100 text-purple-800',
-  procured:   'bg-pink-100 text-pink-800',
-  shipped:    'bg-indigo-100 text-indigo-800',
-  completed:  'bg-green-100 text-green-800',
+  pending:      'bg-yellow-100 text-yellow-800',
+  confirmed:    'bg-blue-100 text-blue-800',
+  purchasing:   'bg-purple-100 text-purple-800',
+  procured:     'bg-pink-100 text-pink-800',
+  shipped:      'bg-indigo-100 text-indigo-800',
+  completed:    'bg-green-100 text-green-800',
+  cancelled:    'bg-red-100 text-red-700',
+  return_refund:'bg-orange-100 text-orange-700',
 }
 
 const STATUS_ZH = {
   pending: '待确认', confirmed: '已接单',
   purchasing: '采购中', procured: '已采购', shipped: '已发货', completed: '已完成',
+  cancelled: '已取消', return_refund: '退款退货',
 }
 
 function buildWhatsApp(order) {
@@ -42,6 +45,8 @@ export default function AdminOrdersPage() {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState('all')
+  const [search, setSearch] = useState('')
+  const [payFilter, setPayFilter] = useState('all')
   const [expanded, setExpanded] = useState(null)
   const [selected, setSelected] = useState(new Set())
   const [bulkStatus, setBulkStatus] = useState('')
@@ -60,7 +65,16 @@ export default function AdminOrdersPage() {
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o))
   }
 
-  const filtered = statusFilter === 'all' ? orders : orders.filter(o => o.status === statusFilter)
+  const filtered = orders
+    .filter(o => statusFilter === 'all' || o.status === statusFilter)
+    .filter(o => payFilter === 'all' || (payFilter === 'paid' ? o.paymentSubmitted : !o.paymentSubmitted))
+    .filter(o => {
+      if (!search) return true
+      const q = search.toLowerCase()
+      return (o.orderId || o.id).toLowerCase().includes(q) ||
+             o.userName?.toLowerCase().includes(q) ||
+             o.userEmail?.toLowerCase().includes(q)
+    })
 
   function toggleSelect(id) {
     setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
@@ -84,6 +98,22 @@ export default function AdminOrdersPage() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-serif text-2xl text-cheers-dark-brown">{t('admin.orders')}</h1>
         <Link to="/admin/orders/new" className="btn-primary text-sm">+ 手动创建订单</Link>
+      </div>
+
+      {/* Search bar */}
+      <div className="flex gap-2 mb-4 flex-wrap">
+        <input
+          className="input text-sm flex-1 min-w-[200px]"
+          placeholder="搜索订单号 / 顾客名 / 邮箱…"
+          value={search}
+          onChange={e => { setSearch(e.target.value); setSelected(new Set()) }}
+        />
+        <select className="input text-sm w-auto" value={payFilter}
+          onChange={e => { setPayFilter(e.target.value); setSelected(new Set()) }}>
+          <option value="all">全部付款状态</option>
+          <option value="unpaid">未付款</option>
+          <option value="paid">已付款</option>
+        </select>
       </div>
 
       {/* Status filter tabs */}

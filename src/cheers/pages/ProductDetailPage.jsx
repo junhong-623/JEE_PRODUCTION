@@ -159,7 +159,7 @@ export default function ProductDetailPage() {
           }
 
           return (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 min-w-0">
               <div
                 ref={containerRef}
                 className="aspect-square rounded-2xl overflow-hidden bg-cheers-cream/20 select-none"
@@ -186,13 +186,15 @@ export default function ProductDetailPage() {
                 )}
               </div>
               {n > 1 && (
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {imgs.map((url, i) => (
-                    <button key={i} onClick={() => setSelectedImg(i)}
-                      className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-colors ${selectedImg === i ? 'border-cheers-brown' : 'border-transparent'}`}>
-                      <img src={url} alt="" className="w-full h-full object-cover" draggable={false} />
-                    </button>
-                  ))}
+                <div className="overflow-hidden w-full">
+                  <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                    {imgs.map((url, i) => (
+                      <button key={i} onClick={() => setSelectedImg(i)}
+                        className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-colors ${selectedImg === i ? 'border-cheers-brown' : 'border-transparent'}`}>
+                        <img src={url} alt="" className="w-full h-full object-cover" draggable={false} />
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

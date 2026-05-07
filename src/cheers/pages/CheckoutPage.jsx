@@ -134,6 +134,8 @@ export default function CheckoutPage() {
   // Addon mode
   const [addonInfo, setAddonInfo] = useState(null) // { parentOrderId, delivery }
   const [parentOrderSubtotal, setParentOrderSubtotal] = useState(0)
+  // Update-existing-order mode (unpaid pending order)
+  const [updateOrderInfo, setUpdateOrderInfo] = useState(null)
 
   // Coupon state
   const [userCoupons, setUserCoupons] = useState([])       // personal unused coupons
@@ -152,9 +154,32 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     async function load() {
-      // Check addon mode first
+      // Check update-existing-order mode first
+      const updateRaw = sessionStorage.getItem('cheers_update_order')
+      const updateInfo = updateRaw ? JSON.parse(updateRaw) : null
+      if (updateInfo) {
+        setUpdateOrderInfo(updateInfo)
+        setParentOrderSubtotal(updateInfo.existingSubtotal || 0)
+        const d = updateInfo.delivery || {}
+        setDeliveryType(d.type === 'face-to-face' ? 'face-to-face' : 'shipping')
+        if (d.type === 'face-to-face') {
+          setLocation(d.location || '')
+        } else {
+          setForm(f => ({
+            ...f,
+            name: d.name || user?.displayName || '',
+            phone: d.phone || '',
+            address: d.address || '',
+            postcode: d.postcode || '',
+            city: d.city || '',
+            state: d.state || '',
+          }))
+        }
+      }
+
+      // Check addon mode
       const addonRaw = sessionStorage.getItem('cheers_addon')
-      const addon = addonRaw ? JSON.parse(addonRaw) : null
+      const addon = (!updateInfo && addonRaw) ? JSON.parse(addonRaw) : null
       if (addon) {
         setAddonInfo(addon)
         const d = addon.delivery || {}
@@ -237,7 +262,7 @@ export default function CheckoutPage() {
   const effectiveSubtotal = subtotal + parentOrderSubtotal  // combined for coupon minSpend check in addon mode
   const couponIsValid = selectedCoupon ? isCouponEligible(selectedCoupon, effectiveSubtotal) : false
   const isFreeShippingCoupon = couponIsValid && (selectedCoupon?.discountType || selectedCoupon?.type) === 'free_shipping'
-  const shippingFee = addonInfo ? 0
+  const shippingFee = (addonInfo || updateOrderInfo) ? 0
     : deliveryType === 'face-to-face' ? 0
     : isFreeShippingCoupon ? 0
     : region === 'east' ? (settings?.shippingFeeEast || 0)
@@ -302,6 +327,29 @@ export default function CheckoutPage() {
           discount: isFreeShippingCoupon ? 0 : discountAmount,
         } : {}),
       }
+      // Update existing unpaid order instead of creating new one
+      if (updateOrderInfo) {
+        const mergedItems = [...(updateOrderInfo.existingItems || []), ...items.map(i => ({ ...i }))]
+        const newSubtotal = (updateOrderInfo.existingSubtotal || 0) + subtotal
+        const newTotal = newSubtotal - discountAmount + (updateOrderInfo.existingShippingFee || 0)
+        await updateDoc(doc(db, 'cheers_orders', updateOrderInfo.orderDocId), {
+          items: mergedItems,
+          subtotal: newSubtotal,
+          total: newTotal,
+          ...(couponIsValid && selectedCoupon ? {
+            coupon: { code: selectedCoupon.code, discount: selectedCoupon.discount, discountType: selectedCoupon.discountType || 'percentage', title: selectedCoupon.title },
+            discount: discountAmount,
+          } : {}),
+        })
+        if (couponIsValid && selectedCoupon?._source === 'personal' && selectedCoupon?.id) {
+          await updateDoc(doc(db, 'cheers_user_coupons', selectedCoupon.id), { used: true, usedAt: serverTimestamp(), usedOnOrder: updateOrderInfo.orderId }).catch(() => {})
+        }
+        sessionStorage.removeItem('cheers_update_order')
+        await clearCart()
+        navigate(`/payment/${updateOrderInfo.orderDocId}`)
+        return
+      }
+
       const ref = await addDoc(collection(db, 'cheers_orders'), orderData)
 
       if (couponIsValid && selectedCoupon?._source === 'personal' && selectedCoupon?.id) {
@@ -362,6 +410,26 @@ export default function CheckoutPage() {
           onApply={() => { setSelectedCoupon(popupCoupon); setShowPopup(false) }}
           onSkip={() => setShowPopup(false)}
         />
+      )}
+
+      {updateOrderInfo && (
+        <div className="mb-4 flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3">
+          <span className="text-xl">🛍</span>
+          <div>
+            <p className="text-sm font-medium text-blue-800">
+              {lang === 'zh' ? '加入订单模式' : 'Adding to Order'}
+            </p>
+            <p className="text-xs text-blue-600">
+              {lang === 'zh' ? '正在向订单' : 'Adding items to'}{' '}
+              <span className="font-medium">{updateOrderInfo.orderId}</span>{' '}
+              {lang === 'zh' ? '添加商品，邮费不再重复收取' : '· No additional shipping'}
+            </p>
+          </div>
+          <button type="button" onClick={() => { sessionStorage.removeItem('cheers_update_order'); setUpdateOrderInfo(null) }}
+            className="ml-auto text-xs text-blue-400 hover:text-blue-600">
+            {lang === 'zh' ? '取消' : 'Cancel'}
+          </button>
+        </div>
       )}
 
       {addonInfo && (
