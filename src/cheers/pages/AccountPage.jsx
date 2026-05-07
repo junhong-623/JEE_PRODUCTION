@@ -225,7 +225,7 @@ function OrdersTab({ user, lang, t }) {
   return (
     <div>
       {/* Status tabs */}
-      <div className="flex overflow-x-auto border-b border-cheers-cream mb-4 no-scrollbar">
+      <div className="flex overflow-x-auto border-b border-cheers-cream mb-4 no-scrollbar touch-pan-x">
         {ORDER_TABS.map(tab => {
           const count = tab.key === 'all' ? orders.length : orders.filter(o => matchTab(o, tab.key)).length
           return (
@@ -432,7 +432,7 @@ export default function AccountPage() {
       </div>
 
       {/* Tab bar */}
-      <div className="flex overflow-x-auto mb-6 border-b border-cheers-cream no-scrollbar">
+      <div className="flex overflow-x-auto mb-6 border-b border-cheers-cream no-scrollbar touch-pan-x">
         {TABS.map(tb => (
           <button key={tb.key} onClick={() => setTab(tb.key)}
             className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-t-lg transition-colors border-b-2 -mb-px ${

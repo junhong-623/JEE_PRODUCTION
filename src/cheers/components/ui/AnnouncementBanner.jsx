@@ -80,10 +80,10 @@ export default function AnnouncementBanner() {
     <div className={`sticky top-14 z-30 border-b ${c.bar} ${c.text}`}>
       <div className="max-w-6xl mx-auto px-3 h-12 flex items-center gap-2">
         {/* Left arrow */}
-        {n > 1 && (
+        {/* {n > 1 && (
           <button onClick={() => go(-1)}
             className="flex-shrink-0 opacity-40 hover:opacity-80 w-7 h-7 flex items-center justify-center text-2xl leading-none">‹</button>
-        )}
+        )} */}
 
         {/* Sliding track */}
         <div className="flex-1 overflow-hidden h-full">
@@ -116,10 +116,10 @@ export default function AnnouncementBanner() {
         </div>
 
         {/* Right arrow */}
-        {n > 1 && (
+        {/* {n > 1 && (
           <button onClick={() => go(1)}
             className="flex-shrink-0 opacity-40 hover:opacity-80 w-7 h-7 flex items-center justify-center text-2xl leading-none">›</button>
-        )}
+        )} */}
 
         {/* Dot indicators */}
         {n > 1 && (

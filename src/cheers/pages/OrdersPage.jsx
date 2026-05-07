@@ -101,7 +101,7 @@ export default function OrdersPage() {
       <h1 className="font-serif text-2xl text-cheers-dark-brown mb-5">{t('orders.title')}</h1>
 
       {/* Status tabs */}
-      <div className="flex overflow-x-auto border-b border-cheers-cream mb-5 no-scrollbar">
+      <div className="flex overflow-x-auto border-b border-cheers-cream mb-5 no-scrollbar touch-pan-x">
         {ORDER_TABS.map(tab => {
           const count = tab.key === 'all' ? orders.length : orders.filter(o => matchTab(o, tab.key)).length
           return (
