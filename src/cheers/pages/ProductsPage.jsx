@@ -97,16 +97,16 @@ export default function ProductsPage() {
       {/* Category filter — root row */}
       {rootCats.length > 0 && (
         <div className="space-y-2 mb-6">
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
             <button onClick={() => setActiveCategory('all')}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 activeCategory === 'all' ? 'bg-cheers-brown text-cheers-cream' : 'border border-cheers-brown/30 text-cheers-brown hover:border-cheers-brown'
               }`}>
               {t('common.all')}
             </button>
             {rootCats.map(cat => (
               <button key={cat.id} onClick={() => setActiveCategory(cat.id)}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
                   activeRootId === cat.id ? 'bg-cheers-brown text-cheers-cream' : 'border border-cheers-brown/30 text-cheers-brown hover:border-cheers-brown'
                 }`}>
                 {cat.name?.[lang] || cat.name?.zh}
@@ -116,16 +116,16 @@ export default function ProductsPage() {
 
           {/* Sub-category row — only shown after clicking a root with children */}
           {activeSubCats.length > 0 && (
-            <div className="flex gap-2 flex-wrap pl-3 border-l-2 border-cheers-cream">
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 pl-3 border-l-2 border-cheers-cream">
               <button onClick={() => setActiveCategory(activeRootId)}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                   activeCategory === activeRootId ? 'bg-cheers-brown/80 text-cheers-cream' : 'border border-cheers-brown/20 text-cheers-brown/70 hover:border-cheers-brown/50'
                 }`}>
                 {lang === 'zh' ? '全部' : 'All'}
               </button>
               {activeSubCats.map(sub => (
                 <button key={sub.id} onClick={() => setActiveCategory(sub.id)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                     activeCategory === sub.id ? 'bg-cheers-brown/80 text-cheers-cream' : 'border border-cheers-brown/20 text-cheers-brown/70 hover:border-cheers-brown/50'
                   }`}>
                   {sub.name?.[lang] || sub.name?.zh}
