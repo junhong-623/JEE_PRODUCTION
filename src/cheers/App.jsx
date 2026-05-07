@@ -1,7 +1,7 @@
 import React, { Suspense, lazy, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { getFirestore, doc, getDoc } from 'firebase/firestore'
-import app from './lib/firebase'
+import app from '../lib/firebase'
 import { applyFonts } from './lib/fontConfig'
 import { LangProvider } from './contexts/LangContext'
 import { AuthProvider } from './contexts/AuthContext'
