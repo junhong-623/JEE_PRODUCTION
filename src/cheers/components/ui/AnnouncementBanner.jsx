@@ -77,7 +77,7 @@ export default function AnnouncementBanner() {
   const c = COLOR_MAP[color] || COLOR_MAP.yellow
 
   return (
-    <div className={`sticky top-14 z-30 border-b ${c.bar} ${c.text}`}>
+    <div className={`relative z-30 border-b ${c.bar} ${c.text}`}>
       <div className="max-w-6xl mx-auto px-3 h-12 flex items-center gap-2">
         {/* Left arrow */}
         {/* {n > 1 && (

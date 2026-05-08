@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useLang } from '../../contexts/LangContext'
 import { useCart } from '../../contexts/CartContext'
+import { effectivePrice, formatPriceDisplay } from '../../lib/productPrice'
 
 export default function SizePickerModal({ product, onClose }) {
   const { t, lang } = useLang()
@@ -58,7 +59,11 @@ export default function SizePickerModal({ product, onClose }) {
           </div>
           <div className="min-w-0 flex-1 pt-1">
             <p className="font-medium text-cheers-dark-brown text-sm leading-snug line-clamp-2">{name}</p>
-            <p className="text-cheers-brown font-bold mt-1">{t('common.rmPrefix')} {product.price?.toFixed(2)}</p>
+            <p className="text-cheers-brown font-bold mt-1">
+              {selectedColor?.label
+                ? `${t('common.rmPrefix')} ${effectivePrice(product, selectedColor.label).toFixed(2)}`
+                : formatPriceDisplay(product, t('common.rmPrefix'))}
+            </p>
           </div>
         </div>
 

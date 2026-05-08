@@ -75,8 +75,8 @@ function AppShell() {
 
   return (
     <div className="page-content min-h-screen flex flex-col">
-      <Navbar />
       {!isAdmin && <AnnouncementBanner />}
+      <Navbar />
       <main className="flex-1">
         <Suspense fallback={<PageLoader />}>
           <Routes>

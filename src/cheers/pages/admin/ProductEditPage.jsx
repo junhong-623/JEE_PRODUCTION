@@ -194,7 +194,7 @@ export default function ProductEditPage() {
     descriptionBlocks: [],
   })
   const [sizeInput, setSizeInput] = useState('')
-  const [colorInput, setColorInput] = useState({ label: '', imageUrl: null })
+  const [colorInput, setColorInput] = useState({ label: '', imageUrl: null, price: '' })
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [dragImgIdx, setDragImgIdx] = useState(null)
@@ -224,7 +224,11 @@ export default function ProductEditPage() {
             featured: data.featured ?? false,
             imageUrls,
             sizes: data.sizes || [],
-            colors: data.colors || [],
+            colors: (data.colors || []).map(c => ({
+              label: c.label,
+              imageUrl: c.imageUrl ?? null,
+              price: c.price !== null && c.price !== undefined ? String(c.price) : '',
+            })),
             descriptionBlocks: data.descriptionBlocks || [],
           })
           if (data.tripId) {
@@ -279,7 +283,12 @@ export default function ProductEditPage() {
       imageUrls: form.imageUrls,
       imageUrl: form.imageUrls[0] || '',
       sizes: form.sizes,
-      colors: form.colors,
+      colors: form.colors.map(c => {
+        const p = c.price !== '' && c.price !== null && c.price !== undefined && !isNaN(Number(c.price)) && Number(c.price) > 0
+          ? Number(c.price)
+          : null
+        return { label: c.label, imageUrl: c.imageUrl ?? null, price: p }
+      }),
       descriptionBlocks: form.descriptionBlocks,
     }
     try {
@@ -449,9 +458,14 @@ export default function ProductEditPage() {
                   if (e.key === 'Enter') {
                     e.preventDefault()
                     const v = colorInput.label.trim()
-                    if (v) { setForm(f => ({ ...f, colors: [...f.colors, { ...colorInput, label: v }] })); setColorInput({ label: '', imageUrl: null }) }
+                    if (v) { setForm(f => ({ ...f, colors: [...f.colors, { ...colorInput, label: v }] })); setColorInput({ label: '', imageUrl: null, price: '' }) }
                   }
                 }} />
+            </div>
+            <div className="flex flex-col gap-1 w-[110px]">
+              <span className="text-xs text-cheers-brown/60">价格 (RM, 可选)</span>
+              <input className="input text-sm" type="number" step="0.01" min="0" placeholder="同主价" value={colorInput.price}
+                onChange={e => setColorInput(c => ({ ...c, price: e.target.value }))} />
             </div>
             <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
               <span className="text-xs text-cheers-brown/60">关联图片（可选）</span>
@@ -465,7 +479,7 @@ export default function ProductEditPage() {
             </div>
             <button type="button" className="btn-secondary px-4 h-9" onClick={() => {
               const v = colorInput.label.trim()
-              if (v) { setForm(f => ({ ...f, colors: [...f.colors, { ...colorInput, label: v }] })); setColorInput({ label: '', imageUrl: null }) }
+              if (v) { setForm(f => ({ ...f, colors: [...f.colors, { ...colorInput, label: v }] })); setColorInput({ label: '', imageUrl: null, price: '' }) }
             }}>添加</button>
           </div>
           {form.colors.length > 0 && (
@@ -473,6 +487,9 @@ export default function ProductEditPage() {
               {form.colors.map((color, idx) => (
                 <span key={idx} className="inline-flex items-center gap-1.5 bg-cheers-cream text-cheers-dark-brown text-sm px-3 py-1.5 rounded-full">
                   <span>{color.label}</span>
+                  {color.price !== '' && color.price !== null && color.price !== undefined && Number(color.price) > 0 && (
+                    <span className="text-xs text-cheers-brown/60">· RM {Number(color.price).toFixed(2)}</span>
+                  )}
                   {color.imageUrl && <span className="text-xs text-cheers-brown/50">· 图{form.imageUrls.indexOf(color.imageUrl) + 1}</span>}
                   <button type="button" onClick={() => setForm(f => ({ ...f, colors: f.colors.filter((_, i) => i !== idx) }))}
                     className="text-cheers-brown/50 hover:text-cheers-brown leading-none ml-0.5">×</button>
