@@ -87,19 +87,22 @@ export default function ActivityFeed() {
 
   return (
     <div
-      className={`fixed z-50 transition-all duration-500
-        left-1/2 -translate-x-1/2 top-[116px] w-max max-w-[calc(100vw-2rem)]
+      className={`fixed z-[60] transition-all duration-500 ease-out
+        left-1/2 -translate-x-1/2 top-3 w-[calc(100vw-1.5rem)] max-w-md
         sm:translate-x-0 sm:left-4 sm:top-auto sm:bottom-4 sm:max-w-xs sm:w-auto
-        ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3 sm:translate-y-3'}`}
+        ${visible
+          ? 'opacity-100 translate-y-0'
+          : 'opacity-0 -translate-y-[120%] sm:opacity-0 sm:translate-y-3 sm:-translate-y-0'}`}
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
-      <div className="activity-feed-item bg-white/95 backdrop-blur-sm border border-cheers-cream rounded-full shadow-lg
-        px-3 py-1.5 flex items-center gap-2 relative
-        sm:rounded-xl sm:px-4 sm:py-3 sm:gap-3">
+      <div className="activity-feed-item bg-white/95 backdrop-blur-md border border-black/5 shadow-xl
+        rounded-2xl px-4 py-3 flex items-center gap-3 relative
+        sm:bg-white/95 sm:backdrop-blur-sm sm:border-cheers-cream sm:rounded-xl sm:shadow-lg sm:px-4 sm:py-3">
 
-        <Link to={`/products/${product.id}`} className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <span className="text-base sm:text-2xl flex-shrink-0">{icon}</span>
-          <div className="leading-snug min-w-0">
-            <p className="text-[11px] sm:text-xs text-cheers-dark-brown truncate">
+        <Link to={`/products/${product.id}`} className="flex items-center gap-3 min-w-0 flex-1">
+          <span className="text-2xl flex-shrink-0">{icon}</span>
+          <div className="leading-snug min-w-0 flex-1">
+            <p className="text-xs sm:text-xs text-cheers-dark-brown truncate">
               {(() => {
                 const productName = product.name?.[lang] || product.name?.zh || product.name?.en || product.name || ''
                 return action === 'watching' ? (
@@ -109,18 +112,18 @@ export default function ActivityFeed() {
                 )
               })()}
             </p>
-            <p className="text-[10px] sm:text-[11px] text-cheers-brown/40 mt-0.5">
+            <p className="text-[11px] sm:text-[11px] text-cheers-brown/40 mt-0.5">
               {minutesAgo === 0 ? t('activity.justNow') : `${minutesAgo}${t('activity.minutesAgo')}`}
             </p>
           </div>
           {product.imageUrl && (
-            <img src={optimizeUrl(product.imageUrl, { width: 80 })} alt="" className="w-6 h-6 sm:w-10 sm:h-10 rounded-full sm:rounded-lg object-cover flex-shrink-0" />
+            <img src={optimizeUrl(product.imageUrl, { width: 80 })} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
           )}
         </Link>
 
         {/* Mobile: inline X */}
         <button onClick={dismiss}
-          className="sm:hidden opacity-30 hover:opacity-70 text-base leading-none flex-shrink-0">×</button>
+          className="sm:hidden opacity-30 hover:opacity-70 text-lg leading-none flex-shrink-0 px-1">×</button>
 
         {/* Desktop: corner X */}
         <button onClick={dismiss}

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLang } from '../../contexts/LangContext'
 import { useCart } from '../../contexts/CartContext'
@@ -6,6 +6,7 @@ import { useWishlist } from '../../contexts/WishlistContext'
 import { useAuth } from '../../contexts/AuthContext'
 import SizePickerModal from './SizePickerModal'
 import { optimizeUrl } from '../../lib/cloudinary'
+import { formatPriceDisplay } from '../../lib/productPrice'
 
 export default function ProductCard({ product }) {
   const { t, lang } = useLang()
@@ -18,18 +19,11 @@ export default function ProductCard({ product }) {
   const [cartAnim, setCartAnim] = useState(false)
   const [heartAnim, setHeartAnim] = useState(false)
   const [loginHint, setLoginHint] = useState(false)
-  const nameRef = useRef(null)
-  const [nameOverflows, setNameOverflows] = useState(false)
 
   const name = product.name?.[lang] || product.name?.zh || product.name || ''
   const wishlisted = isWishlisted(product.id)
   const hasSizes = product.sizes?.length > 0
   const hasColors = product.colors?.length > 0
-
-  useEffect(() => {
-    const el = nameRef.current
-    if (el) setNameOverflows(el.scrollWidth > el.clientWidth)
-  }, [name])
 
   function handleWishlist(e) {
     e.preventDefault()
@@ -102,25 +96,13 @@ export default function ProductCard({ product }) {
         </div>
 
         <div className="p-3">
-          <div className="overflow-hidden">
-            {nameOverflows ? (
-              <div
-                className="animate-marquee inline-flex whitespace-nowrap text-sm font-medium text-cheers-dark-brown leading-snug"
-                style={{ animationDuration: `${Math.max(6, name.length * 0.35)}s` }}
-              >
-                <span className="pr-10">{name}</span>
-                <span className="pr-10" aria-hidden="true">{name}</span>
-              </div>
-            ) : (
-              <h3 ref={nameRef} className="text-sm font-medium text-cheers-dark-brown truncate leading-snug">
-                {name}
-              </h3>
-            )}
-          </div>
+          <h3 className="text-sm font-medium text-cheers-dark-brown truncate leading-snug">
+            {name}
+          </h3>
 
           <div className="mt-2">
             <span className="text-cheers-brown font-semibold text-sm">
-              {t('common.rmPrefix')} {product.price?.toFixed(2)}
+              {formatPriceDisplay(product, t('common.rmPrefix'))}
             </span>
           </div>
 

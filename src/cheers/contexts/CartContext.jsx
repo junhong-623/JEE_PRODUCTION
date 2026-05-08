@@ -79,10 +79,19 @@ export function CartProvider({ children }) {
       } else {
         const rawName = product.name
         const name = typeof rawName === 'object' ? (rawName?.zh || rawName?.en || '') : (rawName || '')
+        // 颜色价格快照：选了颜色且该颜色有独立价格时用颜色价，否则用主价
+        let price = product.price
+        if (color !== undefined && Array.isArray(product.colors)) {
+          const c = product.colors.find(c => c.label === color)
+          const colorPrice = c?.price
+          if (colorPrice !== null && colorPrice !== undefined && !isNaN(Number(colorPrice)) && Number(colorPrice) > 0) {
+            price = Number(colorPrice)
+          }
+        }
         next = [...prev, {
           productId: product.id,
           name,
-          price: product.price,
+          price,
           imageUrl: product.imageUrl || '',
           quantity,
           ...(size !== undefined && { size }),
