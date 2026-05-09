@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { getFirestore, doc, getDoc } from 'firebase/firestore'
 import app from '../../lib/firebase'
 import { optimizeUrl } from '../lib/cloudinary'
-import { effectivePrice, formatPriceDisplay } from '../lib/productPrice'
+import { effectivePrice, formatPriceDisplay, getColorSizes } from '../lib/productPrice'
 import { useLang } from '../contexts/LangContext'
 import { useCart } from '../contexts/CartContext'
 import { useWishlist } from '../contexts/WishlistContext'
@@ -103,12 +103,28 @@ export default function ProductDetailPage() {
   }
 
   const wishlisted = isWishlisted(product.id)
-  const hasSizes = product?.sizes?.length > 0
   const hasColors = product?.colors?.length > 0
+
+  // Compute available sizes for the selected color
+  const availableSizes = (() => {
+    if (hasColors && selectedColor) {
+      const colorSizes = getColorSizes(product, selectedColor.label)
+      if (colorSizes.length > 0) return colorSizes
+      // Backward compat: fall back to global sizes (old products without color.sizes)
+      return (product.sizes || []).map(s => ({ label: s, price: null }))
+    }
+    if (!hasColors) {
+      return (product.sizes || []).map(s => ({ label: s, price: null }))
+    }
+    return []
+  })()
+  const hasSizes = availableSizes.length > 0
 
   function handleSelectColor(color) {
     setSelectedColor(color)
     setColorError(false)
+    setSelectedSize(null)
+    setSizeError(false)
     if (!color.imageUrl) return
     const idx = imgs.indexOf(color.imageUrl)
     if (idx !== -1) setSelectedImg(idx)
@@ -229,7 +245,7 @@ export default function ProductDetailPage() {
           <h1 className="font-serif text-2xl md:text-3xl text-cheers-dark-brown leading-tight mb-3">{name}</h1>
           <p className="text-3xl font-bold text-cheers-brown mb-4">
             {selectedColor
-              ? `${t('common.rmPrefix')} ${effectivePrice(product, selectedColor.label).toFixed(2)}`
+              ? `${t('common.rmPrefix')} ${effectivePrice(product, selectedColor.label, selectedSize).toFixed(2)}`
               : formatPriceDisplay(product, t('common.rmPrefix'))}
           </p>
 
@@ -265,17 +281,17 @@ export default function ProductDetailPage() {
                 {sizeError && <span className="text-red-400 ml-2 text-xs">{lang === 'zh' ? '请选择尺码' : 'Please select a size'}</span>}
               </p>
               <div className="flex flex-wrap gap-2">
-                {product.sizes.map(size => (
+                {availableSizes.map(s => (
                   <button
-                    key={size}
-                    onClick={() => { setSelectedSize(size); setSizeError(false) }}
+                    key={s.label}
+                    onClick={() => { setSelectedSize(s.label); setSizeError(false) }}
                     className={`min-w-[3.5rem] px-4 py-2 rounded-lg border font-medium transition-colors ${
-                      selectedSize === size
+                      selectedSize === s.label
                         ? 'border-cheers-brown bg-cheers-brown text-cheers-cream'
                         : 'border-cheers-cream text-cheers-dark-brown hover:border-cheers-brown/50'
                     }`}
                   >
-                    {size}
+                    {s.label}
                   </button>
                 ))}
               </div>
