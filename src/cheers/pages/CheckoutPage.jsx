@@ -8,6 +8,7 @@ import { useCart } from '../contexts/CartContext'
 import { useAuth } from '../contexts/AuthContext'
 import CouponTicket, { applyDiscount, formatDiscount, computeSavings, findBestCoupon, findNearMissCoupon, isCouponEligible } from '../components/ui/CouponTicket'
 import { optimizeUrl } from '../lib/cloudinary'
+import { effectiveCostPrice } from '../lib/productPrice'
 
 const db = getFirestore(app)
 
@@ -313,9 +314,18 @@ export default function CheckoutPage() {
     setError('')
     try {
       const orderId = generateOrderId()
+      // Fetch products to snapshot cost prices
+      const productIds = [...new Set(items.map(i => i.productId))]
+      const productDocs = await Promise.all(productIds.map(pid => getDoc(doc(db, 'cheers_products', pid))))
+      const productMap = {}
+      productDocs.forEach(snap => { if (snap.exists()) productMap[snap.id] = snap.data() })
+
       const orderData = {
         orderId, userId: user.uid, userEmail: user.email, userName: form.name,
-        items: items.map(i => ({ ...i })),
+        items: items.map(i => ({
+          ...i,
+          costPrice: effectiveCostPrice(productMap[i.productId], i.color, i.size) ?? null,
+        })),
         delivery: deliveryType === 'face-to-face' ? { type: 'face-to-face', location } : { type: 'shipping', region, ...form },
         subtotal, shippingFee, total,
         status: 'pending',

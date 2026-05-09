@@ -52,6 +52,7 @@ export default function AdminOrdersPage() {
   const [selected, setSelected] = useState(new Set())
   const [bulkStatus, setBulkStatus] = useState('')
   const [bulkLoading, setBulkLoading] = useState(false)
+  const [shippingModal, setShippingModal] = useState(null) // { orderId, pendingStatus }
 
   async function load() {
     const snap = await getDocs(query(collection(db, 'cheers_orders'), orderBy('createdAt', 'desc')))
@@ -62,8 +63,23 @@ export default function AdminOrdersPage() {
   useEffect(() => { load() }, [])
 
   async function handleStatusChange(orderId, status) {
+    if (status === 'shipped') {
+      setShippingModal({ orderId, pendingStatus: status, fee: '', tracking: '' })
+      return
+    }
     await updateDoc(doc(db, 'cheers_orders', orderId), { status })
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status } : o))
+  }
+
+  async function confirmShipped() {
+    const { orderId, fee, tracking } = shippingModal
+    const update = { status: 'shipped' }
+    const parsedFee = parseFloat(fee)
+    if (!isNaN(parsedFee) && parsedFee >= 0) update.actualShippingFee = parsedFee
+    if (tracking.trim()) update.trackingNumber = tracking.trim()
+    await updateDoc(doc(db, 'cheers_orders', orderId), update)
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...update } : o))
+    setShippingModal(null)
   }
 
   const filtered = orders
@@ -96,6 +112,36 @@ export default function AdminOrdersPage() {
 
   return (
     <div>
+      {/* Shipped modal */}
+      {shippingModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          onClick={e => { if (e.target === e.currentTarget) setShippingModal(null) }}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShippingModal(null)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5 animate-slide-up">
+            <p className="font-medium text-cheers-dark-brown mb-1">标记为已发货</p>
+            <p className="text-xs text-cheers-brown/50 mb-4">录入实际邮费和单号（可选）</p>
+            <div className="space-y-3 mb-5">
+              <div>
+                <label className="label">实际邮费 (RM)</label>
+                <input type="number" step="0.01" min="0" className="input" placeholder="0.00"
+                  value={shippingModal.fee}
+                  onChange={e => setShippingModal(m => ({ ...m, fee: e.target.value }))} />
+              </div>
+              <div>
+                <label className="label">快递单号（可选）</label>
+                <input className="input" placeholder="如：JT1234567890MY"
+                  value={shippingModal.tracking}
+                  onChange={e => setShippingModal(m => ({ ...m, tracking: e.target.value }))} />
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setShippingModal(null)} className="btn-secondary flex-1">取消</button>
+              <button onClick={confirmShipped} className="btn-primary flex-1">确认发货</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-6">
         <h1 className="font-serif text-2xl text-cheers-dark-brown">{t('admin.orders')}</h1>
         <Link to="/admin/orders/new" className="btn-primary text-sm">+ 手动创建订单</Link>

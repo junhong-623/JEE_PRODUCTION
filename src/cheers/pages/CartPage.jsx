@@ -4,6 +4,7 @@ import { useLang } from '../contexts/LangContext'
 import { useCart } from '../contexts/CartContext'
 import { useAuth } from '../contexts/AuthContext'
 import { optimizeUrl } from '../lib/cloudinary'
+import CartItemEditModal from '../components/ui/CartItemEditModal'
 
 function ConfirmModal({ itemName, onConfirm, onCancel, lang }) {
   return (
@@ -37,15 +38,12 @@ export default function CartPage() {
   const { items, subtotal, removeFromCart, updateQuantity } = useCart()
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [confirmItem, setConfirmItem] = useState(null) // { productId, size, name }
+  const [confirmItem, setConfirmItem] = useState(null)
+  const [editItem, setEditItem] = useState(null)
 
   function handleCheckout() {
     if (!user) { navigate('/login', { state: { from: { pathname: '/checkout' } } }); return }
     navigate('/checkout')
-  }
-
-  function requestRemove(item) {
-    setConfirmItem(item)
   }
 
   function confirmRemove() {
@@ -63,7 +61,7 @@ export default function CartPage() {
   )
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <div className="max-w-2xl mx-auto px-4 py-8">
       {confirmItem && (
         <ConfirmModal
           itemName={confirmItem.name}
@@ -71,6 +69,9 @@ export default function CartPage() {
           onConfirm={confirmRemove}
           onCancel={() => setConfirmItem(null)}
         />
+      )}
+      {editItem && (
+        <CartItemEditModal item={editItem} onClose={() => setEditItem(null)} />
       )}
 
       <h1 className="font-serif text-2xl text-cheers-dark-brown mb-6">{t('cart.title')}</h1>
@@ -85,31 +86,52 @@ export default function CartPage() {
 
       <div className="space-y-3 mb-6">
         {items.map(item => (
-          <div key={`${item.productId}-${item.size || ''}-${item.color || ''}`} className="card p-4 flex items-center gap-4">
-            {item.imageUrl ? (
-              <img src={optimizeUrl(item.imageUrl, { width: 120 })} alt={item.name} className="w-16 h-16 object-cover rounded-lg flex-shrink-0" />
-            ) : (
-              <div className="w-16 h-16 rounded-lg bg-cheers-cream/40 flex items-center justify-center text-2xl flex-shrink-0">🛍</div>
-            )}
+          <div key={`${item.productId}-${item.size || ''}-${item.color || ''}`}
+            className="flex items-center gap-3 py-3 border-b border-cheers-cream last:border-0">
+
+            {/* Clickable image */}
+            <Link to={`/products/${item.productId}`} className="flex-shrink-0">
+              <div className="w-16 h-16 rounded-xl overflow-hidden bg-cheers-cream/40">
+                {item.imageUrl
+                  ? <img src={optimizeUrl(item.imageUrl, { width: 128 })} alt={item.name} className="w-full h-full object-cover" />
+                  : <div className="w-full h-full flex items-center justify-center text-2xl">🛍</div>}
+              </div>
+            </Link>
+
+            {/* Info */}
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-cheers-dark-brown text-sm line-clamp-2">{item.name}</p>
+              <Link to={`/products/${item.productId}`}>
+                <p className="text-sm font-medium text-cheers-dark-brown truncate">{item.name}</p>
+              </Link>
               {(item.color || item.size) && (
-                <p className="text-xs text-cheers-brown/60 mt-0.5">{[item.color, item.size].filter(Boolean).join(' · ')}</p>
+                <p className="text-xs text-cheers-brown/50 mt-0.5">{[item.color, item.size].filter(Boolean).join(' · ')}</p>
               )}
-              <p className="text-cheers-brown text-sm mt-0.5">{t('common.rmPrefix')} {item.price?.toFixed(2)}</p>
+              {/* Qty row */}
+              <div className="flex items-center gap-2 mt-1.5">
+                <div className="flex items-center border border-cheers-cream rounded-lg overflow-hidden">
+                  <button onClick={() => updateQuantity(item.productId, item.quantity - 1, item.size, item.color)}
+                    className="px-2 py-0.5 text-cheers-brown hover:bg-cheers-cream/50 text-sm leading-none">−</button>
+                  <span className="px-2 py-0.5 text-cheers-dark-brown text-sm font-medium min-w-[1.5rem] text-center">{item.quantity}</span>
+                  <button onClick={() => updateQuantity(item.productId, item.quantity + 1, item.size, item.color)}
+                    className="px-2 py-0.5 text-cheers-brown hover:bg-cheers-cream/50 text-sm leading-none">+</button>
+                </div>
+                {/* Edit variant button */}
+                <button onClick={() => setEditItem(item)}
+                  className="text-xs text-cheers-brown/50 hover:text-cheers-brown transition-colors px-1.5 py-0.5 rounded border border-cheers-cream hover:border-cheers-brown/40"
+                  title={lang === 'zh' ? '修改颜色/尺寸' : 'Change color/size'}>
+                  ✎
+                </button>
+                <button onClick={() => setConfirmItem(item)}
+                  className="text-xs text-red-400 hover:text-red-600 transition-colors px-1">
+                  {lang === 'zh' ? '删除' : 'Remove'}
+                </button>
+              </div>
             </div>
-            <div className="flex items-center border border-cheers-cream rounded-lg overflow-hidden flex-shrink-0">
-              <button onClick={() => updateQuantity(item.productId, item.quantity - 1, item.size, item.color)}
-                className="px-2.5 py-1.5 text-cheers-brown hover:bg-cheers-cream/50 text-sm">−</button>
-              <span className="px-3 py-1.5 text-cheers-dark-brown text-sm font-medium min-w-[2rem] text-center">{item.quantity}</span>
-              <button onClick={() => updateQuantity(item.productId, item.quantity + 1, item.size, item.color)}
-                className="px-2.5 py-1.5 text-cheers-brown hover:bg-cheers-cream/50 text-sm">+</button>
-            </div>
-            <div className="text-right flex-shrink-0 min-w-[80px]">
-              <p className="font-semibold text-cheers-dark-brown text-sm">{t('common.rmPrefix')} {(item.price * item.quantity).toFixed(2)}</p>
-              <button onClick={() => requestRemove(item)}
-                className="text-xs text-red-400 hover:text-red-600 mt-0.5">{t('cart.remove')}</button>
-            </div>
+
+            {/* Total price */}
+            <p className="text-sm font-semibold text-cheers-dark-brown flex-shrink-0">
+              {t('common.rmPrefix')} {(item.price * item.quantity).toFixed(2)}
+            </p>
           </div>
         ))}
       </div>

@@ -536,8 +536,28 @@ function DeliveryTab({ orders, delivStatuses, onToggleStatus, onReload, lang }) 
   )
 }
 
+// ── Profit helpers ────────────────────────────────────────────────────────────
+function computeOrderProfit(order) {
+  const items = order.items || []
+  const allHaveCost = items.length > 0 && items.every(i => i.costPrice != null && i.costPrice >= 0)
+  if (!allHaveCost) return null
+  const totalCost = items.reduce((s, i) => s + i.costPrice * i.quantity, 0)
+  const shipping = order.actualShippingFee != null ? order.actualShippingFee : null
+  if (shipping == null) return null
+  return (order.total || 0) - totalCost - shipping
+}
+
+function profitLabel(profit, total) {
+  if (profit == null) return { text: '待补全', color: 'text-cheers-brown/40' }
+  const pct = total > 0 ? (profit / total * 100).toFixed(1) : '0.0'
+  if (profit >= 0) return { text: `+RM ${profit.toFixed(2)} (${pct}%)`, color: 'text-green-600' }
+  return { text: `-RM ${Math.abs(profit).toFixed(2)} (${pct}%)`, color: 'text-red-500' }
+}
+
 // ── Sales Tab ────────────────────────────────────────────────────────────────
 function SalesTab({ orders }) {
+  const [profitView, setProfitView] = useState('summary') // 'summary' | 'orders' | 'products'
+
   const completed = orders.filter(o => o.status === 'completed')
   const totalRevenue = completed.reduce((s, o) => s + (o.total || 0), 0)
   const pending = orders.filter(o => PRE_PROCURED.includes(o.status) || o.status === 'procured')
@@ -545,8 +565,46 @@ function SalesTab({ orders }) {
   const byStatus = {}
   for (const o of orders) byStatus[o.status] = (byStatus[o.status] || 0) + 1
 
+  // Profit calculations on completed orders
+  const completedWithProfit = completed.map(o => ({ ...o, _profit: computeOrderProfit(o) }))
+  const profitOrders = completedWithProfit.filter(o => o._profit != null)
+  const totalProfit = profitOrders.reduce((s, o) => s + o._profit, 0)
+  const avgMargin = profitOrders.length > 0
+    ? profitOrders.reduce((s, o) => s + (o._profit / (o.total || 1)), 0) / profitOrders.length * 100
+    : null
+
+  // Shipping P&L
+  const ordersWithBothShipping = completed.filter(o => o.shippingFee != null && o.actualShippingFee != null)
+  const chargedShipping = ordersWithBothShipping.reduce((s, o) => s + (o.shippingFee || 0), 0)
+  const actualShipping = ordersWithBothShipping.reduce((s, o) => s + (o.actualShippingFee || 0), 0)
+  const shippingPnl = chargedShipping - actualShipping
+
+  // Product profit ranking (completed orders)
+  const productMap = {}
+  for (const order of profitOrders) {
+    const items = order.items || []
+    const itemsCost = items.reduce((s, i) => s + (i.costPrice || 0) * i.quantity, 0)
+    const shippingPortion = order.actualShippingFee != null ? order.actualShippingFee : 0
+    for (const item of items) {
+      const key = `${item.productId || item.name}|${item.color || ''}|${item.size || ''}`
+      const name = item.name || '未知商品'
+      const revenue = (item.price || 0) * item.quantity
+      const cost = (item.costPrice || 0) * item.quantity
+      const shippingShare = itemsCost > 0 ? (cost / itemsCost) * shippingPortion : 0
+      if (!productMap[key]) productMap[key] = { name, qty: 0, revenue: 0, cost: 0, shipping: 0 }
+      productMap[key].qty += item.quantity
+      productMap[key].revenue += revenue
+      productMap[key].cost += cost
+      productMap[key].shipping += shippingShare
+    }
+  }
+  const productRanking = Object.values(productMap)
+    .map(p => ({ ...p, profit: p.revenue - p.cost - p.shipping, margin: p.revenue > 0 ? (p.revenue - p.cost - p.shipping) / p.revenue * 100 : 0 }))
+    .sort((a, b) => b.margin - a.margin)
+
   return (
     <div className="space-y-4">
+      {/* Revenue summary */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {[
           { label: '已完成收入', value: `RM ${totalRevenue.toFixed(2)}`, sub: `${completed.length} 单`, color: 'text-green-700' },
@@ -560,6 +618,8 @@ function SalesTab({ orders }) {
           </div>
         ))}
       </div>
+
+      {/* Status bar chart */}
       <div className="card p-4">
         <p className="text-sm font-medium text-cheers-dark-brown mb-3">各状态订单数</p>
         <div className="space-y-2">
@@ -577,6 +637,104 @@ function SalesTab({ orders }) {
             )
           })}
         </div>
+      </div>
+
+      {/* Profit section */}
+      <div className="card overflow-hidden">
+        <div className="px-4 py-3 border-b border-cheers-cream flex items-center justify-between">
+          <p className="text-sm font-medium text-cheers-dark-brown">💹 利润分析</p>
+          <p className="text-xs text-cheers-brown/40">基于已完成订单 · 需填成本价及实际邮费</p>
+        </div>
+        <div className="flex border-b border-cheers-cream">
+          {[['summary','汇总'], ['orders','按订单'], ['products','商品排行']].map(([k, label]) => (
+            <button key={k} onClick={() => setProfitView(k)}
+              className={`flex-1 py-2 text-xs font-medium transition-colors ${profitView === k ? 'bg-cheers-cream/60 text-cheers-brown border-b-2 border-cheers-brown' : 'text-cheers-brown/50 hover:text-cheers-brown'}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {profitView === 'summary' && (
+          <div className="p-4 space-y-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="bg-green-50 rounded-xl p-3">
+                <p className="text-xs text-green-700/70 mb-1">总利润（已完成）</p>
+                <p className={`text-lg font-bold ${totalProfit >= 0 ? 'text-green-700' : 'text-red-500'}`}>
+                  {profitOrders.length > 0 ? `RM ${totalProfit.toFixed(2)}` : '—'}
+                </p>
+                <p className="text-[10px] text-green-700/50">{profitOrders.length}/{completed.length} 单有数据</p>
+              </div>
+              <div className="bg-blue-50 rounded-xl p-3">
+                <p className="text-xs text-blue-700/70 mb-1">平均利润率</p>
+                <p className="text-lg font-bold text-blue-700">
+                  {avgMargin != null ? `${avgMargin.toFixed(1)}%` : '—'}
+                </p>
+                <p className="text-[10px] text-blue-700/50">已完成有数据订单</p>
+              </div>
+              <div className={`${shippingPnl >= 0 ? 'bg-green-50' : 'bg-red-50'} rounded-xl p-3`}>
+                <p className={`text-xs mb-1 ${shippingPnl >= 0 ? 'text-green-700/70' : 'text-red-700/70'}`}>运费盈亏</p>
+                <p className={`text-lg font-bold ${shippingPnl >= 0 ? 'text-green-700' : 'text-red-500'}`}>
+                  {ordersWithBothShipping.length > 0
+                    ? `${shippingPnl >= 0 ? '+' : ''}RM ${shippingPnl.toFixed(2)}`
+                    : '—'}
+                </p>
+                <p className={`text-[10px] ${shippingPnl >= 0 ? 'text-green-700/50' : 'text-red-700/50'}`}>
+                  收 RM {chargedShipping.toFixed(2)} · 实 RM {actualShipping.toFixed(2)}
+                </p>
+              </div>
+            </div>
+            {completed.length > profitOrders.length && (
+              <p className="text-xs text-cheers-brown/40">
+                {completed.length - profitOrders.length} 单缺成本价或实际邮费，不计入利润统计。请在商品编辑填写成本价，发货时填写实际邮费。
+              </p>
+            )}
+          </div>
+        )}
+
+        {profitView === 'orders' && (
+          <div className="divide-y divide-cheers-cream max-h-[60vh] overflow-y-auto">
+            {completedWithProfit.length === 0 && (
+              <p className="text-center py-8 text-cheers-brown/40 text-sm">暂无已完成订单</p>
+            )}
+            {completedWithProfit.map(o => {
+              const { text, color } = profitLabel(o._profit, o.total)
+              return (
+                <div key={o.id} className="px-4 py-3 flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-cheers-dark-brown">{o.orderId || o.id}</p>
+                    <p className="text-xs text-cheers-brown/50">{o.userName} · RM {o.total?.toFixed(2)}</p>
+                  </div>
+                  <span className={`text-xs font-medium flex-shrink-0 ${color}`}>{text}</span>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {profitView === 'products' && (
+          <div className="divide-y divide-cheers-cream max-h-[60vh] overflow-y-auto">
+            {productRanking.length === 0 && (
+              <p className="text-center py-8 text-cheers-brown/40 text-sm">暂无利润数据</p>
+            )}
+            {productRanking.map((p, i) => (
+              <div key={i} className="px-4 py-3 flex items-start gap-3">
+                <span className="text-xs font-bold text-cheers-brown/30 w-5 flex-shrink-0 pt-0.5">{i + 1}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-cheers-dark-brown truncate">{p.name}</p>
+                  <p className="text-xs text-cheers-brown/50">
+                    {p.qty} 件 · 收 RM {p.revenue.toFixed(2)} · 成本 RM {p.cost.toFixed(2)}
+                  </p>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <p className={`text-sm font-semibold ${p.profit >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                    {p.profit >= 0 ? '+' : ''}RM {p.profit.toFixed(2)}
+                  </p>
+                  <p className="text-xs text-cheers-brown/40">{p.margin.toFixed(1)}% 利润率</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

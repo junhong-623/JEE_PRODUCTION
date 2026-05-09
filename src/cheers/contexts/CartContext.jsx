@@ -126,6 +126,24 @@ export function CartProvider({ children }) {
     })
   }, [user, removeFromCart])
 
+  const updateCartItemVariant = useCallback((productId, oldSize, oldColor, newSize, newColor, newPrice) => {
+    setItems(prev => {
+      const original = prev.find(i => i.productId === productId && i.size === oldSize && i.color === oldColor)
+      if (!original) return prev
+      const withoutOld = prev.filter(i => !(i.productId === productId && i.size === oldSize && i.color === oldColor))
+      const existingIdx = withoutOld.findIndex(i => i.productId === productId && i.size === newSize && i.color === newColor)
+      let next
+      if (existingIdx >= 0) {
+        next = withoutOld.map((i, idx) => idx === existingIdx ? { ...i, quantity: i.quantity + original.quantity, price: newPrice } : i)
+      } else {
+        next = [...withoutOld, { ...original, size: newSize, color: newColor, price: newPrice }]
+      }
+      if (user) setDoc(doc(db, 'cheers_carts', user.uid), { items: next }, { merge: true })
+      else saveLocal(next)
+      return next
+    })
+  }, [user])
+
   const clearCart = useCallback(async () => {
     setItems([])
     if (user) {
@@ -139,7 +157,7 @@ export function CartProvider({ children }) {
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0)
 
   return (
-    <CartContext.Provider value={{ items, totalItems, subtotal, addToCart, removeFromCart, updateQuantity, clearCart }}>
+    <CartContext.Provider value={{ items, totalItems, subtotal, addToCart, removeFromCart, updateQuantity, updateCartItemVariant, clearCart }}>
       {children}
     </CartContext.Provider>
   )

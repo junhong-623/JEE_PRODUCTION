@@ -79,7 +79,7 @@ export default function AnnouncementBanner() {
 
   return (
     <div className={`relative z-30 border-b ${c.bar} ${c.text}`}>
-      <div className="max-w-7xl mx-auto px-5 h-12 flex items-center gap-2">
+      <div className="max-w-7xl mx-auto px-5 h-[78px] flex items-center gap-2">
         {/* Left arrow */}
         {/* {n > 1 && (
           <button onClick={() => go(-1)}
