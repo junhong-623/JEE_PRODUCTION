@@ -438,12 +438,27 @@ export default function ProductEditPage() {
           </div>
           {form.sizes.length > 0 && (
             <div className="flex flex-wrap gap-2">
-              {form.sizes.map(size => (
-                <span key={size} className="inline-flex items-center gap-1.5 bg-cheers-cream text-cheers-dark-brown text-sm px-3 py-1 rounded-full">
-                  {size}
+              {form.sizes.map((size, si) => (
+                <span key={si} className="inline-flex items-center gap-1 bg-cheers-cream text-cheers-dark-brown text-sm pl-3 pr-2 py-1 rounded-full">
+                  <input
+                    value={size}
+                    onChange={e => {
+                      const newVal = e.target.value
+                      setForm(f => ({
+                        ...f,
+                        sizes: f.sizes.map((s, i) => i === si ? newVal : s),
+                        colors: f.colors.map(c => {
+                          const price = c.sizePrices?.[size]
+                          const { [size]: _, ...rest } = c.sizePrices || {}
+                          return { ...c, sizePrices: newVal !== '' ? { ...rest, [newVal]: price } : rest }
+                        })
+                      }))
+                    }}
+                    className="bg-transparent outline-none w-12 text-sm"
+                  />
                   <button type="button" onClick={() => setForm(f => ({
                     ...f,
-                    sizes: f.sizes.filter(s => s !== size),
+                    sizes: f.sizes.filter((_, i) => i !== si),
                     colors: f.colors.map(c => {
                       const { [size]: _, ...rest } = c.sizePrices || {}
                       return { ...c, sizePrices: rest }
@@ -510,7 +525,14 @@ export default function ProductEditPage() {
                   {form.colors.map((color, ci) => (
                     <tr key={ci} className="border-t border-cheers-cream/60">
                       <td className="py-2 pr-3 whitespace-nowrap">
-                        <span className="font-medium text-cheers-dark-brown">{color.label}</span>
+                        <input
+                          value={color.label}
+                          onChange={e => setForm(f => ({
+                            ...f,
+                            colors: f.colors.map((c, i) => i === ci ? { ...c, label: e.target.value } : c)
+                          }))}
+                          className="input text-sm font-medium py-1 px-2 w-28"
+                        />
                         {color.imageUrl && (
                           <span className="ml-1 text-xs text-cheers-brown/40">· 图{form.imageUrls.indexOf(color.imageUrl) + 1}</span>
                         )}
