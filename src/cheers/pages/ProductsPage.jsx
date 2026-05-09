@@ -91,7 +91,12 @@ export default function ProductsPage() {
   const filtered = products.filter(p => {
     const matchCat = !matchingCatIds || getProdCatIds(p).some(id => matchingCatIds.has(id))
     const name = p.name?.[lang] || p.name?.zh || ''
-    const matchSearch = !search || name.toLowerCase().includes(search.toLowerCase())
+    const sq = search.toLowerCase()
+    const matchSearch = !search
+      || name.toLowerCase().includes(sq)
+      || (p.colors || []).some(c => c.label.toLowerCase().includes(sq))
+      || (p.sizes || []).some(s => s.toLowerCase().includes(sq))
+      || (p.colors || []).flatMap(c => c.sizes || []).some(s => s.label?.toLowerCase().includes(sq))
     return matchCat && matchSearch
   })
 

@@ -56,7 +56,8 @@ export default function AnnouncementBanner() {
   }, [trackIdx, n])
 
   // After slide ends, silently jump from clone to real counterpart
-  function handleTransitionEnd() {
+  function handleTransitionEnd(e) {
+    if (e.propertyName !== 'transform') return
     if (n <= 1) return
     if (trackIdx === 0) {
       setTransitioning(false)
@@ -78,7 +79,7 @@ export default function AnnouncementBanner() {
 
   return (
     <div className={`relative z-30 border-b ${c.bar} ${c.text}`}>
-      <div className="max-w-6xl mx-auto px-3 h-12 flex items-center gap-2">
+      <div className="max-w-7xl mx-auto px-5 h-12 flex items-center gap-2">
         {/* Left arrow */}
         {/* {n > 1 && (
           <button onClick={() => go(-1)}

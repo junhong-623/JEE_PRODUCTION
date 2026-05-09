@@ -88,7 +88,7 @@ export default function ActivityFeed() {
   return (
     <div
       className={`fixed z-[60] transition-all duration-500 ease-out
-        left-1/2 -translate-x-1/2 top-3 w-[calc(100vw-1.5rem)] max-w-md
+        left-1/2 -translate-x-1/2 top-3 w-72 max-w-[calc(100vw-3rem)]
         sm:translate-x-0 sm:left-4 sm:top-auto sm:bottom-4 sm:max-w-xs sm:w-auto
         ${visible
           ? 'opacity-100 translate-y-0'
@@ -100,7 +100,6 @@ export default function ActivityFeed() {
         sm:bg-white/95 sm:backdrop-blur-sm sm:border-cheers-cream sm:rounded-xl sm:shadow-lg sm:px-4 sm:py-3">
 
         <Link to={`/products/${product.id}`} className="flex items-center gap-3 min-w-0 flex-1">
-          <span className="text-2xl flex-shrink-0">{icon}</span>
           <div className="leading-snug min-w-0 flex-1">
             <p className="text-xs sm:text-xs text-cheers-dark-brown truncate">
               {(() => {
