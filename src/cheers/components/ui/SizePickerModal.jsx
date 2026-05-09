@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useLang } from '../../contexts/LangContext'
 import { useCart } from '../../contexts/CartContext'
-import { effectivePrice, formatPriceDisplay } from '../../lib/productPrice'
+import { effectivePrice, formatPriceDisplay, getColorSizes } from '../../lib/productPrice'
 
 export default function SizePickerModal({ product, onClose }) {
   const { t, lang } = useLang()
@@ -11,8 +11,22 @@ export default function SizePickerModal({ product, onClose }) {
   const [qty, setQty] = useState(1)
   const [added, setAdded] = useState(false)
 
-  const hasSizes = product.sizes?.length > 0
   const hasColors = product.colors?.length > 0
+
+  // Compute available sizes for the selected color
+  const availableSizes = (() => {
+    if (hasColors && selectedColor) {
+      const colorSizes = getColorSizes(product, selectedColor.label)
+      if (colorSizes.length > 0) return colorSizes
+      // Backward compat: fall back to global sizes (old products without color.sizes)
+      return (product.sizes || []).map(s => ({ label: s, price: null }))
+    }
+    if (!hasColors) {
+      return (product.sizes || []).map(s => ({ label: s, price: null }))
+    }
+    return []
+  })()
+  const hasSizes = availableSizes.length > 0
 
   useEffect(() => {
     function onKey(e) { if (e.key === 'Escape') onClose() }
@@ -61,7 +75,7 @@ export default function SizePickerModal({ product, onClose }) {
             <p className="font-medium text-cheers-dark-brown text-sm leading-snug line-clamp-2">{name}</p>
             <p className="text-cheers-brown font-bold mt-1">
               {selectedColor?.label
-                ? `${t('common.rmPrefix')} ${effectivePrice(product, selectedColor.label).toFixed(2)}`
+                ? `${t('common.rmPrefix')} ${effectivePrice(product, selectedColor.label, selectedSize).toFixed(2)}`
                 : formatPriceDisplay(product, t('common.rmPrefix'))}
             </p>
           </div>
@@ -78,7 +92,7 @@ export default function SizePickerModal({ product, onClose }) {
                 {product.colors.map((color, i) => (
                   <button
                     key={i}
-                    onClick={() => setSelectedColor(color)}
+                    onClick={() => { setSelectedColor(color); setSelectedSize(null) }}
                     className={`min-w-[3rem] px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
                       selectedColor?.label === color.label
                         ? 'border-cheers-brown bg-cheers-brown text-cheers-cream'
@@ -99,17 +113,17 @@ export default function SizePickerModal({ product, onClose }) {
                 {!selectedSize && <span className="text-red-400 ml-1">*</span>}
               </p>
               <div className="flex flex-wrap gap-2">
-                {product.sizes.map(size => (
+                {availableSizes.map(s => (
                   <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
+                    key={s.label}
+                    onClick={() => setSelectedSize(s.label)}
                     className={`min-w-[3rem] px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
-                      selectedSize === size
+                      selectedSize === s.label
                         ? 'border-cheers-brown bg-cheers-brown text-cheers-cream'
                         : 'border-cheers-cream text-cheers-dark-brown hover:border-cheers-brown/50'
                     }`}
                   >
-                    {size}
+                    {s.label}
                   </button>
                 ))}
               </div>

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { getFirestore, doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore'
 import app from '../../lib/firebase'
 import { useAuth } from './AuthContext'
+import { effectivePrice } from '../lib/productPrice'
 
 const db = getFirestore(app)
 const CartContext = createContext(null)
@@ -79,15 +80,8 @@ export function CartProvider({ children }) {
       } else {
         const rawName = product.name
         const name = typeof rawName === 'object' ? (rawName?.zh || rawName?.en || '') : (rawName || '')
-        // 颜色价格快照：选了颜色且该颜色有独立价格时用颜色价，否则用主价
-        let price = product.price
-        if (color !== undefined && Array.isArray(product.colors)) {
-          const c = product.colors.find(c => c.label === color)
-          const colorPrice = c?.price
-          if (colorPrice !== null && colorPrice !== undefined && !isNaN(Number(colorPrice)) && Number(colorPrice) > 0) {
-            price = Number(colorPrice)
-          }
-        }
+        // 颜色+尺寸价格快照：颜色+尺寸价格 > 颜色价格 > 主价格
+        const price = effectivePrice(product, color, size)
         next = [...prev, {
           productId: product.id,
           name,

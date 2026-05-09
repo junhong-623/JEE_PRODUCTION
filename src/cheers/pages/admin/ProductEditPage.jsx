@@ -194,7 +194,7 @@ export default function ProductEditPage() {
     descriptionBlocks: [],
   })
   const [sizeInput, setSizeInput] = useState('')
-  const [colorInput, setColorInput] = useState({ label: '', imageUrl: null, price: '' })
+  const [colorInput, setColorInput] = useState({ label: '', imageUrl: null })
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [dragImgIdx, setDragImgIdx] = useState(null)
@@ -228,6 +228,7 @@ export default function ProductEditPage() {
               label: c.label,
               imageUrl: c.imageUrl ?? null,
               price: c.price !== null && c.price !== undefined ? String(c.price) : '',
+              sizePrices: Object.fromEntries((c.sizes || []).map(s => [s.label, s.price != null ? String(s.price) : ''])),
             })),
             descriptionBlocks: data.descriptionBlocks || [],
           })
@@ -287,7 +288,10 @@ export default function ProductEditPage() {
         const p = c.price !== '' && c.price !== null && c.price !== undefined && !isNaN(Number(c.price)) && Number(c.price) > 0
           ? Number(c.price)
           : null
-        return { label: c.label, imageUrl: c.imageUrl ?? null, price: p }
+        const sizes = form.sizes
+          .filter(s => c.sizePrices?.[s] !== '' && c.sizePrices?.[s] !== undefined && !isNaN(Number(c.sizePrices[s])) && Number(c.sizePrices[s]) > 0)
+          .map(s => ({ label: s, price: Number(c.sizePrices[s]) }))
+        return { label: c.label, imageUrl: c.imageUrl ?? null, price: p, sizes }
       }),
       descriptionBlocks: form.descriptionBlocks,
     }
@@ -437,7 +441,14 @@ export default function ProductEditPage() {
               {form.sizes.map(size => (
                 <span key={size} className="inline-flex items-center gap-1.5 bg-cheers-cream text-cheers-dark-brown text-sm px-3 py-1 rounded-full">
                   {size}
-                  <button type="button" onClick={() => setForm(f => ({ ...f, sizes: f.sizes.filter(s => s !== size) }))}
+                  <button type="button" onClick={() => setForm(f => ({
+                    ...f,
+                    sizes: f.sizes.filter(s => s !== size),
+                    colors: f.colors.map(c => {
+                      const { [size]: _, ...rest } = c.sizePrices || {}
+                      return { ...c, sizePrices: rest }
+                    })
+                  }))}
                     className="text-cheers-brown/50 hover:text-cheers-brown leading-none">×</button>
                 </span>
               ))}
@@ -449,6 +460,7 @@ export default function ProductEditPage() {
         <div className="card p-4 space-y-3">
           <label className="label mb-0">颜色（可选）</label>
           <p className="text-xs text-cheers-brown/50">适用于有颜色变体的商品。可关联对应商品图片，顾客选色时自动切换图片。</p>
+          {/* Add color row */}
           <div className="flex gap-2 flex-wrap items-end">
             <div className="flex flex-col gap-1 flex-1 min-w-[140px]">
               <span className="text-xs text-cheers-brown/60">颜色名称</span>
@@ -458,14 +470,9 @@ export default function ProductEditPage() {
                   if (e.key === 'Enter') {
                     e.preventDefault()
                     const v = colorInput.label.trim()
-                    if (v) { setForm(f => ({ ...f, colors: [...f.colors, { ...colorInput, label: v }] })); setColorInput({ label: '', imageUrl: null, price: '' }) }
+                    if (v) { setForm(f => ({ ...f, colors: [...f.colors, { ...colorInput, label: v, price: '', sizePrices: {} }] })); setColorInput({ label: '', imageUrl: null }) }
                   }
                 }} />
-            </div>
-            <div className="flex flex-col gap-1 w-[110px]">
-              <span className="text-xs text-cheers-brown/60">价格 (RM, 可选)</span>
-              <input className="input text-sm" type="number" step="0.01" min="0" placeholder="同主价" value={colorInput.price}
-                onChange={e => setColorInput(c => ({ ...c, price: e.target.value }))} />
             </div>
             <div className="flex flex-col gap-1 flex-1 min-w-[120px]">
               <span className="text-xs text-cheers-brown/60">关联图片（可选）</span>
@@ -479,22 +486,80 @@ export default function ProductEditPage() {
             </div>
             <button type="button" className="btn-secondary px-4 h-9" onClick={() => {
               const v = colorInput.label.trim()
-              if (v) { setForm(f => ({ ...f, colors: [...f.colors, { ...colorInput, label: v }] })); setColorInput({ label: '', imageUrl: null, price: '' }) }
+              if (v) { setForm(f => ({ ...f, colors: [...f.colors, { ...colorInput, label: v, price: '', sizePrices: {} }] })); setColorInput({ label: '', imageUrl: null }) }
             }}>添加</button>
           </div>
+
+          {/* Color × Size price matrix */}
           {form.colors.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {form.colors.map((color, idx) => (
-                <span key={idx} className="inline-flex items-center gap-1.5 bg-cheers-cream text-cheers-dark-brown text-sm px-3 py-1.5 rounded-full">
-                  <span>{color.label}</span>
-                  {color.price !== '' && color.price !== null && color.price !== undefined && Number(color.price) > 0 && (
-                    <span className="text-xs text-cheers-brown/60">· RM {Number(color.price).toFixed(2)}</span>
-                  )}
-                  {color.imageUrl && <span className="text-xs text-cheers-brown/50">· 图{form.imageUrls.indexOf(color.imageUrl) + 1}</span>}
-                  <button type="button" onClick={() => setForm(f => ({ ...f, colors: f.colors.filter((_, i) => i !== idx) }))}
-                    className="text-cheers-brown/50 hover:text-cheers-brown leading-none ml-0.5">×</button>
-                </span>
-              ))}
+            <div className="overflow-x-auto -mx-1">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="text-left">
+                    <th className="text-xs font-medium text-cheers-brown/60 py-1.5 pr-3 whitespace-nowrap">颜色</th>
+                    {form.sizes.map(s => (
+                      <th key={s} className="text-xs font-medium text-cheers-brown/60 py-1.5 px-2 text-center whitespace-nowrap">{s}</th>
+                    ))}
+                    <th className="text-xs font-medium text-cheers-brown/60 py-1.5 px-2 text-center whitespace-nowrap">
+                      {form.sizes.length > 0 ? '无尺寸价格' : '价格 (RM)'}
+                    </th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {form.colors.map((color, ci) => (
+                    <tr key={ci} className="border-t border-cheers-cream/60">
+                      <td className="py-2 pr-3 whitespace-nowrap">
+                        <span className="font-medium text-cheers-dark-brown">{color.label}</span>
+                        {color.imageUrl && (
+                          <span className="ml-1 text-xs text-cheers-brown/40">· 图{form.imageUrls.indexOf(color.imageUrl) + 1}</span>
+                        )}
+                      </td>
+                      {form.sizes.map(s => (
+                        <td key={s} className="py-2 px-2">
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="—"
+                            value={color.sizePrices?.[s] || ''}
+                            onChange={e => setForm(f => ({
+                              ...f,
+                              colors: f.colors.map((c, i) => i === ci
+                                ? { ...c, sizePrices: { ...c.sizePrices, [s]: e.target.value } }
+                                : c
+                              )
+                            }))}
+                            className="input text-sm w-20 text-center px-2"
+                          />
+                        </td>
+                      ))}
+                      <td className="py-2 px-2">
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="同主价"
+                          value={color.price}
+                          onChange={e => setForm(f => ({
+                            ...f,
+                            colors: f.colors.map((c, i) => i === ci ? { ...c, price: e.target.value } : c)
+                          }))}
+                          className="input text-sm w-24 text-center px-2"
+                        />
+                      </td>
+                      <td className="py-2 pl-2">
+                        <button type="button"
+                          onClick={() => setForm(f => ({ ...f, colors: f.colors.filter((_, i) => i !== ci) }))}
+                          className="text-red-400 hover:text-red-600 text-lg leading-none">×</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {form.sizes.length > 0 && (
+                <p className="text-xs text-cheers-brown/40 mt-2">单元格留空 = 该颜色不提供该尺寸；"无尺寸价格"仅在该颜色无任何尺寸时生效</p>
+              )}
             </div>
           )}
         </div>
