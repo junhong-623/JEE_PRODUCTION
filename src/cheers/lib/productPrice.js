@@ -46,6 +46,20 @@ export function priceRange(product) {
   return { min, max, isRange: min !== max }
 }
 
+// 取有效成本价：尺寸成本价 > 颜色成本价 > 商品成本价 > null
+export function effectiveCostPrice(product, colorLabel, sizeLabel) {
+  const base = parsePrice(product?.costPrice) ?? null
+  if (!colorLabel || !product?.colors) return base
+  const c = product.colors.find(c => c.label === colorLabel)
+  if (!c) return base
+  if (sizeLabel && Array.isArray(c.sizes)) {
+    const s = c.sizes.find(s => s.label === sizeLabel)
+    const sp = parsePrice(s?.costPrice)
+    if (sp !== null) return sp
+  }
+  return parsePrice(c?.costPrice) ?? base
+}
+
 // 格式化展示（列表卡片、详情页未选颜色/尺寸时）
 export function formatPriceDisplay(product, rmPrefix = 'RM') {
   const { min, max, isRange } = priceRange(product)

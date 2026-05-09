@@ -184,6 +184,7 @@ export default function ProductEditPage() {
     name: { zh: '', en: '' },
     description: { zh: '', en: '' },
     price: '',
+    costPrice: '',
     categoryIds: [],
     tripId: '',
     inStock: true,
@@ -218,6 +219,7 @@ export default function ProductEditPage() {
             name: data.name || { zh: '', en: '' },
             description: data.description || { zh: '', en: '' },
             price: data.price?.toString() || '',
+            costPrice: data.costPrice?.toString() || '',
             categoryIds: data.categoryIds || (data.categoryId ? [data.categoryId] : []),
             tripId: data.tripId || '',
             inStock: data.inStock ?? true,
@@ -228,7 +230,11 @@ export default function ProductEditPage() {
               label: c.label,
               imageUrl: c.imageUrl ?? null,
               price: c.price !== null && c.price !== undefined ? String(c.price) : '',
-              sizePrices: Object.fromEntries((c.sizes || []).map(s => [s.label, s.price != null ? String(s.price) : ''])),
+              costPrice: c.costPrice !== null && c.costPrice !== undefined ? String(c.costPrice) : '',
+              sizePrices: Object.fromEntries((c.sizes || []).map(s => [s.label, {
+                price: s.price != null ? String(s.price) : '',
+                costPrice: s.costPrice != null ? String(s.costPrice) : '',
+              }])),
             })),
             descriptionBlocks: data.descriptionBlocks || [],
           })
@@ -276,6 +282,7 @@ export default function ProductEditPage() {
       name: form.name,
       description: form.description,
       price: parseFloat(form.price),
+      costPrice: form.costPrice !== '' && !isNaN(Number(form.costPrice)) && Number(form.costPrice) > 0 ? Number(form.costPrice) : null,
       categoryIds: form.categoryIds,
       categoryId: form.categoryIds[0] || '',
       tripId: form.tripId,
@@ -286,12 +293,20 @@ export default function ProductEditPage() {
       sizes: form.sizes,
       colors: form.colors.map(c => {
         const p = c.price !== '' && c.price !== null && c.price !== undefined && !isNaN(Number(c.price)) && Number(c.price) > 0
-          ? Number(c.price)
-          : null
+          ? Number(c.price) : null
+        const cp = c.costPrice !== '' && c.costPrice !== null && c.costPrice !== undefined && !isNaN(Number(c.costPrice)) && Number(c.costPrice) > 0
+          ? Number(c.costPrice) : null
         const sizes = form.sizes
-          .filter(s => c.sizePrices?.[s] !== '' && c.sizePrices?.[s] !== undefined && !isNaN(Number(c.sizePrices[s])) && Number(c.sizePrices[s]) > 0)
-          .map(s => ({ label: s, price: Number(c.sizePrices[s]) }))
-        return { label: c.label, imageUrl: c.imageUrl ?? null, price: p, sizes }
+          .filter(s => {
+            const sp = c.sizePrices?.[s]
+            return sp && (sp.price !== '' && !isNaN(Number(sp.price)) && Number(sp.price) > 0)
+          })
+          .map(s => {
+            const sp = c.sizePrices[s]
+            const scp = sp.costPrice !== '' && !isNaN(Number(sp.costPrice)) && Number(sp.costPrice) > 0 ? Number(sp.costPrice) : null
+            return { label: s, price: Number(sp.price), costPrice: scp }
+          })
+        return { label: c.label, imageUrl: c.imageUrl ?? null, price: p, costPrice: cp, sizes }
       }),
       descriptionBlocks: form.descriptionBlocks,
     }
@@ -377,10 +392,17 @@ export default function ProductEditPage() {
                 onChange={e => setForm(f => ({ ...f, name: { ...f.name, en: e.target.value } }))} />
             </div>
           </div>
-          <div>
-            <label className="label">价格 (RM)</label>
-            <input type="number" step="0.01" min="0" className="input" value={form.price}
-              onChange={e => setForm(f => ({ ...f, price: e.target.value }))} required />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">售价 (RM)</label>
+              <input type="number" step="0.01" min="0" className="input" value={form.price}
+                onChange={e => setForm(f => ({ ...f, price: e.target.value }))} required />
+            </div>
+            <div>
+              <label className="label">成本价 (RM)（可选）</label>
+              <input type="number" step="0.01" min="0" className="input" placeholder="—" value={form.costPrice}
+                onChange={e => setForm(f => ({ ...f, costPrice: e.target.value }))} />
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -448,9 +470,9 @@ export default function ProductEditPage() {
                         ...f,
                         sizes: f.sizes.map((s, i) => i === si ? newVal : s),
                         colors: f.colors.map(c => {
-                          const price = c.sizePrices?.[size]
+                          const entry = c.sizePrices?.[size]
                           const { [size]: _, ...rest } = c.sizePrices || {}
-                          return { ...c, sizePrices: newVal !== '' ? { ...rest, [newVal]: price } : rest }
+                          return { ...c, sizePrices: newVal !== '' ? { ...rest, [newVal]: entry } : rest }
                         })
                       }))
                     }}
@@ -485,7 +507,7 @@ export default function ProductEditPage() {
                   if (e.key === 'Enter') {
                     e.preventDefault()
                     const v = colorInput.label.trim()
-                    if (v) { setForm(f => ({ ...f, colors: [...f.colors, { ...colorInput, label: v, price: '', sizePrices: {} }] })); setColorInput({ label: '', imageUrl: null }) }
+                    if (v) { setForm(f => ({ ...f, colors: [...f.colors, { ...colorInput, label: v, price: '', costPrice: '', sizePrices: {} }] })); setColorInput({ label: '', imageUrl: null }) }
                   }
                 }} />
             </div>
@@ -501,7 +523,7 @@ export default function ProductEditPage() {
             </div>
             <button type="button" className="btn-secondary px-4 h-9" onClick={() => {
               const v = colorInput.label.trim()
-              if (v) { setForm(f => ({ ...f, colors: [...f.colors, { ...colorInput, label: v, price: '', sizePrices: {} }] })); setColorInput({ label: '', imageUrl: null }) }
+              if (v) { setForm(f => ({ ...f, colors: [...f.colors, { ...colorInput, label: v, price: '', costPrice: '', sizePrices: {} }] })); setColorInput({ label: '', imageUrl: null }) }
             }}>添加</button>
           </div>
 
@@ -516,7 +538,7 @@ export default function ProductEditPage() {
                       <th key={s} className="text-xs font-medium text-cheers-brown/60 py-1.5 px-2 text-center whitespace-nowrap">{s}</th>
                     ))}
                     <th className="text-xs font-medium text-cheers-brown/60 py-1.5 px-2 text-center whitespace-nowrap">
-                      {form.sizes.length > 0 ? '无尺寸价格' : '价格 (RM)'}
+                      {form.sizes.length > 0 ? '无尺寸价格' : '售价/成本 (RM)'}
                     </th>
                     <th />
                   </tr>
@@ -539,36 +561,53 @@ export default function ProductEditPage() {
                       </td>
                       {form.sizes.map(s => (
                         <td key={s} className="py-2 px-2">
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            placeholder="—"
-                            value={color.sizePrices?.[s] || ''}
-                            onChange={e => setForm(f => ({
-                              ...f,
-                              colors: f.colors.map((c, i) => i === ci
-                                ? { ...c, sizePrices: { ...c.sizePrices, [s]: e.target.value } }
-                                : c
-                              )
-                            }))}
-                            className="input text-sm w-20 text-center px-2"
-                          />
+                          <div className="flex flex-col gap-1">
+                            <input
+                              type="number" step="0.01" min="0" placeholder="售—"
+                              value={color.sizePrices?.[s]?.price || ''}
+                              onChange={e => setForm(f => ({
+                                ...f,
+                                colors: f.colors.map((c, i) => i === ci
+                                  ? { ...c, sizePrices: { ...c.sizePrices, [s]: { ...(c.sizePrices?.[s] || {}), price: e.target.value } } }
+                                  : c)
+                              }))}
+                              className="input text-xs w-20 text-center px-1 py-1"
+                            />
+                            <input
+                              type="number" step="0.01" min="0" placeholder="本—"
+                              value={color.sizePrices?.[s]?.costPrice || ''}
+                              onChange={e => setForm(f => ({
+                                ...f,
+                                colors: f.colors.map((c, i) => i === ci
+                                  ? { ...c, sizePrices: { ...c.sizePrices, [s]: { ...(c.sizePrices?.[s] || {}), costPrice: e.target.value } } }
+                                  : c)
+                              }))}
+                              className="input text-xs w-20 text-center px-1 py-1 bg-amber-50/50"
+                            />
+                          </div>
                         </td>
                       ))}
                       <td className="py-2 px-2">
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          placeholder="同主价"
-                          value={color.price}
-                          onChange={e => setForm(f => ({
-                            ...f,
-                            colors: f.colors.map((c, i) => i === ci ? { ...c, price: e.target.value } : c)
-                          }))}
-                          className="input text-sm w-24 text-center px-2"
-                        />
+                        <div className="flex flex-col gap-1">
+                          <input
+                            type="number" step="0.01" min="0" placeholder="售—"
+                            value={color.price}
+                            onChange={e => setForm(f => ({
+                              ...f,
+                              colors: f.colors.map((c, i) => i === ci ? { ...c, price: e.target.value } : c)
+                            }))}
+                            className="input text-xs w-24 text-center px-1 py-1"
+                          />
+                          <input
+                            type="number" step="0.01" min="0" placeholder="本—"
+                            value={color.costPrice || ''}
+                            onChange={e => setForm(f => ({
+                              ...f,
+                              colors: f.colors.map((c, i) => i === ci ? { ...c, costPrice: e.target.value } : c)
+                            }))}
+                            className="input text-xs w-24 text-center px-1 py-1 bg-amber-50/50"
+                          />
+                        </div>
                       </td>
                       <td className="py-2 pl-2">
                         <button type="button"
@@ -580,7 +619,7 @@ export default function ProductEditPage() {
                 </tbody>
               </table>
               {form.sizes.length > 0 && (
-                <p className="text-xs text-cheers-brown/40 mt-2">单元格留空 = 该颜色不提供该尺寸；"无尺寸价格"仅在该颜色无任何尺寸时生效</p>
+                <p className="text-xs text-cheers-brown/40 mt-2">售—=售价；本—=成本价（金色底）；留空表示不提供该尺寸或沿用上级价格</p>
               )}
             </div>
           )}
