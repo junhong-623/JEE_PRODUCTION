@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { getFirestore, collection, query, where, getDocs, doc, getDoc, orderBy } from 'firebase/firestore'
 import app from '../../lib/firebase'
@@ -20,8 +20,13 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true)
   const [activeTripId, setActiveTripId] = useState(null)
   const [search, setSearch] = useState('')
-  const rootCatRef = useRef(null)
-  const subCatRef  = useRef(null)
+  // 'auto' = 默认（无展开但若 active 在隐藏区会自动展开）
+  // 'open' = 用户手动展开
+  // 'closed' = 用户手动收起（覆盖 auto，保持收起即使 active 在隐藏区）
+  const [rootExpand, setRootExpand] = useState('auto')
+  const [subExpand, setSubExpand] = useState('auto')
+  const ROOT_LIMIT = 6
+  const SUB_LIMIT = 6
 
   const activeCategory = searchParams.get('category') || 'all'
 
@@ -30,6 +35,9 @@ export default function ProductsPage() {
     if (catId === 'all') next.delete('category')
     else next.set('category', catId)
     setSearchParams(next, { replace: true })
+    // 点击任何分类后自动收起两行（即使点的是「更多」展开后的项）
+    setRootExpand('closed')
+    setSubExpand('closed')
   }
 
   useEffect(() => {
@@ -66,17 +74,19 @@ export default function ProductsPage() {
     : activeCatObj?.parentId || activeCategory   // sub → parent; root → itself
   const activeSubCats = activeRootId ? getChildren(activeRootId) : []
 
-  useEffect(() => {
-    function attach(el) {
-      if (!el) return
-      const fn = e => { e.preventDefault(); el.scrollLeft += e.deltaY + e.deltaX }
-      el.addEventListener('wheel', fn, { passive: false })
-      return () => el.removeEventListener('wheel', fn)
-    }
-    const d1 = attach(rootCatRef.current)
-    const d2 = attach(subCatRef.current)
-    return () => { d1?.(); d2?.() }
-  }, [activeSubCats.length])
+  // 自动展开仅在 rootExpand === 'auto' 时生效；
+  // 'closed' 即使 active 在隐藏区也保持收起（点击副作用要的就是这个）
+  const activeRootIdx = activeRootId ? rootCats.findIndex(c => c.id === activeRootId) : -1
+  const activeSubIdx = (activeRootId && activeCategory !== activeRootId)
+    ? activeSubCats.findIndex(c => c.id === activeCategory) : -1
+  const fitsAllRoots = rootCats.length <= ROOT_LIMIT + 1
+  const fitsAllSubs  = activeSubCats.length <= SUB_LIMIT + 1
+  const showAllRoots = rootExpand === 'open' || fitsAllRoots || (rootExpand === 'auto' && activeRootIdx >= ROOT_LIMIT)
+  const showAllSubs  = subExpand  === 'open' || fitsAllSubs  || (subExpand  === 'auto' && activeSubIdx  >= SUB_LIMIT)
+  const visibleRoots = showAllRoots ? rootCats : rootCats.slice(0, ROOT_LIMIT)
+  const visibleSubs  = showAllSubs  ? activeSubCats : activeSubCats.slice(0, SUB_LIMIT)
+  const rootHidden = rootCats.length - visibleRoots.length
+  const subHidden  = activeSubCats.length - visibleSubs.length
 
   // Products to show: include all sub-category products when root is selected
   const matchingCatIds = (() => {
@@ -116,40 +126,64 @@ export default function ProductsPage() {
       {/* Category filter — root row */}
       {rootCats.length > 0 && (
         <div className="space-y-2 mb-6">
-          <div ref={rootCatRef} className="flex gap-2 overflow-x-auto no-scrollbar touch-pan-x pb-1">
+          <div className="flex flex-wrap gap-2">
             <button onClick={() => setActiveCategory('all')}
-              className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 activeCategory === 'all' ? 'bg-cheers-brown text-cheers-cream' : 'border border-cheers-brown/30 text-cheers-brown hover:border-cheers-brown'
               }`}>
               {t('common.all')}
             </button>
-            {rootCats.map(cat => (
+            {visibleRoots.map(cat => (
               <button key={cat.id} onClick={() => setActiveCategory(cat.id)}
-                className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
                   activeRootId === cat.id ? 'bg-cheers-brown text-cheers-cream' : 'border border-cheers-brown/30 text-cheers-brown hover:border-cheers-brown'
                 }`}>
                 {cat.name?.[lang] || cat.name?.zh}
               </button>
             ))}
+            {rootHidden > 0 && (
+              <button onClick={() => setRootExpand('open')}
+                className="px-4 py-1.5 rounded-full text-sm font-medium text-cheers-brown/70 border border-dashed border-cheers-brown/30 hover:border-cheers-brown hover:text-cheers-brown transition-colors">
+                {lang === 'zh' ? `更多 (${rootHidden}) ▾` : `More (${rootHidden}) ▾`}
+              </button>
+            )}
+            {showAllRoots && !fitsAllRoots && (
+              <button onClick={() => setRootExpand('closed')}
+                className="px-4 py-1.5 rounded-full text-sm font-medium text-cheers-brown/50 hover:text-cheers-brown transition-colors">
+                {lang === 'zh' ? '收起 ▴' : 'Show less ▴'}
+              </button>
+            )}
           </div>
 
           {/* Sub-category row — only shown after clicking a root with children */}
           {activeSubCats.length > 0 && (
-            <div ref={subCatRef} className="flex gap-2 overflow-x-auto no-scrollbar touch-pan-x pb-1 pl-3 border-l-2 border-cheers-cream">
+            <div className="flex flex-wrap gap-2 pl-3 border-l-2 border-cheers-cream">
               <button onClick={() => setActiveCategory(activeRootId)}
-                className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                   activeCategory === activeRootId ? 'bg-cheers-brown/80 text-cheers-cream' : 'border border-cheers-brown/20 text-cheers-brown/70 hover:border-cheers-brown/50'
                 }`}>
                 {lang === 'zh' ? '全部' : 'All'}
               </button>
-              {activeSubCats.map(sub => (
+              {visibleSubs.map(sub => (
                 <button key={sub.id} onClick={() => setActiveCategory(sub.id)}
-                  className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                     activeCategory === sub.id ? 'bg-cheers-brown/80 text-cheers-cream' : 'border border-cheers-brown/20 text-cheers-brown/70 hover:border-cheers-brown/50'
                   }`}>
                   {sub.name?.[lang] || sub.name?.zh}
                 </button>
               ))}
+              {subHidden > 0 && (
+                <button onClick={() => setSubExpand('open')}
+                  className="px-3 py-1 rounded-full text-xs font-medium text-cheers-brown/60 border border-dashed border-cheers-brown/20 hover:border-cheers-brown/50 hover:text-cheers-brown transition-colors">
+                  {lang === 'zh' ? `更多 (${subHidden}) ▾` : `More (${subHidden}) ▾`}
+                </button>
+              )}
+              {showAllSubs && !fitsAllSubs && (
+                <button onClick={() => setSubExpand('closed')}
+                  className="px-3 py-1 rounded-full text-xs font-medium text-cheers-brown/40 hover:text-cheers-brown transition-colors">
+                  {lang === 'zh' ? '收起 ▴' : 'Less ▴'}
+                </button>
+              )}
             </div>
           )}
         </div>
