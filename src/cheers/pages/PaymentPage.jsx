@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useLocation, useNavigate } from 'react-router-dom'
-import { getFirestore, doc, getDoc, getDocs, query, collection, where, updateDoc } from 'firebase/firestore'
+import { getFirestore, doc, getDoc, updateDoc } from 'firebase/firestore'
 import app from '../../lib/firebase'
 import { useLang } from '../contexts/LangContext'
 
@@ -15,7 +15,6 @@ export default function PaymentPage() {
 
   const [settings, setSettings] = useState(null)
   const [order, setOrder] = useState(null)
-  const [parentOrder, setParentOrder] = useState(null) // 合并支付时的母订单
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
@@ -30,13 +29,6 @@ export default function PaymentPage() {
         const o = { id: orderSnap.id, ...orderSnap.data() }
         setOrder(o)
         if (o.paymentSubmitted) setSubmitted(true)
-        // 加单子订单 + 母订单未付款 → 合并支付
-        if (o.isAddon && o.parentOrderId) {
-          const parentSnap = await getDocs(query(collection(db, 'cheers_orders'), where('orderId', '==', o.parentOrderId)))
-          if (!parentSnap.empty) {
-            setParentOrder({ id: parentSnap.docs[0].id, ...parentSnap.docs[0].data() })
-          }
-        }
       }
     }
     load()
@@ -48,35 +40,22 @@ export default function PaymentPage() {
     </div>
   )
 
-  // 合并支付逻辑：加单 + 母订单未付款 → 合并金额
-  const parentUnpaid = !!(parentOrder && !parentOrder.paymentSubmitted)
-  const combinedMode = order.isAddon && parentUnpaid
-  const childTotal = order.total
-  const parentTotal = parentOrder?.total || 0
-  const total = combinedMode ? childTotal + parentTotal : childTotal
+  const total = order.total
   const isDeposit = settings.paymentMode === 'deposit'
   const payAmount = isDeposit ? (settings.depositAmount || total) : total
 
   const displayOrderId = order.orderId || orderId
 
   function buildWhatsAppLink() {
-    const lines = [
-      `${lang === 'zh' ? '您好！我的订单号是' : 'Hi! My order ID is'} ${displayOrderId}`,
-    ]
-    if (combinedMode) {
-      lines.push(`${lang === 'zh' ? '（合并母订单 ' : '(merged with '}${parentOrder.orderId || parentOrder.id})`)
-    }
-    lines.push(`${lang === 'zh' ? '付款金额：' : 'Amount paid: '}RM ${payAmount.toFixed(2)}`)
-    return `https://wa.me/${settings.whatsappNumber?.replace(/\D/g, '')}?text=${encodeURIComponent(lines.join('\n'))}`
+    const msg = encodeURIComponent(
+      `${lang === 'zh' ? '您好！我的订单号是' : 'Hi! My order ID is'} ${displayOrderId}\n${lang === 'zh' ? '付款金额：' : 'Amount paid: '}RM ${payAmount.toFixed(2)}`
+    )
+    return `https://wa.me/${settings.whatsappNumber?.replace(/\D/g, '')}?text=${msg}`
   }
 
   async function handleSubmitPayment() {
     setSubmitting(true)
     await updateDoc(doc(db, 'cheers_orders', orderId), { paymentSubmitted: true })
-    // 合并支付：同时把母订单也标记为已提交付款
-    if (combinedMode && parentOrder?.id) {
-      await updateDoc(doc(db, 'cheers_orders', parentOrder.id), { paymentSubmitted: true })
-    }
     setSubmitted(true)
     setSubmitting(false)
   }
@@ -105,13 +84,6 @@ export default function PaymentPage() {
           <p className="text-3xl font-bold text-cheers-brown">
             {t('common.rmPrefix')} {payAmount.toFixed(2)}
           </p>
-          {combinedMode && (
-            <p className="text-xs text-cheers-brown/60 mt-2 px-3">
-              📦 {lang === 'zh'
-                ? `合并支付：母订单 ${parentOrder.orderId || parentOrder.id} RM ${parentTotal.toFixed(2)} + 此单 RM ${childTotal.toFixed(2)}`
-                : `Combined: Parent ${parentOrder.orderId || parentOrder.id} RM ${parentTotal.toFixed(2)} + this RM ${childTotal.toFixed(2)}`}
-            </p>
-          )}
           {isDeposit && (
             <p className="text-xs text-cheers-brown/50 mt-1">
               {lang === 'zh' ? `总额 RM ${total.toFixed(2)}` : `Total RM ${total.toFixed(2)}`}
