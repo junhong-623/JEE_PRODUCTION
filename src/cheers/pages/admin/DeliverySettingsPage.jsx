@@ -93,13 +93,26 @@ export default function DeliverySettingsPage() {
                   <p className="text-xs text-cheers-brown/40">暂无面交地点</p>
                 ) : (
                   <div className="space-y-2">
-                    {locations.map(loc => (
-                      <div key={loc.id} className="flex items-center justify-between bg-cheers-light-cream rounded-lg px-3 py-2">
-                        <span className="text-sm text-cheers-dark-brown">{loc.name?.zh}</span>
-                        <button type="button" onClick={() => removeLocation(loc.id)}
-                          className="text-red-400 hover:text-red-600 text-xs ml-3">移除</button>
-                      </div>
-                    ))}
+                    {locations.map(loc => {
+                      const zh = loc.name?.zh || ''
+                      const en = loc.name?.en || ''
+                      const hasBoth = zh && en && zh !== en
+                      return (
+                        <div key={loc.id} className="flex items-center justify-between bg-cheers-light-cream rounded-lg px-3 py-2">
+                          <div className="min-w-0 flex-1">
+                            <span className="text-sm text-cheers-dark-brown">{zh}</span>
+                            {hasBoth && (
+                              <span className="text-sm text-cheers-brown/60 ml-2">· {en}</span>
+                            )}
+                            {!hasBoth && zh && (
+                              <span className="text-xs text-amber-600 ml-2">⚠️ 仅中文</span>
+                            )}
+                          </div>
+                          <button type="button" onClick={() => removeLocation(loc.id)}
+                            className="text-red-400 hover:text-red-600 text-xs ml-3 flex-shrink-0">移除</button>
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
               </div>
