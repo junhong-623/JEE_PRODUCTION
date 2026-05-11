@@ -414,19 +414,23 @@ function DeliveryTab({ orders, delivStatuses, onToggleStatus, onReload, lang }) 
     return [d.address, `${d.postcode || ''} ${d.city || ''}`.trim(), d.state].filter(Boolean).join('\n')
   }
 
-  function handleCopy(order) {
+  function formatContact(order) {
     const addr = buildAddr(order)
-    const text = copyWithContact ? `${order.userName || ''} · ${order.delivery?.phone || ''}\n${addr}` : addr
-    copyText(text)
+    if (!copyWithContact) return addr
+    const lines = []
+    if (order.userName) lines.push(order.userName)
+    if (order.delivery?.phone) lines.push(order.delivery.phone)
+    lines.push(addr)
+    return lines.join('\n')
+  }
+
+  function handleCopy(order) {
+    copyText(formatContact(order))
     setCopied(order.id); setTimeout(() => setCopied(null), 1500)
   }
 
   function copyGroup(groupOrders) {
-    const lines = groupOrders.map(o => {
-      const addr = buildAddr(o)
-      return copyWithContact ? `${o.userName || ''} · ${o.delivery?.phone || ''}\n${addr}` : addr
-    })
-    copyText(lines.join('\n\n'))
+    copyText(groupOrders.map(formatContact).join('\n\n'))
   }
 
   async function applyGroupStatus(groupKey, groupOrders) {
