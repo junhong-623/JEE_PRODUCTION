@@ -46,6 +46,22 @@ export function priceRange(product) {
   return { min, max, isRange: min !== max }
 }
 
+// 取指定颜色下的价格范围（涵盖该颜色的所有尺寸有效价）
+// 若该颜色无 sizes 或找不到该颜色，则返回单一价
+export function colorPriceRange(product, colorLabel) {
+  const base = Number(product?.price) || 0
+  const c = product?.colors?.find(c => c.label === colorLabel)
+  if (!c) return { min: base, max: base, isRange: false }
+  const colorPrice = parsePrice(c.price) ?? base
+  if (!Array.isArray(c.sizes) || !c.sizes.length) {
+    return { min: colorPrice, max: colorPrice, isRange: false }
+  }
+  const all = c.sizes.map(s => parsePrice(s.price) ?? colorPrice)
+  const min = Math.min(...all)
+  const max = Math.max(...all)
+  return { min, max, isRange: min !== max }
+}
+
 // 取有效成本价：尺寸成本价 > 颜色成本价 > 商品成本价 > null
 export function effectiveCostPrice(product, colorLabel, sizeLabel) {
   const base = parsePrice(product?.costPrice) ?? null
