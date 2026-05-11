@@ -4,6 +4,7 @@ import { getFirestore, collection, query, where, getDocs, doc, getDoc, limit, or
 import app from '../../lib/firebase'
 import { useLang } from '../contexts/LangContext'
 import ProductCard from '../components/ui/ProductCard'
+import { optimizeUrl } from '../lib/cloudinary'
 
 const db = getFirestore(app)
 
@@ -68,7 +69,7 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto text-center relative z-10">
           {/* Icon — emoji or image */}
           {hero?.iconType === 'image' && hero?.imageUrl ? (
-            <img src={hero.imageUrl} alt="" className="w-16 h-16 rounded-2xl object-cover mx-auto mb-4 shadow-sm" />
+            <img src={optimizeUrl(hero.imageUrl, { width: 120 })} alt="" className="w-16 h-16 rounded-2xl object-cover mx-auto mb-4 shadow-sm" />
           ) : (
             <div className="text-6xl mb-4">{hero?.emoji || '🗾'}</div>
           )}
@@ -115,7 +116,7 @@ export default function HomePage() {
                   onClick={() => navigate(`/products?category=${cat.id}`)}>
                   <div className="relative aspect-square overflow-hidden bg-cheers-cream/20">
                     {cat.coverImage
-                      ? <img src={cat.coverImage} alt={name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                      ? <img src={optimizeUrl(cat.coverImage, { width: 400 })} alt={name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                       : <div className="w-full h-full flex items-center justify-center text-cheers-brown/20 text-5xl">🗂</div>
                     }
                   </div>

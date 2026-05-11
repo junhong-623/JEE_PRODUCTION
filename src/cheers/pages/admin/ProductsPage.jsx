@@ -3,6 +3,7 @@ import { getFirestore, collection, getDocs, deleteDoc, doc, getDoc, writeBatch }
 import { Link } from 'react-router-dom'
 import app from '../../../lib/firebase'
 import { useLang } from '../../contexts/LangContext'
+import { optimizeUrl } from '../../lib/cloudinary'
 
 const db = getFirestore(app)
 
@@ -106,7 +107,7 @@ export default function AdminProductsPage() {
                     <input type="checkbox" className="w-4 h-4 accent-cheers-brown flex-shrink-0 cursor-pointer"
                       checked={selected.has(product.id)} onChange={() => toggleSelect(product.id)} />
                     {product.imageUrl ? (
-                      <img src={product.imageUrl} alt="" className="w-14 h-14 object-cover rounded-lg flex-shrink-0" />
+                      <img src={optimizeUrl(product.imageUrl, { width: 120 })} alt="" className="w-14 h-14 object-cover rounded-lg flex-shrink-0" />
                     ) : (
                       <div className="w-14 h-14 rounded-lg bg-cheers-cream/40 flex items-center justify-center text-2xl flex-shrink-0">🛍</div>
                     )}

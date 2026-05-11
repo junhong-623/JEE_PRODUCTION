@@ -6,6 +6,7 @@ import app from '../../lib/firebase'
 import { useLang } from '../contexts/LangContext'
 import { useAuth } from '../contexts/AuthContext'
 import { useWishlist } from '../contexts/WishlistContext'
+import { optimizeUrl } from '../lib/cloudinary'
 import { useCart } from '../contexts/CartContext'
 import CouponTicket from '../components/ui/CouponTicket'
 
@@ -395,7 +396,7 @@ function WishlistTab({ lang, t }) {
         <div key={item.productId} className="card p-4 flex items-center gap-4">
           <Link to={`/products/${item.productId}`} className="flex-shrink-0">
             {item.imageUrl
-              ? <img src={item.imageUrl} alt={item.name} className="w-14 h-14 object-cover rounded-lg" />
+              ? <img src={optimizeUrl(item.imageUrl, { width: 120 })} alt={item.name} className="w-14 h-14 object-cover rounded-lg" />
               : <div className="w-14 h-14 rounded-lg bg-cheers-cream/40 flex items-center justify-center text-2xl">🛍</div>}
           </Link>
           <div className="flex-1 min-w-0">

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query, orderBy } from 'firebase/firestore'
 import app from '../../../lib/firebase'
+import { optimizeUrl } from '../../lib/cloudinary'
 
 const db = getFirestore(app)
 
@@ -108,7 +109,7 @@ export default function HomeSettingsPage() {
         ) : (
           <div className="flex items-center gap-4">
             {hero.imageUrl
-              ? <img src={hero.imageUrl} className="w-20 h-20 rounded-xl object-cover border border-cheers-cream" />
+              ? <img src={optimizeUrl(hero.imageUrl, { width: 160 })} className="w-20 h-20 rounded-xl object-cover border border-cheers-cream" />
               : <div className="w-20 h-20 rounded-xl bg-cheers-cream flex items-center justify-center text-cheers-brown/40 text-xs">未上传</div>
             }
             <div className="space-y-2">
@@ -267,7 +268,7 @@ export default function HomeSettingsPage() {
                         onChange={e => setHomepageCatIds(prev =>
                           e.target.checked ? [...prev, root.id] : prev.filter(id => id !== root.id)
                         )} />
-                      {root.coverImage && <img src={root.coverImage} className="w-7 h-7 rounded object-cover flex-shrink-0" />}
+                      {root.coverImage && <img src={optimizeUrl(root.coverImage, { width: 60 })} className="w-7 h-7 rounded object-cover flex-shrink-0" />}
                       <span className="text-sm font-medium text-cheers-dark-brown">{root.name?.zh || root.name?.en}</span>
                     </label>
                     {children.map(child => (
@@ -277,7 +278,7 @@ export default function HomeSettingsPage() {
                           onChange={e => setHomepageCatIds(prev =>
                             e.target.checked ? [...prev, child.id] : prev.filter(id => id !== child.id)
                           )} />
-                        {child.coverImage && <img src={child.coverImage} className="w-6 h-6 rounded object-cover flex-shrink-0" />}
+                        {child.coverImage && <img src={optimizeUrl(child.coverImage, { width: 60 })} className="w-6 h-6 rounded object-cover flex-shrink-0" />}
                         <span className="text-xs text-cheers-dark-brown/80">{child.name?.zh || child.name?.en}</span>
                       </label>
                     ))}

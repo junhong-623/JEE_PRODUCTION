@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, getDoc, writeBatch } from 'firebase/firestore'
 import app from '../../../lib/firebase'
 import { useLang } from '../../contexts/LangContext'
+import { optimizeUrl } from '../../lib/cloudinary'
 
 const db = getFirestore(app)
 
@@ -170,7 +171,7 @@ export default function CategoriesPage() {
           {/* Cover image */}
           <label htmlFor={`cov-${cat.id}`} className="relative flex-shrink-0 cursor-pointer group">
             {cat.coverImage
-              ? <img src={cat.coverImage} className="w-9 h-9 rounded-lg object-cover" />
+              ? <img src={optimizeUrl(cat.coverImage, { width: 80 })} className="w-9 h-9 rounded-lg object-cover" />
               : <div className="w-9 h-9 rounded-lg bg-cheers-cream flex items-center justify-center text-cheers-brown/30 text-[10px]">封面</div>
             }
             <div className="absolute inset-0 rounded-lg bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
