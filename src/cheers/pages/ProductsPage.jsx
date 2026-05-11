@@ -20,8 +20,11 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true)
   const [activeTripId, setActiveTripId] = useState(null)
   const [search, setSearch] = useState('')
-  const [rootExpanded, setRootExpanded] = useState(false)
-  const [subExpanded, setSubExpanded] = useState(false)
+  // 'auto' = 默认（无展开但若 active 在隐藏区会自动展开）
+  // 'open' = 用户手动展开
+  // 'closed' = 用户手动收起（覆盖 auto，保持收起即使 active 在隐藏区）
+  const [rootExpand, setRootExpand] = useState('auto')
+  const [subExpand, setSubExpand] = useState('auto')
   const ROOT_LIMIT = 6
   const SUB_LIMIT = 6
 
@@ -32,6 +35,9 @@ export default function ProductsPage() {
     if (catId === 'all') next.delete('category')
     else next.set('category', catId)
     setSearchParams(next, { replace: true })
+    // 点击任何分类后自动收起两行（即使点的是「更多」展开后的项）
+    setRootExpand('closed')
+    setSubExpand('closed')
   }
 
   useEffect(() => {
@@ -68,12 +74,15 @@ export default function ProductsPage() {
     : activeCatObj?.parentId || activeCategory   // sub → parent; root → itself
   const activeSubCats = activeRootId ? getChildren(activeRootId) : []
 
-  // Auto-expand if active category is in the hidden range
+  // 自动展开仅在 rootExpand === 'auto' 时生效；
+  // 'closed' 即使 active 在隐藏区也保持收起（点击副作用要的就是这个）
   const activeRootIdx = activeRootId ? rootCats.findIndex(c => c.id === activeRootId) : -1
   const activeSubIdx = (activeRootId && activeCategory !== activeRootId)
     ? activeSubCats.findIndex(c => c.id === activeCategory) : -1
-  const showAllRoots = rootExpanded || activeRootIdx >= ROOT_LIMIT || rootCats.length <= ROOT_LIMIT + 1
-  const showAllSubs  = subExpanded  || activeSubIdx  >= SUB_LIMIT  || activeSubCats.length <= SUB_LIMIT + 1
+  const fitsAllRoots = rootCats.length <= ROOT_LIMIT + 1
+  const fitsAllSubs  = activeSubCats.length <= SUB_LIMIT + 1
+  const showAllRoots = rootExpand === 'open' || fitsAllRoots || (rootExpand === 'auto' && activeRootIdx >= ROOT_LIMIT)
+  const showAllSubs  = subExpand  === 'open' || fitsAllSubs  || (subExpand  === 'auto' && activeSubIdx  >= SUB_LIMIT)
   const visibleRoots = showAllRoots ? rootCats : rootCats.slice(0, ROOT_LIMIT)
   const visibleSubs  = showAllSubs  ? activeSubCats : activeSubCats.slice(0, SUB_LIMIT)
   const rootHidden = rootCats.length - visibleRoots.length
@@ -133,13 +142,13 @@ export default function ProductsPage() {
               </button>
             ))}
             {rootHidden > 0 && (
-              <button onClick={() => setRootExpanded(true)}
+              <button onClick={() => setRootExpand('open')}
                 className="px-4 py-1.5 rounded-full text-sm font-medium text-cheers-brown/70 border border-dashed border-cheers-brown/30 hover:border-cheers-brown hover:text-cheers-brown transition-colors">
                 {lang === 'zh' ? `更多 (${rootHidden}) ▾` : `More (${rootHidden}) ▾`}
               </button>
             )}
-            {showAllRoots && rootCats.length > ROOT_LIMIT + 1 && (
-              <button onClick={() => setRootExpanded(false)}
+            {showAllRoots && !fitsAllRoots && (
+              <button onClick={() => setRootExpand('closed')}
                 className="px-4 py-1.5 rounded-full text-sm font-medium text-cheers-brown/50 hover:text-cheers-brown transition-colors">
                 {lang === 'zh' ? '收起 ▴' : 'Show less ▴'}
               </button>
@@ -164,13 +173,13 @@ export default function ProductsPage() {
                 </button>
               ))}
               {subHidden > 0 && (
-                <button onClick={() => setSubExpanded(true)}
+                <button onClick={() => setSubExpand('open')}
                   className="px-3 py-1 rounded-full text-xs font-medium text-cheers-brown/60 border border-dashed border-cheers-brown/20 hover:border-cheers-brown/50 hover:text-cheers-brown transition-colors">
                   {lang === 'zh' ? `更多 (${subHidden}) ▾` : `More (${subHidden}) ▾`}
                 </button>
               )}
-              {showAllSubs && activeSubCats.length > SUB_LIMIT + 1 && (
-                <button onClick={() => setSubExpanded(false)}
+              {showAllSubs && !fitsAllSubs && (
+                <button onClick={() => setSubExpand('closed')}
                   className="px-3 py-1 rounded-full text-xs font-medium text-cheers-brown/40 hover:text-cheers-brown transition-colors">
                   {lang === 'zh' ? '收起 ▴' : 'Less ▴'}
                 </button>
