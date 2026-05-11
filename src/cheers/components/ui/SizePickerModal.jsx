@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useLang } from '../../contexts/LangContext'
 import { useCart } from '../../contexts/CartContext'
 import { effectivePrice, formatPriceDisplay, getColorSizes, colorPriceRange } from '../../lib/productPrice'
+import { optimizeUrl } from '../../lib/cloudinary'
 
 export default function SizePickerModal({ product, onClose }) {
   const { t, lang } = useLang()
@@ -68,7 +69,7 @@ export default function SizePickerModal({ product, onClose }) {
         <div className="flex gap-4 p-4 border-b border-cheers-cream">
           <div className="w-20 h-20 rounded-xl overflow-hidden bg-cheers-cream/30 flex-shrink-0">
             {product.imageUrl
-              ? <img src={product.imageUrl} alt={name} className="w-full h-full object-cover" />
+              ? <img src={optimizeUrl(product.imageUrl, { width: 200 })} alt={name} className="w-full h-full object-cover" />
               : <div className="w-full h-full flex items-center justify-center text-3xl">🛍</div>}
           </div>
           <div className="min-w-0 flex-1 pt-1">
