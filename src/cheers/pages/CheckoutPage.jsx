@@ -138,9 +138,6 @@ export default function CheckoutPage() {
   const [parentOrderSubtotal, setParentOrderSubtotal] = useState(0)
   // Update-existing-order mode (unpaid pending order)
   const [updateOrderInfo, setUpdateOrderInfo] = useState(null)
-  // 用户可合并的母订单列表（在 checkout 内直接选择，无需先去 /orders）
-  const [eligibleParents, setEligibleParents] = useState([])
-  const [parentPickerOpen, setParentPickerOpen] = useState(false)
 
   // Coupon state
   const [userCoupons, setUserCoupons] = useState([])       // personal unused coupons
@@ -204,26 +201,14 @@ export default function CheckoutPage() {
         }
       }
 
-      const [settingsSnap, addressSnap, couponsSnap, parentSnap, eligibleSnap] = await Promise.all([
+      const [settingsSnap, addressSnap, couponsSnap, parentSnap] = await Promise.all([
         getDoc(doc(db, 'cheers_settings', 'global')),
         (!addon && user) ? getDoc(doc(db, 'cheers_addresses', user.uid)) : Promise.resolve(null),
         user ? getDocs(query(collection(db, 'cheers_user_coupons'), where('userId', '==', user.uid), where('used', '==', false))) : Promise.resolve(null),
         addon ? getDocs(query(collection(db, 'cheers_orders'), where('orderId', '==', addon.parentOrderId))) : Promise.resolve(null),
-        // 仅在用户登录且非 addon/update 模式下加载可合并的母订单
-        (user && !addon && !updateInfo) ? getDocs(query(collection(db, 'cheers_orders'), where('userId', '==', user.uid))) : Promise.resolve(null),
       ])
       const parentSubtotal = (!parentSnap || parentSnap.empty) ? 0 : (parentSnap.docs[0].data().subtotal || 0)
       if (parentSubtotal > 0) setParentOrderSubtotal(parentSubtotal)
-
-      // 过滤出可合并的母订单：状态 in [pending, confirmed, purchasing] 且 非加单
-      if (eligibleSnap) {
-        const ELIGIBLE = new Set(['pending', 'confirmed', 'purchasing'])
-        const list = eligibleSnap.docs
-          .map(d => ({ id: d.id, ...d.data() }))
-          .filter(o => ELIGIBLE.has(o.status) && !o.isAddon)
-          .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
-        setEligibleParents(list)
-      }
 
       if (settingsSnap.exists()) {
         setSettings(settingsSnap.data())
@@ -274,37 +259,6 @@ export default function CheckoutPage() {
     }
     load()
   }, [user])
-
-  // 应用「合并到母订单」：把选中的母订单转成 addonInfo，沿用现有的免邮费/锁地址逻辑
-  function applyMerge(parent) {
-    const d = parent.delivery || {}
-    const delivery = d.type === 'face-to-face'
-      ? { type: 'face-to-face', location: d.location || '' }
-      : { type: 'shipping', name: d.name || '', phone: d.phone || '', address: d.address || '', postcode: d.postcode || '', city: d.city || '', state: d.state || '', region: d.region }
-    setAddonInfo({ parentOrderId: parent.orderId || parent.id, delivery })
-    setParentOrderSubtotal(parent.subtotal || 0)
-    if (d.type === 'face-to-face') {
-      setDeliveryType('face-to-face')
-      setLocation(delivery.location)
-    } else {
-      setDeliveryType('shipping')
-      setForm(f => ({
-        ...f,
-        name: delivery.name || f.name,
-        phone: delivery.phone || f.phone,
-        address: delivery.address || f.address,
-        postcode: delivery.postcode || f.postcode,
-        city: delivery.city || f.city,
-        state: delivery.state || f.state,
-      }))
-    }
-    setParentPickerOpen(false)
-  }
-
-  function clearMerge() {
-    setAddonInfo(null)
-    setParentOrderSubtotal(0)
-  }
 
   const region = detectRegion(form.postcode)
   const effectiveSubtotal = subtotal + parentOrderSubtotal  // combined for coupon minSpend check in addon mode
@@ -514,100 +468,32 @@ export default function CheckoutPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
 
-          {/* Delivery */}
+          {/* Delivery — shipping first */}
           <div className="card p-4">
             <h2 className="font-medium text-cheers-dark-brown mb-3">{t('checkout.delivery')}</h2>
-            {(() => {
-              // 区分两种 addon 来源：
-              // - 来自 sessionStorage（从订单页加单按钮）→ 锁定，不显示 radio，仅显示提示
-              // - 来自此页 picker → 显示为 radio 第三选项 + 可切换
-              const mergedFromPicker = addonInfo && eligibleParents.some(p => (p.orderId || p.id) === addonInfo.parentOrderId)
-              const mergedFromSession = addonInfo && !mergedFromPicker
-              return (
-                <>
-                  {mergedFromSession ? (
-                    <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                      <p className="text-sm font-medium text-cheers-dark-brown">
-                        📦 {lang === 'zh' ? '已合并到母订单' : 'Merged with order'} <span className="font-mono">{addonInfo.parentOrderId}</span>
-                      </p>
-                      <p className="text-xs text-cheers-brown/60 mt-0.5">
-                        {lang === 'zh' ? '免邮费，配送信息沿用母订单' : 'Free shipping, delivery info inherited'}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <label className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
-                        mergedFromPicker
-                          ? 'border-cheers-cream bg-white opacity-60 cursor-pointer'
-                          : (deliveryType === 'shipping' ? 'border-cheers-brown bg-cheers-cream/30 cursor-pointer' : 'border-cheers-cream hover:border-cheers-brown/40 cursor-pointer')
-                      }`}>
-                        <input type="radio" name="delivery" value="shipping"
-                          checked={!mergedFromPicker && deliveryType === 'shipping'}
-                          onChange={() => { if (mergedFromPicker) clearMerge(); setDeliveryType('shipping') }}
-                          className="text-cheers-brown" />
-                        <div>
-                          <p className="text-sm font-medium text-cheers-dark-brown">{t('checkout.shipping')}</p>
-                          <p className="text-xs text-cheers-brown/60">
-                            {lang === 'zh' ? '西马' : 'West MY'} RM {(settings.shippingFeeWest ?? settings.shippingFee ?? 0).toFixed(2)}
-                            {' · '}{lang === 'zh' ? '东马' : 'East MY'} RM {(settings.shippingFeeEast || 0).toFixed(2)}
-                            {' · '}{lang === 'zh' ? '根据邮编自动判断' : 'auto-detected from postcode'}
-                          </p>
-                        </div>
-                      </label>
-                      {settings.faceToFaceEnabled && (
-                        <label className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
-                          mergedFromPicker
-                            ? 'border-cheers-cream bg-white opacity-60 cursor-pointer'
-                            : (deliveryType === 'face-to-face' ? 'border-cheers-brown bg-cheers-cream/30 cursor-pointer' : 'border-cheers-cream hover:border-cheers-brown/40 cursor-pointer')
-                        }`}>
-                          <input type="radio" name="delivery" value="face-to-face"
-                            checked={!mergedFromPicker && deliveryType === 'face-to-face'}
-                            onChange={() => { if (mergedFromPicker) clearMerge(); setDeliveryType('face-to-face') }}
-                            className="text-cheers-brown" />
-                          <div>
-                            <p className="text-sm font-medium text-cheers-dark-brown">{t('checkout.faceToFace')}</p>
-                            <p className="text-xs text-green-600">{t('checkout.faceToFaceHint')}</p>
-                          </div>
-                        </label>
-                      )}
-                      {eligibleParents.length > 0 && !updateOrderInfo && (
-                        <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                          mergedFromPicker ? 'border-orange-400 bg-orange-50' : 'border-cheers-cream hover:border-orange-300'
-                        }`}>
-                          <input type="radio" name="delivery" value="merge"
-                            checked={mergedFromPicker}
-                            onChange={() => { if (!mergedFromPicker) setParentPickerOpen(true) }}
-                            className="text-cheers-brown mt-0.5" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-cheers-dark-brown">
-                              📦 {lang === 'zh' ? '合并到之前订单' : 'Merge with existing order'}
-                            </p>
-                            {mergedFromPicker ? (
-                              <p className="text-xs text-orange-700 mt-0.5">
-                                {lang === 'zh' ? '已选：' : 'Selected: '}
-                                <span className="font-mono">{addonInfo.parentOrderId}</span>
-                                {' · '}
-                                <button type="button" onClick={(e) => { e.preventDefault(); setParentPickerOpen(true) }}
-                                  className="underline hover:text-orange-900">
-                                  {lang === 'zh' ? '更换' : 'Change'}
-                                </button>
-                              </p>
-                            ) : (
-                              <p className="text-xs text-green-600 mt-0.5">
-                                {lang === 'zh'
-                                  ? `${eligibleParents.length} 个可合并订单 · 免邮费`
-                                  : `${eligibleParents.length} eligible · free shipping`}
-                              </p>
-                            )}
-                          </div>
-                        </label>
-                      )}
-                    </div>
-                  )}
-                </>
-              )
-            })()}
-            {deliveryType === 'face-to-face' && !addonInfo && (
+            <div className="space-y-2">
+              <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${deliveryType === 'shipping' ? 'border-cheers-brown bg-cheers-cream/30' : 'border-cheers-cream hover:border-cheers-brown/40'}`}>
+                <input type="radio" name="delivery" value="shipping" checked={deliveryType === 'shipping'} onChange={() => setDeliveryType('shipping')} className="text-cheers-brown" />
+                <div>
+                  <p className="text-sm font-medium text-cheers-dark-brown">{t('checkout.shipping')}</p>
+                  <p className="text-xs text-cheers-brown/60">
+                    {lang === 'zh' ? '西马' : 'West MY'} RM {(settings.shippingFeeWest ?? settings.shippingFee ?? 0).toFixed(2)}
+                    {' · '}{lang === 'zh' ? '东马' : 'East MY'} RM {(settings.shippingFeeEast || 0).toFixed(2)}
+                    {' · '}{lang === 'zh' ? '根据邮编自动判断' : 'auto-detected from postcode'}
+                  </p>
+                </div>
+              </label>
+              {settings.faceToFaceEnabled && (
+                <label className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${deliveryType === 'face-to-face' ? 'border-cheers-brown bg-cheers-cream/30' : 'border-cheers-cream hover:border-cheers-brown/40'}`}>
+                  <input type="radio" name="delivery" value="face-to-face" checked={deliveryType === 'face-to-face'} onChange={() => setDeliveryType('face-to-face')} className="text-cheers-brown" />
+                  <div>
+                    <p className="text-sm font-medium text-cheers-dark-brown">{t('checkout.faceToFace')}</p>
+                    <p className="text-xs text-green-600">{t('checkout.faceToFaceHint')}</p>
+                  </div>
+                </label>
+              )}
+            </div>
+            {deliveryType === 'face-to-face' && (
               <div className="mt-3">
                 <label className="label">{t('checkout.location')}</label>
                 <select value={location} onChange={e => setLocation(e.target.value)} className="input" required>
@@ -619,53 +505,6 @@ export default function CheckoutPage() {
               </div>
             )}
           </div>
-
-          {/* Picker modal — 列出可合并的母订单 */}
-          {parentPickerOpen && (
-            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-              onClick={e => { if (e.target === e.currentTarget) setParentPickerOpen(false) }}>
-              <div className="absolute inset-0 bg-cheers-dark-brown/40 backdrop-blur-sm" />
-              <div className="relative w-full sm:max-w-md bg-white rounded-2xl shadow-2xl max-h-[80vh] overflow-hidden flex flex-col animate-slide-up">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-cheers-cream">
-                  <h3 className="font-serif text-lg text-cheers-dark-brown">
-                    {lang === 'zh' ? '选择要合并的订单' : 'Pick an order to merge'}
-                  </h3>
-                  <button type="button" onClick={() => setParentPickerOpen(false)}
-                    className="w-7 h-7 rounded-full bg-cheers-cream/60 flex items-center justify-center text-cheers-brown hover:bg-cheers-cream">
-                    ✕
-                  </button>
-                </div>
-                <div className="overflow-y-auto p-4 space-y-2">
-                  {eligibleParents.map(p => {
-                    const isShipping = p.delivery?.type !== 'face-to-face'
-                    const statusLabel = lang === 'zh'
-                      ? (p.status === 'pending' ? '待确认' : p.status === 'confirmed' ? '已接单' : '采购中')
-                      : (p.status === 'pending' ? 'Pending' : p.status === 'confirmed' ? 'Confirmed' : 'Purchasing')
-                    const isSelected = addonInfo?.parentOrderId === (p.orderId || p.id)
-                    return (
-                      <button key={p.id} type="button" onClick={() => applyMerge(p)}
-                        className={`w-full text-left border rounded-lg p-3 transition-colors ${
-                          isSelected ? 'border-orange-400 bg-orange-50' : 'border-cheers-cream hover:border-cheers-brown'
-                        }`}>
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="font-mono text-sm text-cheers-dark-brown truncate">{p.orderId || p.id}</p>
-                          <span className="text-xs bg-cheers-cream text-cheers-brown px-2 py-0.5 rounded-full flex-shrink-0">{statusLabel}</span>
-                        </div>
-                        <div className="flex items-center justify-between mt-1">
-                          <p className="text-xs text-cheers-brown/60">
-                            {isShipping
-                              ? (lang === 'zh' ? '邮寄' : 'Shipping')
-                              : (lang === 'zh' ? `面交 · ${p.delivery?.location || ''}` : `Meet up · ${p.delivery?.location || ''}`)}
-                          </p>
-                          <p className="text-sm font-medium text-cheers-brown">RM {Number(p.total || 0).toFixed(2)}</p>
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Contact & address */}
           <div className="card p-4 space-y-3">
