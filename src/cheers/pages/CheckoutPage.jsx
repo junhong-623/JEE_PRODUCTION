@@ -138,6 +138,9 @@ export default function CheckoutPage() {
   const [parentOrderSubtotal, setParentOrderSubtotal] = useState(0)
   // Update-existing-order mode (unpaid pending order)
   const [updateOrderInfo, setUpdateOrderInfo] = useState(null)
+  // 用户可合并的母订单列表（在 checkout 内直接选择，无需先去 /orders）
+  const [eligibleParents, setEligibleParents] = useState([])
+  const [parentPickerOpen, setParentPickerOpen] = useState(false)
 
   // Coupon state
   const [userCoupons, setUserCoupons] = useState([])       // personal unused coupons
@@ -201,14 +204,26 @@ export default function CheckoutPage() {
         }
       }
 
-      const [settingsSnap, addressSnap, couponsSnap, parentSnap] = await Promise.all([
+      const [settingsSnap, addressSnap, couponsSnap, parentSnap, eligibleSnap] = await Promise.all([
         getDoc(doc(db, 'cheers_settings', 'global')),
         (!addon && user) ? getDoc(doc(db, 'cheers_addresses', user.uid)) : Promise.resolve(null),
         user ? getDocs(query(collection(db, 'cheers_user_coupons'), where('userId', '==', user.uid), where('used', '==', false))) : Promise.resolve(null),
         addon ? getDocs(query(collection(db, 'cheers_orders'), where('orderId', '==', addon.parentOrderId))) : Promise.resolve(null),
+        // 仅在用户登录且非 addon/update 模式下加载可合并的母订单
+        (user && !addon && !updateInfo) ? getDocs(query(collection(db, 'cheers_orders'), where('userId', '==', user.uid))) : Promise.resolve(null),
       ])
       const parentSubtotal = (!parentSnap || parentSnap.empty) ? 0 : (parentSnap.docs[0].data().subtotal || 0)
       if (parentSubtotal > 0) setParentOrderSubtotal(parentSubtotal)
+
+      // 过滤出可合并的母订单：状态 in [pending, confirmed, purchasing] 且 非加单
+      if (eligibleSnap) {
+        const ELIGIBLE = new Set(['pending', 'confirmed', 'purchasing'])
+        const list = eligibleSnap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(o => ELIGIBLE.has(o.status) && !o.isAddon)
+          .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
+        setEligibleParents(list)
+      }
 
       if (settingsSnap.exists()) {
         setSettings(settingsSnap.data())
@@ -259,6 +274,37 @@ export default function CheckoutPage() {
     }
     load()
   }, [user])
+
+  // 应用「合并到母订单」：把选中的母订单转成 addonInfo，沿用现有的免邮费/锁地址逻辑
+  function applyMerge(parent) {
+    const d = parent.delivery || {}
+    const delivery = d.type === 'face-to-face'
+      ? { type: 'face-to-face', location: d.location || '' }
+      : { type: 'shipping', name: d.name || '', phone: d.phone || '', address: d.address || '', postcode: d.postcode || '', city: d.city || '', state: d.state || '', region: d.region }
+    setAddonInfo({ parentOrderId: parent.orderId || parent.id, delivery })
+    setParentOrderSubtotal(parent.subtotal || 0)
+    if (d.type === 'face-to-face') {
+      setDeliveryType('face-to-face')
+      setLocation(delivery.location)
+    } else {
+      setDeliveryType('shipping')
+      setForm(f => ({
+        ...f,
+        name: delivery.name || f.name,
+        phone: delivery.phone || f.phone,
+        address: delivery.address || f.address,
+        postcode: delivery.postcode || f.postcode,
+        city: delivery.city || f.city,
+        state: delivery.state || f.state,
+      }))
+    }
+    setParentPickerOpen(false)
+  }
+
+  function clearMerge() {
+    setAddonInfo(null)
+    setParentOrderSubtotal(0)
+  }
 
   const region = detectRegion(form.postcode)
   const effectiveSubtotal = subtotal + parentOrderSubtotal  // combined for coupon minSpend check in addon mode
@@ -467,6 +513,79 @@ export default function CheckoutPage() {
       <div className="grid md:grid-cols-[1fr_320px] gap-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           {error && <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>}
+
+          {/* 合并到之前订单 — 已选 state */}
+          {addonInfo && !updateOrderInfo && (
+            <div className="card p-4 bg-orange-50 border-orange-200">
+              <div className="flex items-start gap-3">
+                <span className="text-xl flex-shrink-0">📦</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-cheers-dark-brown">
+                    {lang === 'zh' ? '已合并到母订单' : 'Merged with existing order'}
+                    <span className="ml-1 font-mono text-cheers-brown">{addonInfo.parentOrderId}</span>
+                  </p>
+                  <p className="text-xs text-cheers-brown/60 mt-0.5">
+                    {lang === 'zh' ? '免邮费，配送信息沿用母订单' : 'Free shipping, delivery info inherited from parent'}
+                  </p>
+                </div>
+                {/* 仅允许通过此页选中的合并才能取消（来自 sessionStorage 的不显示取消，因为顾客是从订单页主动选择的） */}
+                {eligibleParents.some(p => (p.orderId || p.id) === addonInfo.parentOrderId) && (
+                  <button type="button" onClick={clearMerge}
+                    className="text-xs text-cheers-brown/60 hover:text-cheers-brown underline flex-shrink-0">
+                    {lang === 'zh' ? '取消合并' : 'Cancel'}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 合并到之前订单 — banner + picker */}
+          {!addonInfo && !updateOrderInfo && eligibleParents.length > 0 && (
+            <div className="card p-4 bg-amber-50 border-amber-200">
+              <button type="button" onClick={() => setParentPickerOpen(o => !o)}
+                className="w-full flex items-center gap-3 text-left">
+                <span className="text-xl flex-shrink-0">📦</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-cheers-dark-brown">
+                    {lang === 'zh'
+                      ? `你有 ${eligibleParents.length} 个进行中的订单，合并可省邮费`
+                      : `You have ${eligibleParents.length} active order${eligibleParents.length > 1 ? 's' : ''} — merge to save on shipping`}
+                  </p>
+                  <p className="text-xs text-cheers-brown/60 mt-0.5">
+                    {lang === 'zh' ? '点击查看可合并的订单' : 'Tap to view'}
+                  </p>
+                </div>
+                <span className="text-cheers-brown/60 flex-shrink-0">{parentPickerOpen ? '▴' : '▾'}</span>
+              </button>
+              {parentPickerOpen && (
+                <div className="mt-3 space-y-2">
+                  {eligibleParents.map(p => {
+                    const isShipping = p.delivery?.type !== 'face-to-face'
+                    const statusLabel = lang === 'zh'
+                      ? (p.status === 'pending' ? '待确认' : p.status === 'confirmed' ? '已接单' : '采购中')
+                      : (p.status === 'pending' ? 'Pending' : p.status === 'confirmed' ? 'Confirmed' : 'Purchasing')
+                    return (
+                      <button key={p.id} type="button" onClick={() => applyMerge(p)}
+                        className="w-full text-left bg-white border border-cheers-cream rounded-lg p-3 hover:border-cheers-brown transition-colors">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="font-mono text-sm text-cheers-dark-brown truncate">{p.orderId || p.id}</p>
+                          <span className="text-xs bg-cheers-cream text-cheers-brown px-2 py-0.5 rounded-full flex-shrink-0">{statusLabel}</span>
+                        </div>
+                        <div className="flex items-center justify-between mt-1">
+                          <p className="text-xs text-cheers-brown/60">
+                            {isShipping
+                              ? (lang === 'zh' ? '邮寄' : 'Shipping')
+                              : (lang === 'zh' ? `面交 · ${p.delivery?.location || ''}` : `Meet up · ${p.delivery?.location || ''}`)}
+                          </p>
+                          <p className="text-sm font-medium text-cheers-brown">RM {Number(p.total || 0).toFixed(2)}</p>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Delivery — shipping first */}
           <div className="card p-4">
