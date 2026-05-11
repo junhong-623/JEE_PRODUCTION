@@ -1,7 +1,13 @@
 import React, { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { getFirestore, doc, getDoc } from 'firebase/firestore'
 import app from '../../../lib/firebase'
 import { useLang } from '../../contexts/LangContext'
+
+// 站内路径（如 /products）用 react-router 跳转，外站 URL 才开新 tab
+function isInternalUrl(url) {
+  return typeof url === 'string' && url.startsWith('/') && !url.startsWith('//')
+}
 
 const db = getFirestore(app)
 
@@ -104,11 +110,18 @@ export default function AnnouncementBanner() {
                     style={{ animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite' }} />
                   <p className="text-sm font-medium">{text}</p>
                   {btnText && btnUrl && (
-                    <a href={btnUrl} target="_blank" rel="noopener noreferrer"
-                      onClick={e => e.stopPropagation()}
-                      className={`flex-shrink-0 text-xs font-semibold px-3 py-1 rounded-full transition-colors whitespace-nowrap ${c.btn}`}>
-                      {btnText}
-                    </a>
+                    isInternalUrl(btnUrl) ? (
+                      <Link to={btnUrl} onClick={e => e.stopPropagation()}
+                        className={`flex-shrink-0 text-xs font-semibold px-3 py-1 rounded-full transition-colors whitespace-nowrap ${c.btn}`}>
+                        {btnText}
+                      </Link>
+                    ) : (
+                      <a href={btnUrl} target="_blank" rel="noopener noreferrer"
+                        onClick={e => e.stopPropagation()}
+                        className={`flex-shrink-0 text-xs font-semibold px-3 py-1 rounded-full transition-colors whitespace-nowrap ${c.btn}`}>
+                        {btnText}
+                      </a>
+                    )
                   )}
                 </div>
               )
