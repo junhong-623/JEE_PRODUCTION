@@ -59,6 +59,19 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: { index: resolve(__dirname, 'cheers.html') },
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('firebase')) return 'firebase'
+            if (
+              id.includes('react-dom') ||
+              id.includes('react-router-dom') ||
+              id.includes('react-helmet-async') ||
+              /node_modules\/react\//.test(id)
+            ) return 'react-vendor'
+          }
+        },
+      },
     },
   },
   server: {
