@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useLang } from '../../contexts/LangContext'
 import { useCart } from '../../contexts/CartContext'
-import { effectivePrice, formatPriceDisplay, getColorSizes } from '../../lib/productPrice'
+import { effectivePrice, formatPriceDisplay, getColorSizes, colorPriceRange } from '../../lib/productPrice'
 
 export default function SizePickerModal({ product, onClose }) {
   const { t, lang } = useLang()
@@ -74,9 +74,14 @@ export default function SizePickerModal({ product, onClose }) {
           <div className="min-w-0 flex-1 pt-1">
             <p className="font-medium text-cheers-dark-brown text-sm leading-snug line-clamp-2">{name}</p>
             <p className="text-cheers-brown font-bold mt-1">
-              {selectedColor?.label
-                ? `${t('common.rmPrefix')} ${effectivePrice(product, selectedColor.label, selectedSize).toFixed(2)}`
-                : formatPriceDisplay(product, t('common.rmPrefix'))}
+              {(() => {
+                if (!selectedColor?.label) return formatPriceDisplay(product, t('common.rmPrefix'))
+                if (selectedSize) return `${t('common.rmPrefix')} ${effectivePrice(product, selectedColor.label, selectedSize).toFixed(2)}`
+                const { min, max, isRange } = colorPriceRange(product, selectedColor.label)
+                return isRange
+                  ? `${t('common.rmPrefix')} ${min.toFixed(2)} - ${max.toFixed(2)}`
+                  : `${t('common.rmPrefix')} ${min.toFixed(2)}`
+              })()}
             </p>
           </div>
         </div>
