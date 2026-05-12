@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext'
 import CouponTicket, { applyDiscount, formatDiscount, computeSavings, findBestCoupon, findNearMissCoupon, isCouponEligible } from '../components/ui/CouponTicket'
 import { optimizeUrl } from '../lib/cloudinary'
 import { effectiveCostPrice } from '../lib/productPrice'
+import { generateUniqueOrderId } from '../lib/orderId'
 
 const db = getFirestore(app)
 
@@ -24,12 +25,6 @@ function detectRegion(postcode) {
   if (n >= 87000 && n <= 98999) return 'east'
   if (n >= 1000  && n <= 86999) return 'west'
   return null
-}
-
-function generateOrderId() {
-  const date = new Date().toISOString().slice(0, 10).replace(/-/g, '')
-  const rand = Math.floor(Math.random() * 9000) + 1000
-  return `CHEERS-${date}-${rand}`
 }
 
 // Popup shows best coupon in ticket style
@@ -358,7 +353,7 @@ export default function CheckoutPage() {
     setLoading(true)
     setError('')
     try {
-      const orderId = generateOrderId()
+      const orderId = await generateUniqueOrderId(db)
       // Fetch products to snapshot cost prices
       const productIds = [...new Set(items.map(i => i.productId))]
       const productDocs = await Promise.all(productIds.map(pid => getDoc(doc(db, 'cheers_products', pid))))

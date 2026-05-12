@@ -2,17 +2,12 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getFirestore, addDoc, collection, serverTimestamp, getDocs, query, where, limit } from 'firebase/firestore'
 import app from '../../../lib/firebase'
+import { generateUniqueOrderId } from '../../lib/orderId'
 
 const db = getFirestore(app)
 
 const STATUSES = ['pending', 'confirmed', 'purchasing', 'shipped', 'completed']
 const STATUS_ZH = { pending: '待确认', confirmed: '已接单', purchasing: '采购中', shipped: '已发货', completed: '已完成' }
-
-function generateOrderId() {
-  const date = new Date().toISOString().slice(0, 10).replace(/-/g, '')
-  const rand = Math.floor(Math.random() * 9000) + 1000
-  return `CHEERS-${date}-${rand}`
-}
 
 function emptyItem() {
   return { name: '', size: '', price: '', quantity: '1' }
@@ -89,7 +84,7 @@ export default function CreateOrderPage() {
     setSaving(true)
     setError('')
     try {
-      const orderId = generateOrderId()
+      const orderId = await generateUniqueOrderId(db)
       const orderItems = items.map(i => ({
         productId: 'manual',
         name: i.name,
