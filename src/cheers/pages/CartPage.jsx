@@ -1,10 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useLang } from '../contexts/LangContext'
 import { useCart } from '../contexts/CartContext'
 import { useAuth } from '../contexts/AuthContext'
 import { optimizeUrl } from '../lib/cloudinary'
 import CartItemEditModal from '../components/ui/CartItemEditModal'
+import { trackViewCart } from '../lib/tracking'
 
 function ConfirmModal({ itemName, onConfirm, onCancel, lang }) {
   return (
@@ -40,6 +41,13 @@ export default function CartPage() {
   const navigate = useNavigate()
   const [confirmItem, setConfirmItem] = useState(null)
   const [editItem, setEditItem] = useState(null)
+
+  // 进入购物车页 → GA4 埋点（仅当有商品才发，避免空车噪音）
+  useEffect(() => {
+    if (items.length > 0) trackViewCart(items, subtotal)
+    // 仅在 mount 时触发一次
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function handleCheckout() {
     if (!user) { navigate('/login', { state: { from: { pathname: '/checkout' } } }); return }

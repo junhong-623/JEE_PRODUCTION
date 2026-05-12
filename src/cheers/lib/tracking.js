@@ -113,6 +113,56 @@ export function trackAddToCart(product, quantity = 1, price) {
   }
 }
 
+// 商品列表浏览（首页/分类页） — 仅 GA4，无 Firestore counter
+export function trackViewItemList(products, listName = 'product_list') {
+  if (!analytics || !Array.isArray(products) || products.length === 0) return
+  try {
+    logEvent(analytics, 'view_item_list', {
+      item_list_id: listName,
+      item_list_name: listName,
+      items: products.slice(0, 20).map(p => ({  // GA4 限制每事件最多 ~200 items，截断 20 已足够
+        item_id: p.id,
+        item_name: productNameStr(p.name),
+        price: Number(p.price) || 0,
+      })),
+    })
+  } catch {}
+}
+
+// 购物车页浏览
+export function trackViewCart(items, subtotal) {
+  if (!analytics) return
+  try {
+    logEvent(analytics, 'view_cart', {
+      currency: 'MYR',
+      value: Number(subtotal) || 0,
+      items: (items || []).map(it => ({
+        item_id: it.productId || it.id,
+        item_name: productNameStr(it.name),
+        price: Number(it.price) || 0,
+        quantity: Number(it.quantity) || 1,
+      })),
+    })
+  } catch {}
+}
+
+// 开始结账
+export function trackBeginCheckout(items, total) {
+  if (!analytics) return
+  try {
+    logEvent(analytics, 'begin_checkout', {
+      currency: 'MYR',
+      value: Number(total) || 0,
+      items: (items || []).map(it => ({
+        item_id: it.productId || it.id,
+        item_name: productNameStr(it.name),
+        price: Number(it.price) || 0,
+        quantity: Number(it.quantity) || 1,
+      })),
+    })
+  } catch {}
+}
+
 // 下单：每个商品按数量累加 purchases；GA4 发一次 purchase 事件含所有项
 export function trackPurchase(items, total, orderId) {
   if (!Array.isArray(items) || items.length === 0) return

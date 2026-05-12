@@ -4,6 +4,7 @@ import { getFirestore, collection, query, where, getDocs, doc, getDoc, orderBy }
 import app from '../../lib/firebase'
 import { useLang } from '../contexts/LangContext'
 import ProductCard from '../components/ui/ProductCard'
+import { trackViewItemList } from '../lib/tracking'
 
 const db = getFirestore(app)
 
@@ -54,7 +55,9 @@ export default function ProductsPage() {
           getDocs(query(collection(db, 'cheers_categories'), where('tripId', '==', tripId), orderBy('order'))),
         ])
 
-        setProducts(prodSnap.docs.map(d => ({ id: d.id, ...d.data() })))
+        const prodList = prodSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+        setProducts(prodList)
+        trackViewItemList(prodList, 'products_page')
         setCategories(catSnap.docs.map(d => ({ id: d.id, ...d.data() })))
       } catch (e) {
         console.error(e)
