@@ -1,12 +1,35 @@
 // 顾客行为追踪工具
 // - 写 Firestore counter（admin 自己看）
-// - 同时发 GA4 事件（可选，用于 Google Analytics 报告）
+// - 同时发 GA4 事件（cheers 专属，独立于其他子应用）
 //
 // 设计原则：所有调用都是 fire-and-forget，失败不影响主流程。
 
+import { initializeApp } from 'firebase/app'
 import { doc, setDoc, increment, serverTimestamp } from 'firebase/firestore'
-import { db, analytics } from '../../lib/firebase'
-import { logEvent } from 'firebase/analytics'
+import { getAnalytics, isSupported as analyticsIsSupported, logEvent } from 'firebase/analytics'
+import { db } from '../../lib/firebase'
+
+// 初始化 cheers 专属 Analytics — 用独立 FirebaseApp 实例避免污染其他子应用
+let analytics = null
+const CHEERS_MEASUREMENT_ID = import.meta.env.VITE_CHEERS_FIREBASE_MEASUREMENT_ID
+
+if (typeof window !== 'undefined' && CHEERS_MEASUREMENT_ID) {
+  analyticsIsSupported().then(supported => {
+    if (!supported) return
+    try {
+      const cheersAnalyticsApp = initializeApp({
+        apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
+        authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+        projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID,
+        storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+        messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+        appId:             import.meta.env.VITE_FIREBASE_APP_ID,
+        measurementId:     CHEERS_MEASUREMENT_ID,
+      }, 'cheers-analytics')
+      analytics = getAnalytics(cheersAnalyticsApp)
+    } catch {}
+  }).catch(() => {})
+}
 
 const VIEWED_KEY_PREFIX = 'cheers_viewed_'  // sessionStorage 去重前缀
 
