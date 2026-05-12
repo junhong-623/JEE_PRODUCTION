@@ -5,6 +5,7 @@ import app from '../../lib/firebase'
 import { useLang } from '../contexts/LangContext'
 import ProductCard from '../components/ui/ProductCard'
 import { optimizeUrl } from '../lib/cloudinary'
+import { trackViewItemList } from '../lib/tracking'
 
 const db = getFirestore(app)
 
@@ -40,7 +41,9 @@ export default function HomePage() {
           ])
 
           if (tripDoc.exists()) setActiveTrip({ id: tripDoc.id, ...tripDoc.data() })
-          setFeatured(productsSnap.docs.map(d => ({ id: d.id, ...d.data() })))
+          const featuredList = productsSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+          setFeatured(featuredList)
+          trackViewItemList(featuredList, 'home_featured')
           if (catsSnap) {
             const allCats = catsSnap.docs.map(d => ({ id: d.id, ...d.data() }))
             setHomepageCats(homepageCatIds.map(id => allCats.find(c => c.id === id)).filter(Boolean))

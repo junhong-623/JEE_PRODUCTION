@@ -5,6 +5,7 @@ import app from '../../../lib/firebase'
 import { useLang } from '../../contexts/LangContext'
 import { optimizeUrl } from '../../lib/cloudinary'
 import { formatPriceDisplay } from '../../lib/productPrice'
+import { trackSearch } from '../../lib/tracking'
 
 const db = getFirestore(app)
 
@@ -52,6 +53,28 @@ export default function SearchOverlay({ onClose }) {
     ].map(s => String(s).toLowerCase())
     return name.includes(sq) || colors.some(c => c.includes(sq)) || sizes.some(s => s.includes(sq))
   }).slice(0, 8)
+
+  // 搜索埋点：用户停止打字 1 秒后记一次
+  const trimmed = q.trim()
+  // 过滤掉只增删字符的过渡态：当 q 稳定 1 秒 + 长度合理时才 log
+  useEffect(() => {
+    if (loading || trimmed.length < 2) return
+    const t = setTimeout(() => {
+      // 用 filter 的完整结果数（不是 slice 后的 8）
+      const fullCount = products.filter(p => {
+        const sq = trimmed.toLowerCase()
+        const name = (p.name?.[lang] || p.name?.zh || '').toLowerCase()
+        const colors = (p.colors || []).map(c => c.label.toLowerCase())
+        const sizes = [
+          ...(p.sizes || []),
+          ...(p.colors || []).flatMap(c => (c.sizes || []).map(s => s.label))
+        ].map(s => String(s).toLowerCase())
+        return name.includes(sq) || colors.some(c => c.includes(sq)) || sizes.some(s => s.includes(sq))
+      }).length
+      trackSearch(trimmed, fullCount, lang)
+    }, 1000)
+    return () => clearTimeout(t)
+  }, [trimmed, loading, lang, products])
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col" onClick={e => { if (e.target === e.currentTarget) onClose() }}>

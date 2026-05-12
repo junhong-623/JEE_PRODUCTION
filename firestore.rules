@@ -153,6 +153,12 @@ service cloud.firestore {
       allow create, update: if true;
       allow delete: if isAdmin();
     }
+    // 搜索关键词日志：任何人可写，仅 admin 可读 + 删
+    match /cheers_search_logs/{doc} {
+      allow read: if isAdmin();
+      allow create: if true;
+      allow update, delete: if isAdmin();
+    }
     match /cheers_orders/{doc} {
       allow create: if signedIn();
       allow read: if isAdmin()

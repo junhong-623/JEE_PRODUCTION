@@ -9,7 +9,7 @@ import CouponTicket, { applyDiscount, formatDiscount, computeSavings, findBestCo
 import { optimizeUrl } from '../lib/cloudinary'
 import { effectiveCostPrice } from '../lib/productPrice'
 import { generateUniqueOrderId } from '../lib/orderId'
-import { trackPurchase } from '../lib/tracking'
+import { trackPurchase, trackBeginCheckout } from '../lib/tracking'
 
 const db = getFirestore(app)
 
@@ -151,6 +151,13 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (items.length === 0) navigate('/cart')
   }, [items])
+
+  // 进入结账页 → GA4 begin_checkout（mount 时触发一次，subtotal 已知）
+  useEffect(() => {
+    if (items.length > 0) trackBeginCheckout(items, subtotal)
+    // 仅在 mount 时触发一次
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     async function load() {
