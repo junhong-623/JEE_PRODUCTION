@@ -4,6 +4,7 @@ import { getFirestore, doc, getDoc } from 'firebase/firestore'
 import app from '../../lib/firebase'
 import { optimizeUrl } from '../lib/cloudinary'
 import { effectivePrice, formatPriceDisplay, getColorSizes, colorPriceRange } from '../lib/productPrice'
+import { trackProductView } from '../lib/tracking'
 import { useLang } from '../contexts/LangContext'
 import { useCart } from '../contexts/CartContext'
 import { useWishlist } from '../contexts/WishlistContext'
@@ -39,9 +40,15 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     getDoc(doc(db, 'cheers_products', id))
-      .then(snap => { if (snap.exists()) setProduct({ id: snap.id, ...snap.data() }) })
+      .then(snap => {
+        if (snap.exists()) {
+          const p = { id: snap.id, ...snap.data() }
+          setProduct(p)
+          trackProductView(p, user)
+        }
+      })
       .finally(() => setLoading(false))
-  }, [id])
+  }, [id, user])
 
   // Sync carousel track when selectedImg changes (e.g. thumbnail click)
   useEffect(() => {

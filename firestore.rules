@@ -146,6 +146,13 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+    // 商品统计计数器：任何人都能 increment（匿名访客也算），仅 admin 读
+    // 仅允许 create/update（增加计数），不允许 delete
+    match /cheers_product_stats/{doc} {
+      allow read: if isAdmin();
+      allow create, update: if true;
+      allow delete: if isAdmin();
+    }
     match /cheers_orders/{doc} {
       allow create: if signedIn();
       allow read: if isAdmin()

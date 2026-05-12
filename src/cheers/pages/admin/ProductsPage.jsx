@@ -16,22 +16,28 @@ export default function AdminProductsPage() {
   const { t } = useLang()
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
+  const [stats, setStats] = useState({}) // { productId: { views, loggedInViews } }
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [activeTrip, setActiveTrip] = useState(null)
   const [selected, setSelected] = useState(new Set())
   const [bulkLoading, setBulkLoading] = useState(false)
+  const [sortBy, setSortBy] = useState('default') // default | views
 
   async function load() {
     const settingsSnap = await getDoc(doc(db, 'cheers_settings', 'global'))
     const tripId = settingsSnap.data()?.activeTripId
     setActiveTrip(tripId)
-    const [prodSnap, catSnap] = await Promise.all([
+    const [prodSnap, catSnap, statsSnap] = await Promise.all([
       getDocs(collection(db, 'cheers_products')),
       getDocs(collection(db, 'cheers_categories')),
+      getDocs(collection(db, 'cheers_product_stats')),
     ])
     setProducts(prodSnap.docs.map(d => ({ id: d.id, ...d.data() })))
     setCategories(catSnap.docs.map(d => ({ id: d.id, ...d.data() })))
+    const statsMap = {}
+    statsSnap.docs.forEach(d => { statsMap[d.id] = d.data() })
+    setStats(statsMap)
     setLoading(false)
   }
 
@@ -62,7 +68,10 @@ export default function AdminProductsPage() {
     setBulkLoading(false)
   }
 
-  const filtered = filter === 'all' ? products : products.filter(p => getProdCatIds(p).includes(filter))
+  let filtered = filter === 'all' ? products : products.filter(p => getProdCatIds(p).includes(filter))
+  if (sortBy === 'views') {
+    filtered = [...filtered].sort((a, b) => (stats[b.id]?.views || 0) - (stats[a.id]?.views || 0))
+  }
   const activeCats = categories.filter(c => c.tripId === activeTrip)
 
   return (
@@ -84,10 +93,16 @@ export default function AdminProductsPage() {
             {cat.name?.zh} ({products.filter(p => getProdCatIds(p).includes(cat.id)).length})
           </button>
         ))}
-        <button onClick={toggleSelectAll}
-          className="ml-auto text-xs text-cheers-brown/60 hover:text-cheers-brown border border-cheers-brown/20 px-2.5 py-1 rounded-full">
-          {selected.size === filtered.length && filtered.length > 0 ? '取消全选' : `全选 (${filtered.length})`}
-        </button>
+        <div className="ml-auto flex items-center gap-2">
+          <button onClick={() => setSortBy(s => s === 'views' ? 'default' : 'views')}
+            className={`text-xs px-2.5 py-1 rounded-full border ${sortBy === 'views' ? 'bg-cheers-brown text-cheers-cream border-cheers-brown' : 'border-cheers-brown/20 text-cheers-brown/60 hover:text-cheers-brown'}`}>
+            👀 按浏览
+          </button>
+          <button onClick={toggleSelectAll}
+            className="text-xs text-cheers-brown/60 hover:text-cheers-brown border border-cheers-brown/20 px-2.5 py-1 rounded-full">
+            {selected.size === filtered.length && filtered.length > 0 ? '取消全选' : `全选 (${filtered.length})`}
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -119,6 +134,12 @@ export default function AdminProductsPage() {
                           {product.inStock ? ' 接单中' : ' 已截单'}
                         </span>
                         {product.featured && <span className="text-cheers-brown"> · ⭐精选</span>}
+                      </p>
+                      <p className="text-xs text-cheers-brown/40 mt-0.5">
+                        👀 {stats[product.id]?.views || 0} 浏览
+                        {stats[product.id]?.loggedInViews > 0 && (
+                          <span className="text-cheers-brown/30"> · 其中 {stats[product.id].loggedInViews} 登录</span>
+                        )}
                       </p>
                     </div>
                     <div className="flex gap-2 flex-shrink-0">
