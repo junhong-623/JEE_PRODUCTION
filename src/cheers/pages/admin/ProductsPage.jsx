@@ -71,6 +71,10 @@ export default function AdminProductsPage() {
   let filtered = filter === 'all' ? products : products.filter(p => getProdCatIds(p).includes(filter))
   if (sortBy === 'views') {
     filtered = [...filtered].sort((a, b) => (stats[b.id]?.views || 0) - (stats[a.id]?.views || 0))
+  } else if (sortBy === 'adds') {
+    filtered = [...filtered].sort((a, b) => (stats[b.id]?.addsToCart || 0) - (stats[a.id]?.addsToCart || 0))
+  } else if (sortBy === 'purchases') {
+    filtered = [...filtered].sort((a, b) => (stats[b.id]?.purchases || 0) - (stats[a.id]?.purchases || 0))
   }
   const activeCats = categories.filter(c => c.tripId === activeTrip)
 
@@ -93,11 +97,14 @@ export default function AdminProductsPage() {
             {cat.name?.zh} ({products.filter(p => getProdCatIds(p).includes(cat.id)).length})
           </button>
         ))}
-        <div className="ml-auto flex items-center gap-2">
-          <button onClick={() => setSortBy(s => s === 'views' ? 'default' : 'views')}
-            className={`text-xs px-2.5 py-1 rounded-full border ${sortBy === 'views' ? 'bg-cheers-brown text-cheers-cream border-cheers-brown' : 'border-cheers-brown/20 text-cheers-brown/60 hover:text-cheers-brown'}`}>
-            👀 按浏览
-          </button>
+        <div className="ml-auto flex items-center gap-2 flex-wrap">
+          <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+            className="text-xs px-2.5 py-1 rounded-full border border-cheers-brown/20 text-cheers-brown/70 hover:text-cheers-brown bg-transparent">
+            <option value="default">默认排序</option>
+            <option value="views">👀 按浏览</option>
+            <option value="adds">🛒 按加购</option>
+            <option value="purchases">📦 按下单</option>
+          </select>
           <button onClick={toggleSelectAll}
             className="text-xs text-cheers-brown/60 hover:text-cheers-brown border border-cheers-brown/20 px-2.5 py-1 rounded-full">
             {selected.size === filtered.length && filtered.length > 0 ? '取消全选' : `全选 (${filtered.length})`}
@@ -135,12 +142,26 @@ export default function AdminProductsPage() {
                         </span>
                         {product.featured && <span className="text-cheers-brown"> · ⭐精选</span>}
                       </p>
-                      <p className="text-xs text-cheers-brown/40 mt-0.5">
-                        👀 {stats[product.id]?.views || 0} 浏览
-                        {stats[product.id]?.loggedInViews > 0 && (
-                          <span className="text-cheers-brown/30"> · 其中 {stats[product.id].loggedInViews} 登录</span>
-                        )}
-                      </p>
+                      {(() => {
+                        const s = stats[product.id] || {}
+                        const views = s.views || 0
+                        const adds = s.addsToCart || 0
+                        const purchases = s.purchases || 0
+                        const addRate = views > 0 ? Math.round((adds / views) * 100) : 0
+                        const buyRate = adds > 0 ? Math.round((purchases / adds) * 100) : 0
+                        return (
+                          <p className="text-xs text-cheers-brown/40 mt-0.5 space-x-1">
+                            <span>👀 {views}</span>
+                            <span>·</span>
+                            <span>🛒 {adds}{views > 0 && <span className="text-cheers-brown/30"> ({addRate}%)</span>}</span>
+                            <span>·</span>
+                            <span>📦 {purchases}{adds > 0 && <span className="text-cheers-brown/30"> ({buyRate}%)</span>}</span>
+                            {s.loggedInViews > 0 && (
+                              <span className="text-cheers-brown/30">· 登录 {s.loggedInViews}</span>
+                            )}
+                          </p>
+                        )
+                      })()}
                     </div>
                     <div className="flex gap-2 flex-shrink-0">
                       <Link to={`/admin/products/${product.id}`} className="btn-ghost text-xs py-1 px-3">{t('admin.edit')}</Link>

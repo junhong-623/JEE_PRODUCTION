@@ -3,6 +3,7 @@ import { getFirestore, doc, setDoc, getDoc, onSnapshot } from 'firebase/firestor
 import app from '../../lib/firebase'
 import { useAuth } from './AuthContext'
 import { effectivePrice } from '../lib/productPrice'
+import { trackAddToCart } from '../lib/tracking'
 
 const db = getFirestore(app)
 const CartContext = createContext(null)
@@ -70,6 +71,8 @@ export function CartProvider({ children }) {
   }, [user])
 
   const addToCart = useCallback(async (product, quantity = 1, size = undefined, color = undefined) => {
+    // 埋点（fire-and-forget，价格用与下方 cart 相同的快照逻辑）
+    trackAddToCart(product, quantity, effectivePrice(product, color, size))
     setItems(prev => {
       const idx = prev.findIndex(i => i.productId === product.id && i.size === size && i.color === color)
       let next
