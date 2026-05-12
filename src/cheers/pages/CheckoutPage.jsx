@@ -9,6 +9,7 @@ import CouponTicket, { applyDiscount, formatDiscount, computeSavings, findBestCo
 import { optimizeUrl } from '../lib/cloudinary'
 import { effectiveCostPrice } from '../lib/productPrice'
 import { generateUniqueOrderId } from '../lib/orderId'
+import { trackPurchase } from '../lib/tracking'
 
 const db = getFirestore(app)
 
@@ -395,6 +396,8 @@ export default function CheckoutPage() {
         if (couponIsValid && selectedCoupon?._source === 'personal' && selectedCoupon?.id) {
           await updateDoc(doc(db, 'cheers_user_coupons', selectedCoupon.id), { used: true, usedAt: serverTimestamp(), usedOnOrder: updateOrderInfo.orderId }).catch(() => {})
         }
+        // 埋点：续单也算下单（计入新加的 items）
+        trackPurchase(items, subtotal, updateOrderInfo.orderId)
         sessionStorage.removeItem('cheers_update_order')
         await clearCart()
         navigate(`/payment/${updateOrderInfo.orderDocId}`)
@@ -402,6 +405,9 @@ export default function CheckoutPage() {
       }
 
       const ref = await addDoc(collection(db, 'cheers_orders'), orderData)
+
+      // 埋点（fire-and-forget）— 商品下单计数 + GA4 purchase 事件
+      trackPurchase(items, total, orderId)
 
       if (couponIsValid && selectedCoupon?._source === 'personal' && selectedCoupon?.id) {
         await updateDoc(doc(db, 'cheers_user_coupons', selectedCoupon.id), { used: true, usedAt: serverTimestamp(), usedOnOrder: orderId }).catch(() => {})

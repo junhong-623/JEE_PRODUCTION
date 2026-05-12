@@ -45,6 +45,11 @@ function alreadyViewedThisSession(productId) {
   }
 }
 
+function productNameStr(name) {
+  if (typeof name === 'string') return name
+  return name?.zh || name?.en || ''
+}
+
 // 商品浏览：同 session 去重 + 区分登录态
 export function trackProductView(product, user) {
   if (!product?.id) return
@@ -69,9 +74,73 @@ export function trackProductView(product, user) {
         value: Number(product.price) || 0,
         items: [{
           item_id: product.id,
-          item_name: product.name?.zh || product.name?.en || product.name || '',
+          item_name: productNameStr(product.name),
           price: Number(product.price) || 0,
         }],
+      })
+    } catch {}
+  }
+}
+
+// 加购：按数量累加 addsToCart
+export function trackAddToCart(product, quantity = 1, price) {
+  if (!product?.id) return
+  const qty = Number(quantity) || 1
+  const itemPrice = Number(price ?? product.price) || 0
+
+  setDoc(
+    doc(db, 'cheers_product_stats', product.id),
+    {
+      addsToCart: increment(qty),
+      lastAddedAt: serverTimestamp(),
+    },
+    { merge: true }
+  ).catch(() => {})
+
+  if (analytics) {
+    try {
+      logEvent(analytics, 'add_to_cart', {
+        currency: 'MYR',
+        value: itemPrice * qty,
+        items: [{
+          item_id: product.id,
+          item_name: productNameStr(product.name),
+          price: itemPrice,
+          quantity: qty,
+        }],
+      })
+    } catch {}
+  }
+}
+
+// 下单：每个商品按数量累加 purchases；GA4 发一次 purchase 事件含所有项
+export function trackPurchase(items, total, orderId) {
+  if (!Array.isArray(items) || items.length === 0) return
+
+  // Firestore：按每个 productId 累加
+  items.forEach(it => {
+    const id = it.productId || it.id
+    if (!id) return
+    const qty = Number(it.quantity) || 1
+    setDoc(
+      doc(db, 'cheers_product_stats', id),
+      { purchases: increment(qty), lastPurchasedAt: serverTimestamp() },
+      { merge: true }
+    ).catch(() => {})
+  })
+
+  if (analytics) {
+    try {
+      logEvent(analytics, 'purchase', {
+        transaction_id: orderId,
+        currency: 'MYR',
+        value: Number(total) || 0,
+        items: items.map(it => ({
+          item_id: it.productId || it.id,
+          item_name: productNameStr(it.name),
+          price: Number(it.price) || 0,
+          quantity: Number(it.quantity) || 1,
+        })),
       })
     } catch {}
   }
