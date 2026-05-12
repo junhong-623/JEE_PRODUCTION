@@ -5,7 +5,7 @@
 // 设计原则：所有调用都是 fire-and-forget，失败不影响主流程。
 
 import { initializeApp } from 'firebase/app'
-import { doc, setDoc, increment, serverTimestamp } from 'firebase/firestore'
+import { addDoc, collection, doc, setDoc, increment, serverTimestamp } from 'firebase/firestore'
 import { getAnalytics, isSupported as analyticsIsSupported, logEvent } from 'firebase/analytics'
 import { db } from '../../lib/firebase'
 
@@ -161,6 +161,28 @@ export function trackBeginCheckout(items, total) {
       })),
     })
   } catch {}
+}
+
+// 搜索：写日志到 Firestore（admin 查热门搜索）+ 发 GA4 search 事件
+// 调用前应自行防抖，避免每个字母都触发
+export function trackSearch(rawQuery, resultsCount, lang) {
+  const query = String(rawQuery || '').trim().toLowerCase()
+  if (query.length < 2 || query.length > 80) return  // 过滤噪音 + 过长
+
+  // Firestore log
+  addDoc(collection(db, 'cheers_search_logs'), {
+    query,
+    resultsCount: Number(resultsCount) || 0,
+    lang: lang || '',
+    createdAt: serverTimestamp(),
+  }).catch(() => {})
+
+  // GA4
+  if (analytics) {
+    try {
+      logEvent(analytics, 'search', { search_term: query })
+    } catch {}
+  }
 }
 
 // 下单：每个商品按数量累加 purchases；GA4 发一次 purchase 事件含所有项

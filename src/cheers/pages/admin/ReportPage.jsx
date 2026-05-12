@@ -53,6 +53,7 @@ const TABS = [
   { key: 'procurement', label: '📦 采购汇总' },
   { key: 'delivery',    label: '🚚 配送分组' },
   { key: 'sales',       label: '💰 收入概览' },
+  { key: 'search',      label: '🔍 搜索关键词' },
 ]
 
 export default function ReportPage() {
@@ -175,6 +176,98 @@ export default function ReportPage() {
         />
       )}
       {tab === 'sales' && <SalesTab orders={orders} lang={lang} />}
+      {tab === 'search' && <SearchTab lang={lang} />}
+    </div>
+  )
+}
+
+// ── 搜索关键词 Tab ──────────────────────────────────────────────────────────
+function SearchTab() {
+  const [logs, setLogs] = useState(null)
+
+  useEffect(() => {
+    // 仅拉最近 1000 条，足够生成 Top 10
+    getDocs(query(collection(db, 'cheers_search_logs'), orderBy('createdAt', 'desc')))
+      .then(snap => setLogs(snap.docs.slice(0, 1000).map(d => ({ id: d.id, ...d.data() }))))
+      .catch(() => setLogs([]))
+  }, [])
+
+  if (logs === null) return <p className="text-cheers-brown/50 text-sm">加载中…</p>
+  if (logs.length === 0) return (
+    <div className="card p-6 text-center text-cheers-brown/50">
+      <p className="text-sm">还没有搜索记录</p>
+      <p className="text-xs mt-1">顾客在搜索框输入并停留 1 秒后会自动记录</p>
+    </div>
+  )
+
+  // 聚合：按 query 计数
+  const grouped = logs.reduce((acc, l) => {
+    if (!l.query) return acc
+    if (!acc[l.query]) acc[l.query] = { query: l.query, count: 0, hits: 0, misses: 0, lastSeen: 0 }
+    acc[l.query].count += 1
+    if ((l.resultsCount || 0) > 0) acc[l.query].hits += 1
+    else acc[l.query].misses += 1
+    const ts = l.createdAt?.seconds || 0
+    if (ts > acc[l.query].lastSeen) acc[l.query].lastSeen = ts
+    return acc
+  }, {})
+  const all = Object.values(grouped)
+  const topAll = [...all].sort((a, b) => b.count - a.count).slice(0, 10)
+  const topMisses = all.filter(x => x.misses > 0).sort((a, b) => b.misses - a.misses).slice(0, 10)
+
+  function fmtTime(ts) {
+    if (!ts) return ''
+    const d = new Date(ts * 1000)
+    return d.toLocaleDateString('zh-MY', { month: '2-digit', day: '2-digit' }) + ' ' +
+           d.toLocaleTimeString('zh-MY', { hour: '2-digit', minute: '2-digit' })
+  }
+
+  return (
+    <div className="grid md:grid-cols-2 gap-4">
+      <div className="card p-4">
+        <h3 className="font-medium text-cheers-dark-brown mb-3">🔥 热门搜索 Top 10</h3>
+        <p className="text-xs text-cheers-brown/50 mb-3">最近 1000 条搜索记录的聚合</p>
+        {topAll.length === 0 ? (
+          <p className="text-sm text-cheers-brown/40">暂无</p>
+        ) : (
+          <ol className="space-y-1.5">
+            {topAll.map((x, i) => (
+              <li key={x.query} className="flex items-center justify-between text-sm">
+                <span className="flex items-center gap-2 min-w-0">
+                  <span className="text-cheers-brown/40 w-5 text-xs">{i + 1}.</span>
+                  <span className="font-medium text-cheers-dark-brown truncate">{x.query}</span>
+                </span>
+                <span className="text-xs text-cheers-brown/60 flex-shrink-0">
+                  {x.count} 次{x.misses > 0 && <span className="text-amber-600"> · {x.misses} 无结果</span>}
+                </span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+
+      <div className="card p-4 bg-amber-50/40 border-amber-200">
+        <h3 className="font-medium text-cheers-dark-brown mb-3">⚠️ 无结果搜索 Top 10</h3>
+        <p className="text-xs text-cheers-brown/50 mb-3">顾客想买但你没货 — 下次代购的提示</p>
+        {topMisses.length === 0 ? (
+          <p className="text-sm text-cheers-brown/40">暂无 — 顾客每次搜索都有结果 👍</p>
+        ) : (
+          <ol className="space-y-1.5">
+            {topMisses.map((x, i) => (
+              <li key={x.query} className="flex items-center justify-between text-sm">
+                <span className="flex items-center gap-2 min-w-0">
+                  <span className="text-amber-600/60 w-5 text-xs">{i + 1}.</span>
+                  <span className="font-medium text-cheers-dark-brown truncate">{x.query}</span>
+                </span>
+                <span className="text-xs text-amber-700 flex-shrink-0">
+                  {x.misses} 次无结果
+                  <span className="text-cheers-brown/40"> · {fmtTime(x.lastSeen)}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
     </div>
   )
 }

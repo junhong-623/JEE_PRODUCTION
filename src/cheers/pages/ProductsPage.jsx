@@ -4,7 +4,7 @@ import { getFirestore, collection, query, where, getDocs, doc, getDoc, orderBy }
 import app from '../../lib/firebase'
 import { useLang } from '../contexts/LangContext'
 import ProductCard from '../components/ui/ProductCard'
-import { trackViewItemList } from '../lib/tracking'
+import { trackViewItemList, trackSearch } from '../lib/tracking'
 
 const db = getFirestore(app)
 
@@ -112,6 +112,13 @@ export default function ProductsPage() {
       || (p.colors || []).flatMap(c => c.sizes || []).some(s => s.label?.toLowerCase().includes(sq))
     return matchCat && matchSearch
   })
+
+  // 搜索埋点：用户停止打字 1 秒后记一次（用此时 filtered 长度作为 resultsCount）
+  useEffect(() => {
+    if (!search.trim()) return
+    const t = setTimeout(() => trackSearch(search, filtered.length, lang), 1000)
+    return () => clearTimeout(t)
+  }, [search, lang])  // 不监听 filtered，因为它每次 render 都新对象引用
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
