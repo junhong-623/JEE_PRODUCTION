@@ -23,7 +23,7 @@ if (typeof window !== 'undefined' && CHEERS_MEASUREMENT_ID) {
         projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID,
         storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
         messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-        appId:             import.meta.env.VITE_FIREBASE_APP_ID,
+        appId:             import.meta.env.VITE_CHEERS_FIREBASE_APP_ID,
         measurementId:     CHEERS_MEASUREMENT_ID,
       }, 'cheers-analytics')
       analytics = getAnalytics(cheersAnalyticsApp)
