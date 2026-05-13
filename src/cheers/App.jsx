@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { getFirestore, doc, getDoc } from 'firebase/firestore'
 import app from '../lib/firebase'
 import { applyFonts } from './lib/fontConfig'
+import { captureTrafficSource } from './lib/tracking'
 import { LangProvider } from './contexts/LangContext'
 import { AuthProvider } from './contexts/AuthContext'
 import { CartProvider } from './contexts/CartContext'
@@ -65,6 +66,7 @@ function AppShell() {
   const isCart = pathname === '/cart'
 
   useEffect(() => {
+    captureTrafficSource()
     getDoc(doc(db, 'cheers_settings', 'global')).then(snap => {
       if (snap.exists()) {
         const { fontEn, fontZh } = snap.data()
