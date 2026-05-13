@@ -4,6 +4,60 @@
 //
 // 设计原则：所有调用都是 fire-and-forget，失败不影响主流程。
 
+// ─── 流量来源追踪 ──────────────────────────────────────────────────────────────
+
+const TRAFFIC_SOURCE_KEY = 'cheers_traffic_source'
+
+const REFERRER_MAP = [
+  { pattern: /instagram\.com/, source: 'Instagram', medium: 'social' },
+  { pattern: /facebook\.com|fb\.com/, source: 'Facebook', medium: 'social' },
+  { pattern: /wa\.me|api\.whatsapp\.com|whatsapp\.com/, source: 'WhatsApp', medium: 'messaging' },
+  { pattern: /t\.me|telegram\.me/, source: 'Telegram', medium: 'messaging' },
+  { pattern: /xiaohongshu\.com|xhslink\.com/, source: 'Xiaohongshu', medium: 'social' },
+  { pattern: /tiktok\.com/, source: 'TikTok', medium: 'social' },
+]
+
+// 从 URL params 或 referrer 捕获来源，存入 sessionStorage（每次会话只捕获一次）
+export function captureTrafficSource() {
+  try {
+    if (sessionStorage.getItem(TRAFFIC_SOURCE_KEY)) return
+    const params = new URLSearchParams(window.location.search)
+    const utmSource = params.get('utm_source')
+    const utmMedium = params.get('utm_medium')
+    const utmCampaign = params.get('utm_campaign')
+    if (utmSource) {
+      sessionStorage.setItem(TRAFFIC_SOURCE_KEY, JSON.stringify({
+        source: utmSource,
+        medium: utmMedium || '',
+        campaign: utmCampaign || '',
+      }))
+      return
+    }
+    const ref = document.referrer
+    if (ref) {
+      const match = REFERRER_MAP.find(r => r.pattern.test(ref))
+      if (match) {
+        sessionStorage.setItem(TRAFFIC_SOURCE_KEY, JSON.stringify({
+          source: match.source, medium: match.medium, campaign: ''
+        }))
+        return
+      }
+    }
+    sessionStorage.setItem(TRAFFIC_SOURCE_KEY, JSON.stringify({
+      source: 'Direct', medium: '', campaign: ''
+    }))
+  } catch {}
+}
+
+export function getStoredTrafficSource() {
+  try {
+    const raw = sessionStorage.getItem(TRAFFIC_SOURCE_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 import { initializeApp } from 'firebase/app'
 import { addDoc, collection, doc, setDoc, increment, serverTimestamp } from 'firebase/firestore'
 import { getAnalytics, isSupported as analyticsIsSupported, logEvent } from 'firebase/analytics'

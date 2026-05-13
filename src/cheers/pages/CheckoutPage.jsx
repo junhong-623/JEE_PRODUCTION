@@ -9,7 +9,7 @@ import CouponTicket, { applyDiscount, formatDiscount, computeSavings, findBestCo
 import { optimizeUrl } from '../lib/cloudinary'
 import { effectiveCostPrice } from '../lib/productPrice'
 import { generateUniqueOrderId } from '../lib/orderId'
-import { trackPurchase, trackBeginCheckout } from '../lib/tracking'
+import { trackPurchase, trackBeginCheckout, getStoredTrafficSource } from '../lib/tracking'
 
 const db = getFirestore(app)
 
@@ -380,6 +380,7 @@ export default function CheckoutPage() {
         paymentMode: settings?.paymentMode || 'full',
         notes: notes.trim() || null,
         createdAt: serverTimestamp(),
+        trafficSource: getStoredTrafficSource() || null,
         ...(addonInfo ? { isAddon: true, parentOrderId: addonInfo.parentOrderId } : {}),
         ...(couponIsValid && selectedCoupon ? {
           coupon: { code: selectedCoupon.code, discount: selectedCoupon.discount, discountType: selectedCoupon.discountType || 'percentage', title: selectedCoupon.title },

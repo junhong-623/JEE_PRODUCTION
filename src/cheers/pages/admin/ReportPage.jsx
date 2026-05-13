@@ -3,6 +3,9 @@ import {
   getFirestore, collection, getDocs, doc, query, orderBy,
   setDoc, deleteDoc, updateDoc,
 } from 'firebase/firestore'
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
+} from 'recharts'
 import app from '../../../lib/firebase'
 import { useLang } from '../../contexts/LangContext'
 
@@ -54,6 +57,8 @@ const TABS = [
   { key: 'delivery',    label: '🚚 配送分组' },
   { key: 'sales',       label: '💰 收入概览' },
   { key: 'search',      label: '🔍 搜索关键词' },
+  { key: 'products',    label: '📊 商品分析' },
+  { key: 'traffic',     label: '📡 流量来源' },
 ]
 
 export default function ReportPage() {
@@ -63,21 +68,26 @@ export default function ReportPage() {
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
   const [tracking, setTracking] = useState({}) // { [key]: qty }
+  const [productStats, setProductStats] = useState({})
   const [loading, setLoading] = useState(true)
   const [procStatuses, setProcStatuses] = useState(new Set(['confirmed', 'purchasing']))
   const [delivStatuses, setDelivStatuses] = useState(new Set(['confirmed', 'purchasing', 'procured', 'shipped']))
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [ordersSnap, prodsSnap, catsSnap, trackSnap] = await Promise.all([
+    const [ordersSnap, prodsSnap, catsSnap, trackSnap, statsSnap] = await Promise.all([
       getDocs(query(collection(db, 'cheers_orders'), orderBy('createdAt', 'desc'))),
       getDocs(collection(db, 'cheers_products')),
       getDocs(collection(db, 'cheers_categories')),
       getDocs(collection(db, 'cheers_procurement_tracking')),
+      getDocs(collection(db, 'cheers_product_stats')),
     ])
     setOrders(ordersSnap.docs.map(d => ({ id: d.id, ...d.data() })))
     setProducts(prodsSnap.docs.map(d => ({ id: d.id, ...d.data() })))
     setCategories(catsSnap.docs.map(d => ({ id: d.id, ...d.data() })))
+    const statsMap = {}
+    statsSnap.docs.forEach(d => { statsMap[d.id] = d.data() })
+    setProductStats(statsMap)
     const t = {}
     trackSnap.docs.forEach(d => {
       const qty = d.data().purchasedQty ?? (d.data().purchased ? 999 : 0)
@@ -177,6 +187,8 @@ export default function ReportPage() {
       )}
       {tab === 'sales' && <SalesTab orders={orders} lang={lang} />}
       {tab === 'search' && <SearchTab lang={lang} />}
+      {tab === 'products' && <ProductsAnalyticsTab products={products} productStats={productStats} lang={lang} />}
+      {tab === 'traffic' && <TrafficSourceTab orders={orders} lang={lang} />}
     </div>
   )
 }
@@ -266,6 +278,317 @@ function SearchTab() {
               </li>
             ))}
           </ol>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── 商品分析 Tab ──────────────────────────────────────────────────────────────
+function ProductsAnalyticsTab({ products, productStats, lang }) {
+  const [sortKey, setSortKey] = useState('views')
+  const [chartMetric, setChartMetric] = useState('views')
+
+  function pName(p) {
+    const n = p.name
+    if (!n) return p.id
+    const s = (lang === 'zh' ? (n.zh || n.en) : (n.en || n.zh)) || p.id
+    return s.length > 14 ? s.slice(0, 13) + '…' : s
+  }
+
+  const rows = products.map(p => {
+    const s = productStats[p.id] || {}
+    const views = s.views || 0
+    const adds = s.addsToCart || 0
+    const purchases = s.purchases || 0
+    return {
+      id: p.id,
+      name: pName(p),
+      views,
+      adds,
+      purchases,
+      addRate: views > 0 ? ((adds / views) * 100).toFixed(1) : '—',
+      buyRate: adds > 0 ? ((purchases / adds) * 100).toFixed(1) : '—',
+    }
+  })
+
+  const totalViews = rows.reduce((s, r) => s + r.views, 0)
+  const totalAdds = rows.reduce((s, r) => s + r.adds, 0)
+  const totalPurchases = rows.reduce((s, r) => s + r.purchases, 0)
+
+  const sorted = [...rows].sort((a, b) => b[sortKey] - a[sortKey])
+  const top10 = sorted.slice(0, 10)
+
+  const CHART_COLORS = ['#8B5E3C', '#A0724E', '#B58860', '#C99E76', '#DDBA8E']
+
+  const metricLabel = { views: '浏览量', adds: '加购数', purchases: '下单数' }
+
+  return (
+    <div className="space-y-6">
+      {/* 漏斗汇总 */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: '总浏览', value: totalViews, icon: '👀', sub: null },
+          {
+            label: '总加购',
+            value: totalAdds,
+            icon: '🛒',
+            sub: totalViews > 0 ? `转化率 ${((totalAdds / totalViews) * 100).toFixed(1)}%` : null,
+          },
+          {
+            label: '总下单',
+            value: totalPurchases,
+            icon: '📦',
+            sub: totalAdds > 0 ? `转化率 ${((totalPurchases / totalAdds) * 100).toFixed(1)}%` : null,
+          },
+        ].map((item, i) => (
+          <div key={i} className="card p-4 text-center">
+            <div className="text-2xl mb-1">{item.icon}</div>
+            <div className="text-2xl font-bold text-cheers-dark-brown">{item.value.toLocaleString()}</div>
+            <div className="text-xs text-cheers-brown/60 mt-1">{item.label}</div>
+            {item.sub && <div className="text-xs text-green-600 mt-0.5">{item.sub}</div>}
+          </div>
+        ))}
+      </div>
+
+      {/* 排行榜图表 */}
+      <div className="card p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-medium text-cheers-dark-brown">Top 10 商品排行榜</h3>
+          <div className="flex gap-1">
+            {Object.entries(metricLabel).map(([k, label]) => (
+              <button key={k} onClick={() => setChartMetric(k)}
+                className={`px-2.5 py-1 text-xs rounded-full transition-colors ${chartMetric === k ? 'bg-cheers-brown text-white' : 'bg-cheers-cream text-cheers-brown hover:bg-cheers-brown/20'}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <ResponsiveContainer width="100%" height={240}>
+          <BarChart data={top10} layout="vertical" margin={{ left: 8, right: 16, top: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e5d9cf" />
+            <XAxis type="number" tick={{ fontSize: 11 }} />
+            <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 11 }} />
+            <Tooltip formatter={(v) => [v, metricLabel[chartMetric]]} />
+            <Bar dataKey={chartMetric} radius={[0, 3, 3, 0]}>
+              {top10.map((_, i) => (
+                <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* 明细表 */}
+      <div className="card overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-cheers-cream text-cheers-brown/60 text-xs">
+              {[
+                { key: null,        label: '商品名称' },
+                { key: 'views',     label: '浏览' },
+                { key: 'adds',      label: '加购' },
+                { key: null,        label: '加购率%' },
+                { key: 'purchases', label: '下单' },
+                { key: null,        label: '下单率%' },
+              ].map((col, i) => (
+                <th key={i}
+                  onClick={() => col.key && setSortKey(col.key)}
+                  className={`px-3 py-2.5 text-left ${col.key ? 'cursor-pointer hover:text-cheers-brown select-none' : ''} ${sortKey === col.key ? 'text-cheers-brown font-semibold' : ''}`}>
+                  {col.label}{sortKey === col.key ? ' ▼' : ''}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((r, i) => (
+              <tr key={r.id} className={`border-b border-cheers-cream/50 hover:bg-cheers-cream/20 ${i === 0 ? 'bg-amber-50/40' : ''}`}>
+                <td className="px-3 py-2 font-medium text-cheers-dark-brown max-w-[180px] truncate">{r.name}</td>
+                <td className="px-3 py-2 text-cheers-brown">{r.views.toLocaleString()}</td>
+                <td className="px-3 py-2 text-cheers-brown">{r.adds.toLocaleString()}</td>
+                <td className="px-3 py-2 text-cheers-brown/70">{r.addRate}{r.addRate !== '—' ? '%' : ''}</td>
+                <td className="px-3 py-2 text-cheers-brown">{r.purchases.toLocaleString()}</td>
+                <td className="px-3 py-2 text-cheers-brown/70">{r.buyRate}{r.buyRate !== '—' ? '%' : ''}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// ── 流量来源 Tab ──────────────────────────────────────────────────────────────
+const PLATFORM_PRESETS = [
+  { label: 'Instagram', source: 'Instagram', medium: 'social' },
+  { label: 'Facebook',  source: 'Facebook',  medium: 'social' },
+  { label: 'WhatsApp',  source: 'WhatsApp',  medium: 'messaging' },
+  { label: 'Telegram',  source: 'Telegram',  medium: 'messaging' },
+  { label: '小红书',     source: 'Xiaohongshu', medium: 'social' },
+  { label: 'TikTok',    source: 'TikTok',    medium: 'social' },
+  { label: '自定义',     source: '',          medium: '' },
+]
+
+function TrafficSourceTab({ orders }) {
+  const [showGenerator, setShowGenerator] = useState(false)
+  const [genUrl, setGenUrl] = useState('')
+  const [genPlatform, setGenPlatform] = useState(PLATFORM_PRESETS[0])
+  const [genCustomSource, setGenCustomSource] = useState('')
+  const [genCampaign, setGenCampaign] = useState('')
+  const [copied, setCopied] = useState(false)
+
+  // 按来源汇总
+  const sourceMap = {}
+  for (const o of orders) {
+    const src = o.trafficSource?.source || null
+    const key = src || '未知'
+    if (!sourceMap[key]) sourceMap[key] = { source: key, count: 0, revenue: 0 }
+    sourceMap[key].count++
+    sourceMap[key].revenue += Number(o.total) || 0
+  }
+  const sourceRows = Object.values(sourceMap).sort((a, b) => b.count - a.count)
+  const totalOrders = orders.length
+  const trackedOrders = orders.filter(o => o.trafficSource?.source).length
+
+  const chartData = sourceRows.slice(0, 8)
+  const CHART_COLORS = ['#8B5E3C', '#A0724E', '#B58860', '#C99E76', '#DDBA8E', '#6B8E7A', '#5B7E9A', '#7A6B8E']
+
+  function buildLink() {
+    if (!genUrl.trim()) return ''
+    try {
+      const src = genPlatform.label === '自定义' ? genCustomSource.trim() : genPlatform.source
+      const med = genPlatform.medium
+      const u = new URL(genUrl.trim().startsWith('http') ? genUrl.trim() : 'https://' + genUrl.trim())
+      if (src) u.searchParams.set('utm_source', src)
+      if (med) u.searchParams.set('utm_medium', med)
+      if (genCampaign.trim()) u.searchParams.set('utm_campaign', genCampaign.trim())
+      return u.toString()
+    } catch { return '' }
+  }
+
+  const generatedLink = buildLink()
+
+  function handleCopy() {
+    if (!generatedLink) return
+    navigator.clipboard?.writeText(generatedLink).catch(() => {
+      const el = document.createElement('textarea')
+      el.value = generatedLink; document.body.appendChild(el); el.select()
+      document.execCommand('copy'); document.body.removeChild(el)
+    })
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* 说明卡 */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
+        <p className="font-medium mb-1">📡 流量来源追踪</p>
+        <p className="text-blue-700/80">共 <strong>{totalOrders}</strong> 个订单，其中 <strong>{trackedOrders}</strong> 个含来源信息（{totalOrders > 0 ? ((trackedOrders / totalOrders) * 100).toFixed(0) : 0}%）。历史订单没有来源数据，上线后的新订单才会开始记录。</p>
+      </div>
+
+      {/* 汇总表 */}
+      {sourceRows.length > 0 && (
+        <div className="card overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-cheers-cream text-cheers-brown/60 text-xs">
+                <th className="px-3 py-2.5 text-left">来源平台</th>
+                <th className="px-3 py-2.5 text-left">订单数</th>
+                <th className="px-3 py-2.5 text-left">销售额 (RM)</th>
+                <th className="px-3 py-2.5 text-left">占比%</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sourceRows.map((r, i) => (
+                <tr key={r.source} className={`border-b border-cheers-cream/50 hover:bg-cheers-cream/20 ${i === 0 && r.source !== '未知' ? 'bg-amber-50/40' : ''}`}>
+                  <td className="px-3 py-2 font-medium text-cheers-dark-brown">{r.source}</td>
+                  <td className="px-3 py-2 text-cheers-brown">{r.count}</td>
+                  <td className="px-3 py-2 text-cheers-brown">RM {r.revenue.toFixed(2)}</td>
+                  <td className="px-3 py-2 text-cheers-brown/70">
+                    {totalOrders > 0 ? ((r.count / totalOrders) * 100).toFixed(1) : 0}%
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* 图表 */}
+      {chartData.length > 0 && (
+        <div className="card p-4">
+          <h3 className="font-medium text-cheers-dark-brown mb-4">各平台订单数</h3>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={chartData} margin={{ left: 0, right: 16, top: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5d9cf" />
+              <XAxis dataKey="source" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+              <Tooltip formatter={(v) => [v, '订单数']} />
+              <Bar dataKey="count" radius={[3, 3, 0, 0]}>
+                {chartData.map((_, i) => (
+                  <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* 追踪链接生成器 */}
+      <div className="card p-4">
+        <button onClick={() => setShowGenerator(v => !v)}
+          className="flex items-center gap-2 w-full text-left font-medium text-cheers-dark-brown">
+          <span>🔗 追踪链接生成器</span>
+          <span className="text-cheers-brown/40 text-xs ml-auto">{showGenerator ? '收起 ▲' : '展开 ▼'}</span>
+        </button>
+        {showGenerator && (
+          <div className="mt-4 space-y-3">
+            <p className="text-xs text-cheers-brown/60">将带参数的链接分享给顾客，系统自动识别来源平台</p>
+
+            <div>
+              <label className="text-xs text-cheers-brown/70 mb-1 block">商品页链接（必填）</label>
+              <input value={genUrl} onChange={e => setGenUrl(e.target.value)} placeholder="https://yoursite.com/products/xxx"
+                className="input w-full text-sm" />
+            </div>
+
+            <div>
+              <label className="text-xs text-cheers-brown/70 mb-1 block">平台</label>
+              <div className="flex flex-wrap gap-1.5">
+                {PLATFORM_PRESETS.map(p => (
+                  <button key={p.label} onClick={() => setGenPlatform(p)}
+                    className={`px-2.5 py-1 text-xs rounded-full transition-colors ${genPlatform.label === p.label ? 'bg-cheers-brown text-white' : 'bg-cheers-cream text-cheers-brown hover:bg-cheers-brown/20'}`}>
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {genPlatform.label === '自定义' && (
+              <div>
+                <label className="text-xs text-cheers-brown/70 mb-1 block">自定义平台名称</label>
+                <input value={genCustomSource} onChange={e => setGenCustomSource(e.target.value)} placeholder="如：newsletter"
+                  className="input w-full text-sm" />
+              </div>
+            )}
+
+            <div>
+              <label className="text-xs text-cheers-brown/70 mb-1 block">活动名称（选填）</label>
+              <input value={genCampaign} onChange={e => setGenCampaign(e.target.value)} placeholder="如：母亲节促销"
+                className="input w-full text-sm" />
+            </div>
+
+            {generatedLink && (
+              <div className="bg-cheers-cream/50 rounded-lg p-3">
+                <p className="text-xs text-cheers-brown/60 mb-1.5">生成的追踪链接：</p>
+                <p className="text-xs text-cheers-dark-brown break-all font-mono">{generatedLink}</p>
+                <button onClick={handleCopy}
+                  className={`mt-2 px-3 py-1.5 text-xs rounded-lg transition-colors ${copied ? 'bg-green-100 text-green-700' : 'bg-cheers-brown text-white hover:bg-cheers-dark-brown'}`}>
+                  {copied ? '✓ 已复制！' : '复制链接'}
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>
