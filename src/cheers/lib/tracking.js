@@ -104,10 +104,13 @@ function productNameStr(name) {
   return name?.zh || name?.en || ''
 }
 
-// 商品浏览：同 session 去重 + 区分登录态
+// 商品浏览：同 session 去重 + 区分登录态 + 来源追踪
 export function trackProductView(product, user) {
   if (!product?.id) return
   if (alreadyViewedThisSession(product.id)) return
+
+  const src = getStoredTrafficSource()
+  const source = src?.source || null
 
   // Firestore counter（fire-and-forget）
   setDoc(
@@ -115,10 +118,20 @@ export function trackProductView(product, user) {
     {
       views: increment(1),
       ...(user ? { loggedInViews: increment(1) } : {}),
+      ...(source ? { [`sv_${source}`]: increment(1) } : {}),
       lastViewedAt: serverTimestamp(),
     },
     { merge: true }
   ).catch(() => {})
+
+  // 全局来源浏览计数（用于流量来源报表）
+  if (source) {
+    setDoc(
+      doc(db, 'cheers_traffic_stats', 'source_visits'),
+      { [source]: increment(1) },
+      { merge: true }
+    ).catch(() => {})
+  }
 
   // GA4 事件
   if (analytics) {
@@ -136,16 +149,20 @@ export function trackProductView(product, user) {
   }
 }
 
-// 加购：按数量累加 addsToCart
+// 加购：按数量累加 addsToCart + 来源追踪
 export function trackAddToCart(product, quantity = 1, price) {
   if (!product?.id) return
   const qty = Number(quantity) || 1
   const itemPrice = Number(price ?? product.price) || 0
 
+  const src = getStoredTrafficSource()
+  const source = src?.source || null
+
   setDoc(
     doc(db, 'cheers_product_stats', product.id),
     {
       addsToCart: increment(qty),
+      ...(source ? { [`sa_${source}`]: increment(qty) } : {}),
       lastAddedAt: serverTimestamp(),
     },
     { merge: true }

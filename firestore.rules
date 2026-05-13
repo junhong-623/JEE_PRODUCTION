@@ -153,6 +153,12 @@ service cloud.firestore {
       allow create, update: if true;
       allow delete: if isAdmin();
     }
+    // 流量来源统计：任何人可 increment（匿名访客也算），仅 admin 读
+    match /cheers_traffic_stats/{doc} {
+      allow read: if isAdmin();
+      allow create, update: if true;
+      allow delete: if isAdmin();
+    }
     // 搜索关键词日志：任何人可写，仅 admin 可读 + 删
     match /cheers_search_logs/{doc} {
       allow read: if isAdmin();

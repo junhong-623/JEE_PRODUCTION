@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import {
-  getFirestore, collection, getDocs, doc, query, orderBy,
+  getFirestore, collection, getDocs, doc, getDoc, query, orderBy,
   setDoc, deleteDoc, updateDoc,
 } from 'firebase/firestore'
 import {
@@ -69,18 +69,20 @@ export default function ReportPage() {
   const [categories, setCategories] = useState([])
   const [tracking, setTracking] = useState({}) // { [key]: qty }
   const [productStats, setProductStats] = useState({})
+  const [trafficVisits, setTrafficVisits] = useState({}) // { [source]: visitCount }
   const [loading, setLoading] = useState(true)
   const [procStatuses, setProcStatuses] = useState(new Set(['confirmed', 'purchasing']))
   const [delivStatuses, setDelivStatuses] = useState(new Set(['confirmed', 'purchasing', 'procured', 'shipped']))
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [ordersSnap, prodsSnap, catsSnap, trackSnap, statsSnap] = await Promise.all([
+    const [ordersSnap, prodsSnap, catsSnap, trackSnap, statsSnap, visitsSnap] = await Promise.all([
       getDocs(query(collection(db, 'cheers_orders'), orderBy('createdAt', 'desc'))),
       getDocs(collection(db, 'cheers_products')),
       getDocs(collection(db, 'cheers_categories')),
       getDocs(collection(db, 'cheers_procurement_tracking')),
       getDocs(collection(db, 'cheers_product_stats')),
+      getDoc(doc(db, 'cheers_traffic_stats', 'source_visits')),
     ])
     setOrders(ordersSnap.docs.map(d => ({ id: d.id, ...d.data() })))
     setProducts(prodsSnap.docs.map(d => ({ id: d.id, ...d.data() })))
@@ -88,6 +90,7 @@ export default function ReportPage() {
     const statsMap = {}
     statsSnap.docs.forEach(d => { statsMap[d.id] = d.data() })
     setProductStats(statsMap)
+    setTrafficVisits(visitsSnap.exists() ? visitsSnap.data() : {})
     const t = {}
     trackSnap.docs.forEach(d => {
       const qty = d.data().purchasedQty ?? (d.data().purchased ? 999 : 0)
@@ -188,7 +191,7 @@ export default function ReportPage() {
       {tab === 'sales' && <SalesTab orders={orders} lang={lang} />}
       {tab === 'search' && <SearchTab lang={lang} />}
       {tab === 'products' && <ProductsAnalyticsTab products={products} productStats={productStats} lang={lang} />}
-      {tab === 'traffic' && <TrafficSourceTab orders={orders} lang={lang} />}
+      {tab === 'traffic' && <TrafficSourceTab orders={orders} trafficVisits={trafficVisits} lang={lang} />}
     </div>
   )
 }
@@ -429,7 +432,7 @@ const PLATFORM_PRESETS = [
   { label: '自定义',     source: '',          medium: '' },
 ]
 
-function TrafficSourceTab({ orders }) {
+function TrafficSourceTab({ orders, trafficVisits }) {
   const [showGenerator, setShowGenerator] = useState(false)
   const [genUrl, setGenUrl] = useState('')
   const [genPlatform, setGenPlatform] = useState(PLATFORM_PRESETS[0])
@@ -437,21 +440,32 @@ function TrafficSourceTab({ orders }) {
   const [genCampaign, setGenCampaign] = useState('')
   const [copied, setCopied] = useState(false)
 
-  // 按来源汇总
+  const CHART_COLORS = ['#8B5E3C', '#A0724E', '#B58860', '#C99E76', '#DDBA8E', '#6B8E7A', '#5B7E9A', '#7A6B8E']
+
+  // 合并：来自 trafficVisits（浏览）和 orders（下单）的来源数据
   const sourceMap = {}
+
+  // 浏览来源（从 cheers_traffic_stats/source_visits）
+  for (const [src, visits] of Object.entries(trafficVisits)) {
+    if (!sourceMap[src]) sourceMap[src] = { source: src, visits: 0, orders: 0, revenue: 0 }
+    sourceMap[src].visits += Number(visits) || 0
+  }
+
+  // 下单来源（从 cheers_orders[].trafficSource）
   for (const o of orders) {
     const src = o.trafficSource?.source || null
-    const key = src || '未知'
-    if (!sourceMap[key]) sourceMap[key] = { source: key, count: 0, revenue: 0 }
-    sourceMap[key].count++
-    sourceMap[key].revenue += Number(o.total) || 0
+    if (!src) continue
+    if (!sourceMap[src]) sourceMap[src] = { source: src, visits: 0, orders: 0, revenue: 0 }
+    sourceMap[src].orders++
+    sourceMap[src].revenue += Number(o.total) || 0
   }
-  const sourceRows = Object.values(sourceMap).sort((a, b) => b.count - a.count)
-  const totalOrders = orders.length
+
+  const sourceRows = Object.values(sourceMap).sort((a, b) => b.visits - a.visits || b.orders - a.orders)
+  const totalVisits = Object.values(trafficVisits).reduce((s, v) => s + Number(v), 0)
   const trackedOrders = orders.filter(o => o.trafficSource?.source).length
+  const hasVisitData = totalVisits > 0
 
   const chartData = sourceRows.slice(0, 8)
-  const CHART_COLORS = ['#8B5E3C', '#A0724E', '#B58860', '#C99E76', '#DDBA8E', '#6B8E7A', '#5B7E9A', '#7A6B8E']
 
   function buildLink() {
     if (!genUrl.trim()) return ''
@@ -484,7 +498,11 @@ function TrafficSourceTab({ orders }) {
       {/* 说明卡 */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
         <p className="font-medium mb-1">📡 流量来源追踪</p>
-        <p className="text-blue-700/80">共 <strong>{totalOrders}</strong> 个订单，其中 <strong>{trackedOrders}</strong> 个含来源信息（{totalOrders > 0 ? ((trackedOrders / totalOrders) * 100).toFixed(0) : 0}%）。历史订单没有来源数据，上线后的新订单才会开始记录。</p>
+        {hasVisitData ? (
+          <p className="text-blue-700/80">已追踪到 <strong>{totalVisits.toLocaleString()}</strong> 次商品浏览，<strong>{trackedOrders}</strong> 个有来源信息的订单。历史数据（上线前）不计入。</p>
+        ) : (
+          <p className="text-blue-700/80">追踪已启动。用下方的链接生成器制作追踪链接，分享给顾客后，顾客的浏览和下单数据会在这里显示。</p>
+        )}
       </div>
 
       {/* 汇总表 */}
@@ -494,22 +512,25 @@ function TrafficSourceTab({ orders }) {
             <thead>
               <tr className="border-b border-cheers-cream text-cheers-brown/60 text-xs">
                 <th className="px-3 py-2.5 text-left">来源平台</th>
-                <th className="px-3 py-2.5 text-left">订单数</th>
+                <th className="px-3 py-2.5 text-left">商品浏览</th>
+                <th className="px-3 py-2.5 text-left">下单数</th>
+                <th className="px-3 py-2.5 text-left">浏览→下单%</th>
                 <th className="px-3 py-2.5 text-left">销售额 (RM)</th>
-                <th className="px-3 py-2.5 text-left">占比%</th>
               </tr>
             </thead>
             <tbody>
-              {sourceRows.map((r, i) => (
-                <tr key={r.source} className={`border-b border-cheers-cream/50 hover:bg-cheers-cream/20 ${i === 0 && r.source !== '未知' ? 'bg-amber-50/40' : ''}`}>
-                  <td className="px-3 py-2 font-medium text-cheers-dark-brown">{r.source}</td>
-                  <td className="px-3 py-2 text-cheers-brown">{r.count}</td>
-                  <td className="px-3 py-2 text-cheers-brown">RM {r.revenue.toFixed(2)}</td>
-                  <td className="px-3 py-2 text-cheers-brown/70">
-                    {totalOrders > 0 ? ((r.count / totalOrders) * 100).toFixed(1) : 0}%
-                  </td>
-                </tr>
-              ))}
+              {sourceRows.map((r, i) => {
+                const convRate = r.visits > 0 ? ((r.orders / r.visits) * 100).toFixed(1) : '—'
+                return (
+                  <tr key={r.source} className={`border-b border-cheers-cream/50 hover:bg-cheers-cream/20 ${i === 0 ? 'bg-amber-50/40' : ''}`}>
+                    <td className="px-3 py-2 font-medium text-cheers-dark-brown">{r.source}</td>
+                    <td className="px-3 py-2 text-cheers-brown">{r.visits > 0 ? r.visits.toLocaleString() : <span className="text-cheers-brown/30">—</span>}</td>
+                    <td className="px-3 py-2 text-cheers-brown">{r.orders}</td>
+                    <td className="px-3 py-2 text-green-600 text-xs">{convRate}{convRate !== '—' ? '%' : ''}</td>
+                    <td className="px-3 py-2 text-cheers-brown">RM {r.revenue.toFixed(2)}</td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
@@ -518,14 +539,14 @@ function TrafficSourceTab({ orders }) {
       {/* 图表 */}
       {chartData.length > 0 && (
         <div className="card p-4">
-          <h3 className="font-medium text-cheers-dark-brown mb-4">各平台订单数</h3>
+          <h3 className="font-medium text-cheers-dark-brown mb-4">各平台浏览量</h3>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={chartData} margin={{ left: 0, right: 16, top: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5d9cf" />
               <XAxis dataKey="source" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-              <Tooltip formatter={(v) => [v, '订单数']} />
-              <Bar dataKey="count" radius={[3, 3, 0, 0]}>
+              <Tooltip formatter={(v, name) => [v, name === 'visits' ? '浏览次数' : '订单数']} />
+              <Bar dataKey="visits" name="visits" radius={[3, 3, 0, 0]}>
                 {chartData.map((_, i) => (
                   <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                 ))}
@@ -544,7 +565,7 @@ function TrafficSourceTab({ orders }) {
         </button>
         {showGenerator && (
           <div className="mt-4 space-y-3">
-            <p className="text-xs text-cheers-brown/60">将带参数的链接分享给顾客，系统自动识别来源平台</p>
+            <p className="text-xs text-cheers-brown/60">将带参数的链接分享给顾客，顾客一点击就会自动记录来源平台</p>
 
             <div>
               <label className="text-xs text-cheers-brown/70 mb-1 block">商品页链接（必填）</label>
