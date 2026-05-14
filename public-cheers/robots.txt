@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /cart
+Disallow: /checkout
+Disallow: /payment
+Disallow: /orders
+Disallow: /wishlist
+Disallow: /account
+Disallow: /login
+Disallow: /register
+
+Sitemap: https://cheers-co.jeeprod.com/sitemap.xml
