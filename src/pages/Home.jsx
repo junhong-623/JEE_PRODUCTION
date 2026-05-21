@@ -738,6 +738,45 @@ function Archive({ entries, loading }) {
   )
 }
 
+/* ── Bookmarks ───────────────────────────────────────────────────────────── */
+
+function Bookmarks({ entries, loading }) {
+  const { lang, t } = useLang()
+  return (
+    <section className="hud-section" id="bookmarks">
+      <div className="hud-container">
+        <SectionEyebrow
+          num="05" name="// BOOKMARK_LOG"
+          title={lang === 'zh' ? '精选书签' : 'Curated bookmarks'}
+          sub={lang === 'zh' ? '$ cat ~/bookmarks.md | head -20' : '$ cat ~/bookmarks.md | head -20'}
+          spec={[
+            { k: 'ENTRIES:', v: loading ? '…' : entries.length },
+            { k: 'CURATED:', v: 'YES' },
+          ]}
+        />
+        {loading ? (
+          <div className="hud-archive">
+            {[0, 1, 2, 3].map(i => <div key={i} className="hud-archive-skeleton" />)}
+          </div>
+        ) : entries.length === 0 ? (
+          <div className="hud-frame" style={{ padding: '48px 28px', textAlign: 'center' }}>
+            <span className="br" />
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--hud-fg-3)' }}>
+              {t('bookmarkEmpty')}
+            </span>
+          </div>
+        ) : (
+          <div className="hud-archive">
+            {entries.map((entry, i) => (
+              <HudEntryCard key={entry.id} entry={entry} index={i} />
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
 /* ── Transmissions ───────────────────────────────────────────────────────── */
 
 function Transmissions() {
@@ -748,7 +787,7 @@ function Transmissions() {
     <section className="hud-section" id="transmissions">
       <div className="hud-container">
         <SectionEyebrow
-          num="05" name="// SIGNAL"
+          num="06" name="// SIGNAL"
           title={lang === 'zh' ? '近期动态' : 'Recent transmissions'}
           sub="$ git log --all --pretty=oneline | head -8"
           spec={[{ k: 'COMMITS/YR:', v: total }, { k: 'STREAK:', v: '14d' }]}
@@ -799,7 +838,7 @@ function ContactBlock() {
     <section className="hud-section" id="contact">
       <div className="hud-container">
         <SectionEyebrow
-          num="06" name="// HANDSHAKE"
+          num="07" name="// HANDSHAKE"
           title={lang === 'zh' ? '建立连接' : 'Open a channel'}
           sub="$ echo $YOUR_MESSAGE | mail jeejunhong@gmail.com"
           spec={[{ k: 'INBOX:', v: lang === 'zh' ? '开放' : 'OPEN' }, { k: 'RESPONSE:', v: '< 24h' }]}
@@ -918,13 +957,20 @@ export default function Home() {
   const { lang } = useLang()
   const { admin } = useAuth()
   const [allPortfolio, setAllPortfolio] = useState([])
+  const [allBookmarks, setAllBookmarks] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const load = () => {
       setLoading(true)
-      getVisibleEntriesByType('portfolio')
-        .then(setAllPortfolio)
+      Promise.all([
+        getVisibleEntriesByType('portfolio'),
+        getVisibleEntriesByType('bookmark'),
+      ])
+        .then(([portfolio, bookmarks]) => {
+          setAllPortfolio(portfolio)
+          setAllBookmarks(bookmarks)
+        })
         .catch(console.error)
         .finally(() => setLoading(false))
     }
@@ -934,6 +980,7 @@ export default function Home() {
   }, [])
 
   const portfolioEntries = allPortfolio.filter(e => !e.adminOnly || admin)
+  const bookmarkEntries  = allBookmarks.filter(e => !e.adminOnly || admin)
 
   return (
     <div className="hud-root">
@@ -942,11 +989,15 @@ export default function Home() {
       <div className="hud-scan" />
       <HudNav />
       <Telemetry />
-      <Hero portfolioCount={loading ? '…' : portfolioEntries.length} bookmarkCount="—" />
+      <Hero
+        portfolioCount={loading ? '…' : portfolioEntries.length}
+        bookmarkCount={loading ? '…' : bookmarkEntries.length}
+      />
       <About />
       <Skills />
       <Missions />
       <Archive entries={portfolioEntries} loading={loading} />
+      <Bookmarks entries={bookmarkEntries} loading={loading} />
       <Transmissions />
       <ContactBlock />
       <HudFooter />
