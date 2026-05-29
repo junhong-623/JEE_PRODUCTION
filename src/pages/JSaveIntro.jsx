@@ -218,6 +218,7 @@ export default function JSaveIntro() {
   const [faqOpen, setFaqOpen] = useState(0)
   const [showAllChangelog, setShowAllChangelog] = useState(false)
   const [installGuide, setInstallGuide] = useState(null)
+  const [showMenu, setShowMenu] = useState(false)
   const changelogRef = useRef(null)
   const pwaInstallRef = useRef(null)
   const deferredPromptRef = useRef(null)
@@ -320,32 +321,53 @@ export default function JSaveIntro() {
       </Helmet>
 
       {/* ── Nav ── */}
-      <nav style={{ position: 'sticky', top: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 40px', background: 'rgba(5,13,26,0.72)', backdropFilter: 'blur(18px) saturate(150%)', WebkitBackdropFilter: 'blur(18px) saturate(150%)', borderBottom: '1px solid var(--js-line-soft)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
-          <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontSize: 19, color: '#04140d', fontWeight: 700, boxShadow: '0 4px 16px rgba(16,185,129,0.4)' }}>J</div>
-          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
-            <span style={{ fontFamily: 'var(--font-display)', fontSize: 19, letterSpacing: -0.5, color: 'var(--js-ink)' }}>JSave</span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8.5, letterSpacing: 2, color: 'var(--js-ink-3)', marginTop: 2 }}>记账 · SAVE</span>
+      <nav className="ji-nav" style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(5,13,26,0.72)', backdropFilter: 'blur(18px) saturate(150%)', WebkitBackdropFilter: 'blur(18px) saturate(150%)', borderBottom: '1px solid var(--js-line-soft)' }}>
+        <div className="ji-nav-inner">
+          {/* Logo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 11, flexShrink: 0 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontSize: 19, color: '#04140d', fontWeight: 700, boxShadow: '0 4px 16px rgba(16,185,129,0.4)' }}>J</div>
+            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: 19, letterSpacing: -0.5, color: 'var(--js-ink)' }}>JSave</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8.5, letterSpacing: 2, color: 'var(--js-ink-3)', marginTop: 2 }}>记账 · SAVE</span>
+            </div>
+          </div>
+          {/* Desktop nav links */}
+          <div className="ji-nav-links">
+            {c.nav.map((n, i) => (
+              <a key={n} href={['#features','#demo','#pricing','#roadmap'][i]} style={{ fontFamily: 'var(--font-sans)', fontSize: 13.5, fontWeight: 500, color: 'var(--js-ink-2)', textDecoration: 'none' }}>{n}</a>
+            ))}
+          </div>
+          {/* Right controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            <button className="ji-lang-btn" onClick={() => { const l = lang === 'zh' ? 'en' : 'zh'; setLang(l); localStorage.setItem('jsave-lang', l) }}>
+              {zh ? '🇺🇸 EN' : '🇨🇳 中文'}
+            </button>
+            <Link to="/jsave" className="js-btn-primary ji-nav-cta" style={{ padding: '10px 18px', fontSize: 13 }}>{c.navCta}</Link>
+            {/* Hamburger — mobile only */}
+            <button className="ji-hamburger" onClick={() => setShowMenu(m => !m)} aria-label="Menu">
+              {showMenu ? '✕' : '☰'}
+            </button>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 30 }}>
-          {c.nav.map((n, i) => (
-            <a key={n} href={['#features','#demo','#pricing','#roadmap'][i]} style={{ fontFamily: 'var(--font-sans)', fontSize: 13.5, fontWeight: 500, color: 'var(--js-ink-2)', textDecoration: 'none' }}>{n}</a>
-          ))}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button className="ji-lang-btn" onClick={() => { const l = lang === 'zh' ? 'en' : 'zh'; setLang(l); localStorage.setItem('jsave-lang', l) }}>
-            {zh ? '🇺🇸 EN' : '🇨🇳 中文'}
-          </button>
-          <Link to="/jsave" className="js-btn-primary" style={{ padding: '10px 18px', fontSize: 13 }}>{c.navCta}</Link>
-        </div>
+        {/* Mobile dropdown */}
+        {showMenu && (
+          <div className="ji-mobile-menu">
+            {c.nav.map((n, i) => (
+              <a key={n} href={['#features','#demo','#pricing','#roadmap'][i]}
+                 className="ji-mobile-menu-link"
+                 onClick={() => setShowMenu(false)}>
+                {n}
+              </a>
+            ))}
+          </div>
+        )}
       </nav>
 
       {/* ── Hero ── */}
-      <section style={{ position: 'relative', overflow: 'hidden', padding: '72px 40px 60px' }}>
+      <section className="ji-hero-section" style={{ position: 'relative', overflow: 'hidden' }}>
         <div className="js-grid" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}></div>
         <Sparks />
-        <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: '1.15fr 0.85fr', gap: 48, alignItems: 'center', maxWidth: 1200, margin: '0 auto' }}>
+        <div className="ji-hero-grid" style={{ position: 'relative' }}>
           <div>
             <div style={{ display: 'inline-flex', marginBottom: 24 }}>
               <span className="js-pill"><span className="js-dot" style={{ width: 5, height: 5 }}></span>{c.pill}</span>
@@ -363,7 +385,7 @@ export default function JSaveIntro() {
               <a href="#features" className="js-btn-ghost">{c.ctaB}</a>
             </div>
             <div style={{ marginTop: 22, fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: 0.5, color: 'var(--js-ink-3)' }}>{c.trust}</div>
-            <div style={{ marginTop: 34, display: 'flex', gap: 32 }}>
+            <div className="ji-hero-mini-stats" style={{ marginTop: 34 }}>
               {[
                 { v: 48721, p: 'RM ', s: '', l: zh ? '已追踪储蓄' : 'Saved tracked', d: 0 },
                 { v: 12, p: '', s: 'k+', l: zh ? '安静的用户' : 'Quiet users', d: 0 },
@@ -379,7 +401,7 @@ export default function JSaveIntro() {
             </div>
           </div>
           {/* Phone */}
-          <div style={{ display: 'flex', justifyContent: 'center', position: 'relative' }}>
+          <div className="ji-hero-phone" style={{ display: 'flex', justifyContent: 'center', position: 'relative' }}>
             <div style={{ position: 'absolute', width: 320, height: 320, borderRadius: '50%', background: 'radial-gradient(circle, rgba(16,185,129,0.32), transparent 70%)', filter: 'blur(20px)', top: '50%', left: '50%', transform: 'translate(-50%,-50%)' }}></div>
             <div className="js-float-slow" style={{ position: 'relative', transform: 'scale(0.78)', transformOrigin: 'center' }}>
               <Device><PhoneDashboard lang={lang2} accent={ACCENT} /></Device>
@@ -408,7 +430,7 @@ export default function JSaveIntro() {
       </div>
 
       {/* ── Features ── */}
-      <section id="features" style={{ padding: '96px 40px', maxWidth: 1200, margin: '0 auto' }}>
+      <section id="features" className="ji-features-section" style={{ maxWidth: 1200, margin: '0 auto' }}>
         <div className="js-section-header">
           <div>
             <div className="num">01 / {zh ? '功能' : 'FEATURES'}</div>
@@ -416,13 +438,13 @@ export default function JSaveIntro() {
           </div>
           <div className="sub">{c.featSub}</div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+        <div className="ji-feats-grid">
           {c.feats.map((f, i) => {
             const big = i === 0
             return (
-              <div key={i} className="js-card js-card-feature js-reveal" style={{ gridColumn: big ? 'span 2' : 'span 1', transitionDelay: `${(i % 5) * 0.05}s` }}>
+              <div key={i} className={`js-card js-card-feature js-reveal${big ? ' ji-feat-wide' : ''}`} style={{ gridColumn: big ? 'span 2' : 'span 1', transitionDelay: `${(i % 5) * 0.05}s` }}>
                 <div className="js-glow-trail"></div>
-                <div style={{ display: 'flex', alignItems: big ? 'center' : 'flex-start', gap: big ? 18 : 0, flexDirection: big ? 'row' : 'column' }}>
+                <div className={big ? 'ji-feat-inner-big' : 'ji-feat-inner'} style={{ display: 'flex', alignItems: big ? 'center' : 'flex-start', gap: big ? 18 : 0, flexDirection: big ? 'row' : 'column' }}>
                   <div style={{ width: big ? 56 : 44, height: big ? 56 : 44, borderRadius: big ? 16 : 13, background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: big ? 28 : 22, flexShrink: 0, marginBottom: big ? 0 : 16 }}>{f.e}</div>
                   <div>
                     <h4 className="js-h4" style={{ fontSize: big ? 20 : 16 }}>{f.t}</h4>
@@ -436,7 +458,7 @@ export default function JSaveIntro() {
       </section>
 
       {/* ── Live Demo ── */}
-      <section id="demo" style={{ padding: '40px 40px 96px', maxWidth: 1200, margin: '0 auto' }}>
+      <section id="demo" className="ji-demo-section" style={{ maxWidth: 1200, margin: '0 auto' }}>
         <div className="js-section-header">
           <div>
             <div className="num">02 / {zh ? '演示' : 'LIVE DEMO'}</div>
@@ -444,10 +466,10 @@ export default function JSaveIntro() {
           </div>
           <div className="sub">{c.demoSub}</div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '0.4fr 0.6fr', gap: 40, alignItems: 'center', borderRadius: 28, padding: '40px', position: 'relative', overflow: 'hidden', background: 'radial-gradient(120% 100% at 0% 0%, rgba(16,185,129,0.1), transparent 55%), rgba(255,255,255,0.02)', border: '1px solid var(--js-line)' }}>
+        <div className="ji-demo-grid" style={{ borderRadius: 28, padding: '40px', position: 'relative', background: 'radial-gradient(120% 100% at 0% 0%, rgba(16,185,129,0.1), transparent 55%), rgba(255,255,255,0.02)', border: '1px solid var(--js-line)' }}>
           <i className="js-tick" style={{ top: 16, right: 16 }}></i>
           <i className="js-tick" style={{ bottom: 16, left: 16 }}></i>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="ji-demo-tabs">
             {c.demoTabs.map((tab, i) => (
               <button key={i} onClick={() => setDemoActive(i)} style={{ textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px', borderRadius: 16, background: demoActive === i ? 'rgba(16,185,129,0.1)' : 'transparent', border: demoActive === i ? '1px solid rgba(16,185,129,0.32)' : '1px solid var(--js-line-soft)', transition: 'all 0.2s var(--ease-out)', fontFamily: 'inherit' }}>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: demoActive === i ? 'var(--js-emerald)' : 'var(--js-ink-4)' }}>0{i + 1}</span>
@@ -456,7 +478,7 @@ export default function JSaveIntro() {
               </button>
             ))}
           </div>
-          <div style={{ display: 'flex', justifyContent: 'center', position: 'relative' }}>
+          <div className="ji-demo-phone" style={{ display: 'flex', justifyContent: 'center', position: 'relative', pointerEvents: 'none' }}>
             <div style={{ position: 'absolute', width: 280, height: 280, borderRadius: '50%', background: 'radial-gradient(circle, rgba(16,185,129,0.22), transparent 70%)', filter: 'blur(24px)', top: '50%', left: '50%', transform: 'translate(-50%,-50%)' }}></div>
             <div style={{ transform: 'scale(0.82)', transformOrigin: 'center', position: 'relative' }}>{demoScreens[demoActive]}</div>
           </div>
@@ -464,14 +486,14 @@ export default function JSaveIntro() {
       </section>
 
       {/* ── Stats ── */}
-      <section style={{ padding: '0 40px 40px', maxWidth: 1200, margin: '0 auto' }}>
+      <section className="ji-stats-section" style={{ maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ borderRadius: 28, padding: '48px', background: 'radial-gradient(120% 120% at 50% 0%, rgba(16,185,129,0.08), transparent 60%), rgba(255,255,255,0.02)', border: '1px solid var(--js-line)' }}>
           <div style={{ textAlign: 'center', marginBottom: 40 }}>
             <div className="js-eyebrow" style={{ color: 'var(--js-emerald)' }}>04 / {zh ? '数据' : 'BY THE NUMBERS'}</div>
             <h2 className="js-h2" style={{ marginTop: 12 }}>{c.statsHead}</h2>
             <p className="js-body" style={{ marginTop: 10, maxWidth: 460, marginInline: 'auto' }}>{c.statsSub}</p>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 24, marginBottom: 48 }}>
+          <div className="ji-stats-nums" style={{ marginBottom: 48 }}>
             {c.stats.map(s => (
               <div key={s.l} style={{ textAlign: 'center' }}>
                 <div className="js-stat-num"><AnimatedCount value={s.v} prefix={s.p} suffix={s.s} decimals={s.d} dur={2000} /></div>
@@ -491,7 +513,7 @@ export default function JSaveIntro() {
               </span>
             ))}
           </div>
-          <div style={{ width: '100%', overflow: 'hidden' }}>
+          <div className="ji-area-chart">
             <AreaChart width={1080} height={260}
               xLabels={['Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May']}
               series={[
@@ -503,7 +525,7 @@ export default function JSaveIntro() {
       </section>
 
       {/* ── Roadmap ── */}
-      <section id="roadmap" style={{ padding: '56px 40px 96px', maxWidth: 1200, margin: '0 auto' }}>
+      <section id="roadmap" className="ji-roadmap-section" style={{ maxWidth: 1200, margin: '0 auto' }}>
         <div className="js-section-header">
           <div>
             <div className="num">05 / {zh ? '路线图' : 'ROADMAP'}</div>
@@ -519,8 +541,8 @@ export default function JSaveIntro() {
                 <div style={{ position: 'absolute', left: -32, top: 6, width: 16, height: 16, borderRadius: '50%', background: r.done ? 'var(--js-emerald)' : r.now ? 'var(--js-gold)' : 'rgba(8,18,32,1)', border: `2px solid ${r.done ? 'var(--js-emerald)' : r.now ? 'var(--js-gold)' : 'var(--js-line-strong)'}`, boxShadow: r.now ? '0 0 0 5px rgba(245,213,112,0.16)' : r.done ? '0 0 0 5px rgba(16,185,129,0.14)' : 'none' }}>
                   {r.done && <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: '#04140d' }}>✓</span>}
                 </div>
-                <div className="js-card" style={{ padding: '20px 24px', borderRadius: 18, display: 'flex', alignItems: 'center', gap: 20 }}>
-                  <div style={{ minWidth: 130 }}>
+                <div className="js-card ji-road-card" style={{ padding: '20px 24px', borderRadius: 18 }}>
+                  <div className="ji-road-meta" style={{ minWidth: 130 }}>
                     <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 999, fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: 1.6, background: r.done ? 'rgba(16,185,129,0.12)' : r.now ? 'rgba(245,213,112,0.12)' : 'rgba(241,245,249,0.05)', color: r.done ? 'var(--js-emerald)' : r.now ? 'var(--js-gold)' : 'var(--js-ink-3)', border: `1px solid ${r.done ? 'rgba(16,185,129,0.3)' : r.now ? 'rgba(245,213,112,0.3)' : 'var(--js-line-soft)'}` }}>{r.tag}</span>
                     <div style={{ marginTop: 8, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--js-ink-3)' }}>{r.date}</div>
                   </div>
@@ -536,13 +558,13 @@ export default function JSaveIntro() {
       </section>
 
       {/* ── Pricing ── */}
-      <section id="pricing" style={{ padding: '40px 40px 96px', maxWidth: 1200, margin: '0 auto' }}>
+      <section id="pricing" className="ji-pricing-section" style={{ maxWidth: 1200, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 56 }}>
           <div className="js-eyebrow" style={{ color: 'var(--js-emerald)' }}>06 / {zh ? '价格' : 'PRICING'}</div>
           <h2 className="js-h2" style={{ marginTop: 12 }}>{c.priceHead}</h2>
           <p className="js-body" style={{ marginTop: 10, maxWidth: 460, marginInline: 'auto' }}>{c.priceSub}</p>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, alignItems: 'stretch' }}>
+        <div className="ji-pricing-grid">
           {c.plans.map(p => (
             <div key={p.name} className="js-card" style={{ padding: '32px 28px', borderRadius: 24, border: p.hot ? '1px solid rgba(16,185,129,0.5)' : '1px solid var(--js-line)', background: p.hot ? 'radial-gradient(120% 100% at 50% 0%, rgba(16,185,129,0.12), transparent 60%), rgba(255,255,255,0.025)' : 'var(--js-surface)', position: 'relative', transform: p.hot ? 'scale(1.03)' : 'none' }}>
               {p.hot && <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', padding: '4px 14px', borderRadius: 999, background: 'linear-gradient(135deg, #10b981, #059669)', fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: 1.6, color: '#04140d', fontWeight: 600, whiteSpace: 'nowrap' }}>{zh ? '最受欢迎' : 'MOST POPULAR'}</div>}
@@ -567,7 +589,7 @@ export default function JSaveIntro() {
       </section>
 
       {/* ── FAQ ── */}
-      <section style={{ padding: '40px 40px 96px', maxWidth: 920, margin: '0 auto' }}>
+      <section className="ji-faq-section" style={{ maxWidth: 920, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
           <div className="js-eyebrow" style={{ color: 'var(--js-emerald)' }}>07 / {zh ? '问答' : 'FAQ'}</div>
           <h2 className="js-h2" style={{ marginTop: 12 }}>{c.faqHead}</h2>
@@ -592,7 +614,7 @@ export default function JSaveIntro() {
       </section>
 
       {/* ── Changelog ── */}
-      <section id="changelog" style={{ padding: '40px 40px 96px', maxWidth: 920, margin: '0 auto' }}>
+      <section id="changelog" className="ji-changelog-section" style={{ maxWidth: 920, margin: '0 auto' }}>
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
           <div className="js-eyebrow" style={{ color: 'var(--js-emerald)' }}>08 / {c.changelog.toUpperCase()}</div>
           <h2 className="js-h2" style={{ marginTop: 12 }}>{zh ? '持续更新，不断进步' : "What's New"}</h2>
@@ -627,7 +649,7 @@ export default function JSaveIntro() {
 
       {/* ── CTA + Footer ── */}
       <section style={{ position: 'relative', overflow: 'hidden', padding: '0 40px 0' }}>
-        <div style={{ position: 'relative', maxWidth: 1100, margin: '0 auto', borderRadius: 32, padding: '80px 56px', textAlign: 'center', overflow: 'hidden', background: 'radial-gradient(120% 140% at 50% 0%, rgba(16,185,129,0.24), transparent 60%), radial-gradient(100% 120% at 50% 120%, rgba(245,213,112,0.12), transparent 55%), rgba(8,18,32,0.7)', border: '1px solid rgba(16,185,129,0.32)' }}>
+        <div className="ji-cta-box" style={{ position: 'relative', maxWidth: 1100, margin: '0 auto', borderRadius: 32, textAlign: 'center', overflow: 'hidden', background: 'radial-gradient(120% 140% at 50% 0%, rgba(16,185,129,0.24), transparent 60%), radial-gradient(100% 120% at 50% 120%, rgba(245,213,112,0.12), transparent 55%), rgba(8,18,32,0.7)', border: '1px solid rgba(16,185,129,0.32)' }}>
           <div className="js-dots" style={{ position: 'absolute', inset: 0, opacity: 0.4, maskImage: 'radial-gradient(ellipse 70% 60% at 50% 50%, black, transparent)', WebkitMaskImage: 'radial-gradient(ellipse 70% 60% at 50% 50%, black, transparent)' }}></div>
           <Sparks count={10} />
           <div style={{ position: 'relative' }}>
@@ -644,7 +666,7 @@ export default function JSaveIntro() {
         </div>
         {/* Footer */}
         <footer style={{ maxWidth: 1100, margin: '0 auto', padding: '64px 0 48px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 1fr 1fr', gap: 32 }}>
+          <div className="ji-footer-grid">
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 16 }}>
                 <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontSize: 19, color: '#04140d', fontWeight: 700 }}>J</div>
@@ -655,7 +677,7 @@ export default function JSaveIntro() {
             {c.footCols.map(col => (
               <div key={col.h}>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: 2, color: 'var(--js-ink-4)', textTransform: 'uppercase', marginBottom: 16 }}>{col.h}</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+                <div className="ji-footer-col-items">
                   {col.items.map(it => (
                     <a key={it} href="#" style={{ fontFamily: 'var(--font-sans)', fontSize: 13.5, color: 'var(--js-ink-2)', textDecoration: 'none' }}>{it}</a>
                   ))}
