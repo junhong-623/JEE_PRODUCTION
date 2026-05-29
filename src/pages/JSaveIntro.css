@@ -5,7 +5,7 @@
   overflow-x: hidden;
 }
 
-/* Nav lang toggle button */
+/* ── Nav lang toggle ── */
 .ji-lang-btn {
   background: none;
   border: 1px solid var(--js-line-soft);
@@ -22,7 +22,7 @@
   color: var(--js-ink);
 }
 
-/* PWA install modal */
+/* ── PWA install modal ── */
 .ji-overlay {
   position: fixed; inset: 0; z-index: 1000;
   background: rgba(0,0,0,.65);
@@ -59,56 +59,209 @@
   color: var(--js-ink-3); margin: 0;
 }
 
-/* Responsive nav */
-@media (max-width: 768px) {
+/* ── Section base padding ── */
+.ji-hero-section     { padding: clamp(52px, 8vw, 72px) clamp(20px, 5vw, 40px) clamp(40px, 6vw, 60px); }
+.ji-features-section { padding: clamp(56px, 8vw, 96px) clamp(20px, 5vw, 40px); }
+.ji-demo-section     { padding: clamp(32px, 5vw, 40px) clamp(20px, 5vw, 40px) clamp(56px, 8vw, 96px); }
+.ji-roadmap-section  { padding: clamp(40px, 6vw, 56px) clamp(20px, 5vw, 40px) clamp(56px, 8vw, 96px); }
+.ji-pricing-section  { padding: clamp(32px, 5vw, 40px) clamp(20px, 5vw, 40px) clamp(56px, 8vw, 96px); }
+.ji-faq-section      { padding: clamp(32px, 5vw, 40px) clamp(20px, 5vw, 40px) clamp(56px, 8vw, 96px); }
+.ji-changelog-section{ padding: clamp(32px, 5vw, 40px) clamp(20px, 5vw, 40px) clamp(56px, 8vw, 96px); }
+.ji-stats-section    { padding: 0 clamp(20px, 5vw, 40px) clamp(32px, 5vw, 40px); }
+
+/* ── Hero grid ── */
+.ji-hero-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 48px;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ── Hero mini stats ── */
+.ji-hero-mini-stats {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+/* ── Features grid ── */
+.ji-feats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+/* ── Demo grid ── */
+.ji-demo-grid {
+  display: grid;
+  grid-template-columns: 0.4fr 0.6fr;
+  gap: 40px;
+  align-items: center;
+}
+
+.ji-demo-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── Stats grid ── */
+.ji-stats-nums {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+
+.ji-area-chart {
+  width: 100%;
+  overflow: hidden;
+}
+
+/* ── Roadmap card ── */
+.ji-road-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* ── Pricing grid ── */
+.ji-pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+/* ── CTA box ── */
+.ji-cta-box {
+  padding: 80px 56px;
+}
+
+/* ── Footer grid ── */
+.ji-footer-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr 1fr 1fr;
+  gap: 32px;
+}
+
+/* ════════════════════════════════════════
+   RESPONSIVE BREAKPOINTS
+   ════════════════════════════════════════ */
+
+/* ── Tablet: ≤ 900px ── */
+@media (max-width: 900px) {
+  /* Nav links hidden */
   nav > div:nth-child(2) { display: none; }
   nav { padding: 14px 20px !important; }
-}
 
-/* Responsive hero */
-@media (max-width: 900px) {
-  .ji-root section > div[style*="grid-template-columns: 1.15fr"] {
-    grid-template-columns: 1fr !important;
+  /* Hero: single column, hide phone */
+  .ji-hero-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
   }
-  .ji-root section > div[style*="grid-template-columns: 1.15fr"] > div:last-child {
-    display: none;
-  }
-}
+  .ji-hero-phone { display: none !important; }
 
-/* Responsive features grid */
-@media (max-width: 900px) {
-  .js-card-feature[style*="gridColumn: span 2"] {
+  /* Features: 2 columns, big card no longer spans 2 */
+  .ji-feats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .ji-feat-wide {
     grid-column: span 1 !important;
   }
+  .ji-feat-inner-big {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0 !important;
+  }
+  .ji-feat-inner-big > div:first-child {
+    margin-bottom: 16px !important;
+  }
+
+  /* Demo: single column, hide phone */
+  .ji-demo-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .ji-demo-phone { display: none !important; }
+  .ji-demo-tabs {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .ji-demo-tabs button {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 140px;
+  }
+
+  /* Pricing: single column, kill scale */
+  .ji-pricing-grid {
+    grid-template-columns: 1fr;
+    max-width: 440px;
+    margin-inline: auto;
+  }
+  .ji-pricing-grid > div {
+    transform: none !important;
+  }
 }
 
-/* Responsive demo */
-@media (max-width: 900px) {
-  div[style*="gridTemplateColumns: 0.4fr 0.6fr"] {
-    grid-template-columns: 1fr !important;
-  }
-  div[style*="gridTemplateColumns: 0.4fr 0.6fr"] > div:last-child {
-    display: none;
-  }
-}
-
-/* Responsive stats */
+/* ── Phablet: ≤ 700px ── */
 @media (max-width: 700px) {
-  div[style*="gridTemplateColumns: repeat(4, 1fr)"] {
-    grid-template-columns: repeat(2, 1fr) !important;
+  /* Stats: 2×2 */
+  .ji-stats-nums {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
   }
+
+  /* Footer: 2 columns */
+  .ji-footer-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  /* Roadmap card: stack vertically */
+  .ji-road-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .ji-road-meta {
+    min-width: unset !important;
+  }
+
+  /* Demo tabs: single column on small */
+  .ji-demo-tabs button {
+    flex: 1 1 100%;
+  }
+
+  /* CTA box */
+  .ji-cta-box { padding: 48px 24px; }
 }
 
-/* Responsive pricing */
-@media (max-width: 800px) {
-  div[style*="gridTemplateColumns: repeat(3, 1fr)"] {
-    grid-template-columns: 1fr !important;
+/* ── Mobile: ≤ 480px ── */
+@media (max-width: 480px) {
+  /* Features: single column */
+  .ji-feats-grid {
+    grid-template-columns: 1fr;
   }
-}
 
-/* Responsive footer */
-@media (max-width: 700px) {
-  footer > div[style*="gridTemplateColumns: 1.6fr"] {
-    grid-template-columns: 1fr 1fr !important;
+  /* Footer: single column */
+  .ji-footer-grid {
+    grid-template-columns: 1fr;
   }
+
+  /* Hero mini stats: wrap with smaller gap */
+  .ji-hero-mini-stats {
+    gap: 20px;
+  }
+
+  /* Area chart: allow horizontal scroll on tiny screens */
+  .ji-area-chart {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* CTA box */
+  .ji-cta-box { padding: 40px 20px; }
 }
