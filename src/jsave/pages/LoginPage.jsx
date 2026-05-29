@@ -4,7 +4,7 @@ import { auth } from '../../lib/firebase'
 import { useLang } from '../contexts/LangContext'
 import { JSAVE_BASE } from '../utils/basePath'
 
-export default function LoginPage() {
+export default function LoginPage({ onBack }) {
   const { t, lang, setLanguage } = useLang()
   const [showEmail, setShowEmail] = useState(false)
   const [isSignUp, setIsSignUp] = useState(false)
@@ -49,6 +49,11 @@ export default function LoginPage() {
   return (
     <div className="jsave-login">
       <div className="jsave-login-bg" />
+      {onBack && (
+        <button onClick={onBack} style={{ position: 'absolute', top: 20, left: 20, background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: 14, fontFamily: 'var(--font-mono)', letterSpacing: 0.5, padding: '6px 10px', borderRadius: 8 }}>
+          ← {lang === 'zh' ? '返回' : 'Back'}
+        </button>
+      )}
 
       <div className="jsave-login-card glass-card">
         <img src={`${JSAVE_BASE}/icons/icon-192.png`} alt="JSave" className="jsave-login-icon" />

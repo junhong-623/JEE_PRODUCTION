@@ -39,3 +39,12 @@ export const fsWriteSettings   = (uid, d) => setDoc(ref(uid, 'jsave_settings', '
 export const fsDeleteAccount    = (uid, id) => deleteDoc(ref(uid, 'jsave_accounts', id))
 export const fsDeleteTransaction = (uid, id) => deleteDoc(ref(uid, 'jsave_transactions', id))
 export const fsDeleteItem       = (uid, id) => deleteDoc(ref(uid, 'jsave_items', id))
+
+// Goals
+export function subscribeGoals(uid, cb) {
+  return onSnapshot(col(uid, 'jsave_goals'), snap =>
+    cb(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+  )
+}
+export const fsWriteGoal  = (uid, d) => setDoc(ref(uid, 'jsave_goals', d.id), d, { merge: true })
+export const fsDeleteGoal = (uid, id) => deleteDoc(ref(uid, 'jsave_goals', id))

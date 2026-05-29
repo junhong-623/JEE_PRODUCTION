@@ -1,7 +1,7 @@
 import { dbPut, dbDelete, enqueueSync, getSyncQueue, dequeueSync } from './db'
 import {
-  fsWriteAccount, fsWriteTransaction, fsWriteItem, fsWriteSettings,
-  fsDeleteAccount, fsDeleteTransaction, fsDeleteItem,
+  fsWriteAccount, fsWriteTransaction, fsWriteItem, fsWriteSettings, fsWriteGoal,
+  fsDeleteAccount, fsDeleteTransaction, fsDeleteItem, fsDeleteGoal,
 } from './firestore'
 
 const WRITERS = {
@@ -9,12 +9,14 @@ const WRITERS = {
   transactions: fsWriteTransaction,
   items: fsWriteItem,
   settings: fsWriteSettings,
+  goals: fsWriteGoal,
 }
 
 const DELETERS = {
   accounts: fsDeleteAccount,
   transactions: fsDeleteTransaction,
   items: fsDeleteItem,
+  goals: fsDeleteGoal,
 }
 
 export async function syncWrite(uid, store, data, online) {
