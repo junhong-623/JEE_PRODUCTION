@@ -218,6 +218,7 @@ export default function JSaveIntro() {
   const [faqOpen, setFaqOpen] = useState(0)
   const [showAllChangelog, setShowAllChangelog] = useState(false)
   const [installGuide, setInstallGuide] = useState(null)
+  const [showMenu, setShowMenu] = useState(false)
   const changelogRef = useRef(null)
   const pwaInstallRef = useRef(null)
   const deferredPromptRef = useRef(null)
@@ -320,25 +321,46 @@ export default function JSaveIntro() {
       </Helmet>
 
       {/* ── Nav ── */}
-      <nav style={{ position: 'sticky', top: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 40px', background: 'rgba(5,13,26,0.72)', backdropFilter: 'blur(18px) saturate(150%)', WebkitBackdropFilter: 'blur(18px) saturate(150%)', borderBottom: '1px solid var(--js-line-soft)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
-          <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontSize: 19, color: '#04140d', fontWeight: 700, boxShadow: '0 4px 16px rgba(16,185,129,0.4)' }}>J</div>
-          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
-            <span style={{ fontFamily: 'var(--font-display)', fontSize: 19, letterSpacing: -0.5, color: 'var(--js-ink)' }}>JSave</span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8.5, letterSpacing: 2, color: 'var(--js-ink-3)', marginTop: 2 }}>记账 · SAVE</span>
+      <nav className="ji-nav" style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(5,13,26,0.72)', backdropFilter: 'blur(18px) saturate(150%)', WebkitBackdropFilter: 'blur(18px) saturate(150%)', borderBottom: '1px solid var(--js-line-soft)' }}>
+        <div className="ji-nav-inner">
+          {/* Logo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 11, flexShrink: 0 }}>
+            <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontSize: 19, color: '#04140d', fontWeight: 700, boxShadow: '0 4px 16px rgba(16,185,129,0.4)' }}>J</div>
+            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: 19, letterSpacing: -0.5, color: 'var(--js-ink)' }}>JSave</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8.5, letterSpacing: 2, color: 'var(--js-ink-3)', marginTop: 2 }}>记账 · SAVE</span>
+            </div>
+          </div>
+          {/* Desktop nav links */}
+          <div className="ji-nav-links">
+            {c.nav.map((n, i) => (
+              <a key={n} href={['#features','#demo','#pricing','#roadmap'][i]} style={{ fontFamily: 'var(--font-sans)', fontSize: 13.5, fontWeight: 500, color: 'var(--js-ink-2)', textDecoration: 'none' }}>{n}</a>
+            ))}
+          </div>
+          {/* Right controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            <button className="ji-lang-btn" onClick={() => { const l = lang === 'zh' ? 'en' : 'zh'; setLang(l); localStorage.setItem('jsave-lang', l) }}>
+              {zh ? '🇺🇸 EN' : '🇨🇳 中文'}
+            </button>
+            <Link to="/jsave" className="js-btn-primary ji-nav-cta" style={{ padding: '10px 18px', fontSize: 13 }}>{c.navCta}</Link>
+            {/* Hamburger — mobile only */}
+            <button className="ji-hamburger" onClick={() => setShowMenu(m => !m)} aria-label="Menu">
+              {showMenu ? '✕' : '☰'}
+            </button>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 30 }}>
-          {c.nav.map((n, i) => (
-            <a key={n} href={['#features','#demo','#pricing','#roadmap'][i]} style={{ fontFamily: 'var(--font-sans)', fontSize: 13.5, fontWeight: 500, color: 'var(--js-ink-2)', textDecoration: 'none' }}>{n}</a>
-          ))}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button className="ji-lang-btn" onClick={() => { const l = lang === 'zh' ? 'en' : 'zh'; setLang(l); localStorage.setItem('jsave-lang', l) }}>
-            {zh ? '🇺🇸 EN' : '🇨🇳 中文'}
-          </button>
-          <Link to="/jsave" className="js-btn-primary" style={{ padding: '10px 18px', fontSize: 13 }}>{c.navCta}</Link>
-        </div>
+        {/* Mobile dropdown */}
+        {showMenu && (
+          <div className="ji-mobile-menu">
+            {c.nav.map((n, i) => (
+              <a key={n} href={['#features','#demo','#pricing','#roadmap'][i]}
+                 className="ji-mobile-menu-link"
+                 onClick={() => setShowMenu(false)}>
+                {n}
+              </a>
+            ))}
+          </div>
+        )}
       </nav>
 
       {/* ── Hero ── */}
@@ -456,7 +478,7 @@ export default function JSaveIntro() {
               </button>
             ))}
           </div>
-          <div className="ji-demo-phone" style={{ display: 'flex', justifyContent: 'center', position: 'relative' }}>
+          <div className="ji-demo-phone" style={{ display: 'flex', justifyContent: 'center', position: 'relative', pointerEvents: 'none' }}>
             <div style={{ position: 'absolute', width: 280, height: 280, borderRadius: '50%', background: 'radial-gradient(circle, rgba(16,185,129,0.22), transparent 70%)', filter: 'blur(24px)', top: '50%', left: '50%', transform: 'translate(-50%,-50%)' }}></div>
             <div style={{ transform: 'scale(0.82)', transformOrigin: 'center', position: 'relative' }}>{demoScreens[demoActive]}</div>
           </div>

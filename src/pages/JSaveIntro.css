@@ -16,11 +16,71 @@
   border-radius: 8px;
   cursor: pointer;
   transition: border-color 0.18s, color 0.18s;
+  white-space: nowrap;
 }
 .ji-lang-btn:hover {
   border-color: var(--js-emerald);
   color: var(--js-ink);
 }
+
+/* ── Nav layout ── */
+.ji-nav { position: sticky; top: 0; z-index: 100; }
+
+.ji-nav-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 40px;
+  gap: 16px;
+}
+
+.ji-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+}
+
+/* Hamburger — hidden by default */
+.ji-hamburger {
+  display: none;
+  background: none;
+  border: 1px solid var(--js-line-soft);
+  color: var(--js-ink-2);
+  font-size: 17px;
+  width: 36px; height: 36px;
+  border-radius: 9px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.ji-hamburger:hover { border-color: var(--js-emerald); color: var(--js-ink); }
+
+/* Mobile dropdown menu */
+.ji-mobile-menu {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--js-line-soft);
+  animation: ds-fadeInDown 0.2s var(--ease-out) both;
+}
+@keyframes ds-fadeInDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: none; }
+}
+.ji-mobile-menu-link {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--js-ink-2);
+  text-decoration: none;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--js-line-soft);
+  transition: color 0.15s;
+}
+.ji-mobile-menu-link:last-child { border-bottom: none; }
+.ji-mobile-menu-link:hover { color: var(--js-emerald); }
 
 /* ── PWA install modal ── */
 .ji-overlay {
@@ -63,13 +123,13 @@
 .ji-hero-section     { padding: clamp(52px, 8vw, 72px) clamp(20px, 5vw, 40px) clamp(40px, 6vw, 60px); }
 .ji-features-section { padding: clamp(56px, 8vw, 96px) clamp(20px, 5vw, 40px); }
 .ji-demo-section     { padding: clamp(32px, 5vw, 40px) clamp(20px, 5vw, 40px) clamp(56px, 8vw, 96px); }
+.ji-stats-section    { padding: 0 clamp(20px, 5vw, 40px) clamp(32px, 5vw, 40px); }
 .ji-roadmap-section  { padding: clamp(40px, 6vw, 56px) clamp(20px, 5vw, 40px) clamp(56px, 8vw, 96px); }
 .ji-pricing-section  { padding: clamp(32px, 5vw, 40px) clamp(20px, 5vw, 40px) clamp(56px, 8vw, 96px); }
 .ji-faq-section      { padding: clamp(32px, 5vw, 40px) clamp(20px, 5vw, 40px) clamp(56px, 8vw, 96px); }
 .ji-changelog-section{ padding: clamp(32px, 5vw, 40px) clamp(20px, 5vw, 40px) clamp(56px, 8vw, 96px); }
-.ji-stats-section    { padding: 0 clamp(20px, 5vw, 40px) clamp(32px, 5vw, 40px); }
 
-/* ── Hero grid ── */
+/* ── Hero grid (desktop 2-col) ── */
 .ji-hero-grid {
   display: grid;
   grid-template-columns: 1.15fr 0.85fr;
@@ -79,21 +139,20 @@
   margin: 0 auto;
 }
 
-/* ── Hero mini stats ── */
 .ji-hero-mini-stats {
   display: flex;
   gap: 32px;
   flex-wrap: wrap;
 }
 
-/* ── Features grid ── */
+/* ── Features grid (desktop 4-col) ── */
 .ji-feats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
 }
 
-/* ── Demo grid ── */
+/* ── Demo grid (desktop 2-col) ── */
 .ji-demo-grid {
   display: grid;
   grid-template-columns: 0.4fr 0.6fr;
@@ -107,7 +166,7 @@
   gap: 8px;
 }
 
-/* ── Stats grid ── */
+/* ── Stats grid (desktop 4-col) ── */
 .ji-stats-nums {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -126,7 +185,7 @@
   gap: 20px;
 }
 
-/* ── Pricing grid ── */
+/* ── Pricing grid (desktop 3-col) ── */
 .ji-pricing-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -139,7 +198,7 @@
   padding: 80px 56px;
 }
 
-/* ── Footer grid ── */
+/* ── Footer grid (desktop 4-col) ── */
 .ji-footer-grid {
   display: grid;
   grid-template-columns: 1.6fr 1fr 1fr 1fr;
@@ -150,11 +209,14 @@
    RESPONSIVE BREAKPOINTS
    ════════════════════════════════════════ */
 
-/* ── Tablet: ≤ 900px ── */
+/* ── Tablet ≤ 900px ── */
 @media (max-width: 900px) {
-  /* Nav links hidden */
-  nav > div:nth-child(2) { display: none; }
-  nav { padding: 14px 20px !important; }
+  /* Nav: show hamburger, hide desktop links */
+  .ji-nav-inner { padding: 14px 20px; }
+  .ji-nav-links { display: none; }
+  .ji-hamburger { display: inline-flex; }
+  /* Hide "Open App" CTA in nav to save space */
+  .ji-nav-cta { display: none; }
 
   /* Hero: single column, hide phone */
   .ji-hero-grid {
@@ -163,10 +225,27 @@
   }
   .ji-hero-phone { display: none !important; }
 
-  /* Features: 2 columns, big card no longer spans 2 */
+  /* Features → horizontal scroll-snap carousel */
   .ji-feats-grid {
-    grid-template-columns: repeat(2, 1fr);
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    gap: 14px;
+    padding-bottom: 16px;
+    /* hide scrollbar */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
+  .ji-feats-grid::-webkit-scrollbar { display: none; }
+  /* Each card: show ~1.85 cards at once (peek of next) */
+  .ji-feats-grid > .js-card {
+    scroll-snap-align: start;
+    flex: 0 0 calc(54% - 7px);
+    grid-column: span 1 !important;
+    min-width: 220px;
+  }
+  /* Big feature card: same width as others on mobile */
   .ji-feat-wide {
     grid-column: span 1 !important;
   }
@@ -179,45 +258,59 @@
     margin-bottom: 16px !important;
   }
 
-  /* Demo: single column, hide phone */
+  /* Demo: stack vertically, tabs horizontal scroll, phone below */
   .ji-demo-grid {
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: 24px;
   }
-  .ji-demo-phone { display: none !important; }
+  /* Show phone below (not hidden) */
+  .ji-demo-phone { display: flex !important; }
+  /* Tabs become horizontal scrollable pills */
   .ji-demo-tabs {
     flex-direction: row;
-    flex-wrap: wrap;
+    overflow-x: auto;
     gap: 8px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 4px;
   }
+  .ji-demo-tabs::-webkit-scrollbar { display: none; }
   .ji-demo-tabs button {
-    flex: 1 1 calc(50% - 4px);
-    min-width: 140px;
+    flex: 0 0 auto;
+    white-space: nowrap;
+    padding: 12px 16px !important;
+  }
+  /* Hide the 01/02 numeric prefix in tabs on mobile to save space */
+  .ji-demo-tabs button span:first-child { display: none; }
+
+  /* Demo phone: smaller scale */
+  .ji-demo-phone > div:last-child {
+    transform: scale(0.72) !important;
   }
 
-  /* Pricing: single column, kill scale */
+  /* Pricing: single column, no scale */
   .ji-pricing-grid {
     grid-template-columns: 1fr;
-    max-width: 440px;
+    max-width: 420px;
     margin-inline: auto;
   }
   .ji-pricing-grid > div {
     transform: none !important;
-  }
-}
-
-/* ── Phablet: ≤ 700px ── */
-@media (max-width: 700px) {
-  /* Stats: 2×2 */
-  .ji-stats-nums {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
   }
 
   /* Footer: 2 columns */
   .ji-footer-grid {
     grid-template-columns: 1fr 1fr;
     gap: 24px;
+  }
+}
+
+/* ── Phablet ≤ 700px ── */
+@media (max-width: 700px) {
+  /* Stats: 2×2 */
+  .ji-stats-nums {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
   }
 
   /* Roadmap card: stack vertically */
@@ -230,38 +323,42 @@
     min-width: unset !important;
   }
 
-  /* Demo tabs: single column on small */
-  .ji-demo-tabs button {
-    flex: 1 1 100%;
+  /* Features carousel: show ~1.3 cards */
+  .ji-feats-grid > .js-card {
+    flex: 0 0 calc(78% - 7px);
   }
 
   /* CTA box */
   .ji-cta-box { padding: 48px 24px; }
-}
 
-/* ── Mobile: ≤ 480px ── */
-@media (max-width: 480px) {
-  /* Features: single column */
-  .ji-feats-grid {
-    grid-template-columns: 1fr;
-  }
-
-  /* Footer: single column */
-  .ji-footer-grid {
-    grid-template-columns: 1fr;
-  }
-
-  /* Hero mini stats: wrap with smaller gap */
-  .ji-hero-mini-stats {
-    gap: 20px;
-  }
-
-  /* Area chart: allow horizontal scroll on tiny screens */
+  /* Area chart horizontal scroll on narrow */
   .ji-area-chart {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
+}
+
+/* ── Mobile ≤ 480px ── */
+@media (max-width: 480px) {
+  /* Hero mini stats: tighter */
+  .ji-hero-mini-stats { gap: 20px; }
+
+  /* Footer: 2 columns still (not 1) */
+  .ji-footer-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  /* Features: show ~1.1 cards (almost full-width with next peek) */
+  .ji-feats-grid > .js-card {
+    flex: 0 0 calc(88% - 7px);
+  }
 
   /* CTA box */
   .ji-cta-box { padding: 40px 20px; }
+
+  /* Stats section inner: reduce padding */
+  .ji-stats-section > div {
+    padding: 32px 24px !important;
+  }
 }
