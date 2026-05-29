@@ -466,7 +466,7 @@ export default function JSaveIntro() {
           </div>
           <div className="sub">{c.demoSub}</div>
         </div>
-        <div className="ji-demo-grid" style={{ borderRadius: 28, padding: '40px', position: 'relative', overflow: 'hidden', background: 'radial-gradient(120% 100% at 0% 0%, rgba(16,185,129,0.1), transparent 55%), rgba(255,255,255,0.02)', border: '1px solid var(--js-line)' }}>
+        <div className="ji-demo-grid" style={{ borderRadius: 28, padding: '40px', position: 'relative', background: 'radial-gradient(120% 100% at 0% 0%, rgba(16,185,129,0.1), transparent 55%), rgba(255,255,255,0.02)', border: '1px solid var(--js-line)' }}>
           <i className="js-tick" style={{ top: 16, right: 16 }}></i>
           <i className="js-tick" style={{ bottom: 16, left: 16 }}></i>
           <div className="ji-demo-tabs">
@@ -677,7 +677,7 @@ export default function JSaveIntro() {
             {c.footCols.map(col => (
               <div key={col.h}>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: 2, color: 'var(--js-ink-4)', textTransform: 'uppercase', marginBottom: 16 }}>{col.h}</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+                <div className="ji-footer-col-items">
                   {col.items.map(it => (
                     <a key={it} href="#" style={{ fontFamily: 'var(--font-sans)', fontSize: 13.5, color: 'var(--js-ink-2)', textDecoration: 'none' }}>{it}</a>
                   ))}

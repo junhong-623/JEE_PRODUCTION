@@ -158,6 +158,7 @@
   grid-template-columns: 0.4fr 0.6fr;
   gap: 40px;
   align-items: center;
+  overflow: hidden; /* clips rounded corners on desktop */
 }
 
 .ji-demo-tabs {
@@ -203,6 +204,13 @@
   display: grid;
   grid-template-columns: 1.6fr 1fr 1fr 1fr;
   gap: 32px;
+}
+
+/* Footer column items — always 2-per-row */
+.ji-footer-col-items {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 8px;
 }
 
 /* ════════════════════════════════════════
@@ -258,34 +266,44 @@
     margin-bottom: 16px !important;
   }
 
-  /* Demo: stack vertically, tabs horizontal scroll, phone below */
+  /* Demo: stack tabs then phone, allow tab scrolling */
   .ji-demo-grid {
     grid-template-columns: 1fr;
-    gap: 24px;
+    gap: 20px;
+    overflow: visible;      /* ← CRITICAL: lets tabs scroll */
   }
-  /* Show phone below (not hidden) */
-  .ji-demo-phone { display: flex !important; }
-  /* Tabs become horizontal scrollable pills */
+  /* Tabs: horizontal scrollable row */
   .ji-demo-tabs {
     flex-direction: row;
     overflow-x: auto;
     gap: 8px;
     scrollbar-width: none;
     -ms-overflow-style: none;
-    padding-bottom: 4px;
+    padding-bottom: 2px;
   }
   .ji-demo-tabs::-webkit-scrollbar { display: none; }
   .ji-demo-tabs button {
-    flex: 0 0 auto;
+    flex: 0 0 auto !important;
     white-space: nowrap;
-    padding: 12px 16px !important;
+    min-width: unset;
+    padding: 11px 16px !important;
   }
-  /* Hide the 01/02 numeric prefix in tabs on mobile to save space */
+  /* Hide numeric prefix (01/02) to save tab width */
   .ji-demo-tabs button span:first-child { display: none; }
 
-  /* Demo phone: smaller scale */
-  .ji-demo-phone > div:last-child {
-    transform: scale(0.72) !important;
+  /* Phone: show below, centered, scaled to fit */
+  .ji-demo-phone {
+    display: flex !important;
+    justify-content: center;
+    align-items: flex-start;
+    overflow: hidden;
+    min-height: 380px;
+  }
+  .ji-demo-phone > div:nth-child(1) { display: none; }   /* hide glow (causes overflow) */
+  .ji-demo-phone > div:nth-child(2) {
+    transform: scale(0.70) !important;
+    transform-origin: top center !important;
+    margin-top: 0 !important;
   }
 
   /* Pricing: single column, no scale */
@@ -298,10 +316,14 @@
     transform: none !important;
   }
 
-  /* Footer: 2 columns */
+  /* Footer: brand full-width top, then 3 cols in 2-col grid */
   .ji-footer-grid {
     grid-template-columns: 1fr 1fr;
     gap: 24px;
+  }
+  /* Brand col spans full width on tablet */
+  .ji-footer-grid > div:first-child {
+    grid-column: 1 / -1;
   }
 }
 
@@ -343,11 +365,16 @@
   /* Hero mini stats: tighter */
   .ji-hero-mini-stats { gap: 20px; }
 
-  /* Footer: 2 columns still (not 1) */
+  /* Footer: keep 2-col, brand still full-width */
   .ji-footer-grid {
     grid-template-columns: 1fr 1fr;
-    gap: 20px;
+    gap: 18px;
   }
+  .ji-footer-grid > div:first-child { grid-column: 1 / -1; }
+
+  /* Footer col items: keep 2-per-row but smaller font */
+  .ji-footer-col-items { gap: 8px 6px; }
+  .ji-footer-col-items a { font-size: 12.5px !important; }
 
   /* Features: show ~1.1 cards (almost full-width with next peek) */
   .ji-feats-grid > .js-card {
@@ -360,5 +387,10 @@
   /* Stats section inner: reduce padding */
   .ji-stats-section > div {
     padding: 32px 24px !important;
+  }
+
+  /* CTA + footer section padding */
+  .ji-root > section:last-of-type {
+    padding-inline: 16px;
   }
 }
