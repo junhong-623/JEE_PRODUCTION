@@ -177,7 +177,7 @@ function JSaveShell() {
   }
 
   const pages = {
-    dashboard: <DashboardPage onOpenSettings={() => setPage('settings')} onOpenAdd={() => setShowTransactionForm(true)} />,
+    dashboard: <DashboardPage onOpenSettings={() => setPage('settings')} onOpenAdd={() => setShowTransactionForm(true)} onNavigate={p => setPage(p)} />,
     calendar:  <CalendarPage />,
     items:     <ItemsPage />,
     reports:   <ReportsPage />,
