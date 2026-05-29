@@ -168,8 +168,6 @@ export default function CalendarPage() {
         </GlassCard>
       )}
 
-      <button className="jsave-fab" onClick={() => { setEditTx(null); setShowForm(true) }}>+</button>
-
       {showForm && (
         <TransactionForm
           initial={editTx ? editTx : { date: selectedDay ? `${year}-${pad(month + 1)}-${pad(selectedDay)}` : undefined }}
