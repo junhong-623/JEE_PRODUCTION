@@ -87,7 +87,7 @@ function TxRow({ tx, accounts, cur, t, onClick }) {
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────
-export default function DashboardPage({ onOpenAdd, onOpenSettings }) {
+export default function DashboardPage({ onOpenAdd, onOpenSettings, onNavigate }) {
   const { t, lang } = useLang()
   const { transactions, accounts, goals, settings, getTotalBalance, loading } = useJSave()
   const [editTx, setEditTx] = useState(null)
@@ -233,7 +233,7 @@ export default function DashboardPage({ onOpenAdd, onOpenSettings }) {
       {/* ── Double grid: Today spend + Top goal ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
         {/* Today spend */}
-        <div style={{ padding: 14, borderRadius: 18, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(241,245,249,0.07)' }}>
+        <div onClick={() => onNavigate?.('calendar')} style={{ padding: 14, borderRadius: 18, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(241,245,249,0.07)', cursor: 'pointer' }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8.5, letterSpacing: 1.4, color: 'rgba(241,245,249,0.4)', textTransform: 'uppercase' }}>{t('spendToday')}</div>
           <div style={{ marginTop: 5, fontFamily: 'var(--font-display)', fontSize: 24, letterSpacing: -0.8, color: '#f1f5f9' }}>
             {cur === 'MYR' ? 'RM' : cur} {todayExpense.toFixed(2)}
@@ -245,7 +245,7 @@ export default function DashboardPage({ onOpenAdd, onOpenSettings }) {
           )}
         </div>
         {/* Top goal */}
-        <div style={{ padding: 14, borderRadius: 18, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(241,245,249,0.07)', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div onClick={() => onNavigate?.('goals')} style={{ padding: 14, borderRadius: 18, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(241,245,249,0.07)', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
           {topGoal ? (
             <>
               <ProgressRing value={goalPct} size={52} thickness={5} color="#f5d570">
@@ -287,7 +287,11 @@ export default function DashboardPage({ onOpenAdd, onOpenSettings }) {
       <div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: 1.8, color: 'rgba(241,245,249,0.4)', textTransform: 'uppercase' }}>{t('recentActivity')}</div>
-          {recent.length > 0 && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#10b981' }}>{t('seeAll')} →</div>}
+          {recent.length > 0 && (
+            <button onClick={() => onNavigate?.('calendar')} style={{ background: 'none', border: 'none', padding: 0, fontFamily: 'var(--font-mono)', fontSize: 9, color: '#10b981', cursor: 'pointer' }}>
+              {t('seeAll')} →
+            </button>
+          )}
         </div>
         {recent.length === 0 ? (
           <p className="jsave-empty-msg">{t('noTx')}</p>
