@@ -1,7 +1,7 @@
 import { openDB } from 'idb'
 
 const DB_NAME = 'jsave-db'
-const DB_VERSION = 1
+const DB_VERSION = 2
 
 let _db = null
 
@@ -25,6 +25,10 @@ async function getDB() {
       }
       if (!db.objectStoreNames.contains('syncQueue')) {
         db.createObjectStore('syncQueue', { keyPath: 'qid', autoIncrement: true })
+      }
+      // v2: Goals store
+      if (!db.objectStoreNames.contains('goals')) {
+        db.createObjectStore('goals', { keyPath: 'id' })
       }
     },
   })

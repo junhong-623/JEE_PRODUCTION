@@ -2,7 +2,7 @@ import { createContext, useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import {
-  subscribeAccounts, subscribeTransactions, subscribeItems, subscribeSettings,
+  subscribeAccounts, subscribeTransactions, subscribeItems, subscribeSettings, subscribeGoals,
 } from '../services/firestore'
 import { dbGetAll, dbPut, dbDelete } from '../services/db'
 import { syncWrite, syncDelete, flushQueue } from '../services/sync'
@@ -25,6 +25,7 @@ export function JSaveProvider({ children, onLanguageChange }) {
   const [accounts, setAccounts] = useState([])
   const [transactions, setTransactions] = useState([])
   const [items, setItems] = useState([])
+  const [goals, setGoals] = useState([])
   const [settings, setSettings] = useState(DEFAULT_SETTINGS)
   const [loading, setLoading] = useState(true)
   const unsubs = useRef([])
@@ -39,10 +40,12 @@ export function JSaveProvider({ children, onLanguageChange }) {
       dbGetAll('transactions'),
       dbGetAll('items'),
       dbGetAll('settings'),
-    ]).then(([accs, txs, itms, sets]) => {
+      dbGetAll('goals'),
+    ]).then(([accs, txs, itms, sets, gls]) => {
       if (accs.length) setAccounts(accs)
       if (txs.length) setTransactions(txs.filter(t => !t.deleted))
       if (itms.length) setItems(itms)
+      if (gls.length) setGoals(gls)
       const s = sets.find(s => s.id === 'config')
       if (s) {
         setSettings(s)
@@ -74,7 +77,12 @@ export function JSaveProvider({ children, onLanguageChange }) {
       onLanguageChange?.(data.language || 'en')
     })
 
-    unsubs.current = [unsubAccounts, unsubTx, unsubItems, unsubSettings]
+    const unsubGoals = subscribeGoals(uid, data => {
+      setGoals(data)
+      data.forEach(d => dbPut('goals', d))
+    })
+
+    unsubs.current = [unsubAccounts, unsubTx, unsubItems, unsubSettings, unsubGoals]
     return () => unsubs.current.forEach(u => u())
   }, [user])
 
@@ -248,6 +256,25 @@ export function JSaveProvider({ children, onLanguageChange }) {
     await syncDelete(uid, 'items', id, online)
   }, [uid, online])
 
+  const addGoal = useCallback(async (data) => {
+    const goal = { ...data, userId: uid, id: crypto.randomUUID(), createdAt: Date.now(), updatedAt: Date.now() }
+    setGoals(prev => [...prev, goal])
+    await syncWrite(uid, 'goals', goal, online)
+    return goal
+  }, [uid, online])
+
+  const updateGoal = useCallback(async (id, data) => {
+    const updated = { ...data, id, userId: uid, updatedAt: Date.now() }
+    setGoals(prev => prev.map(g => g.id === id ? { ...g, ...updated } : g))
+    await syncWrite(uid, 'goals', updated, online)
+  }, [uid, online])
+
+  const deleteGoal = useCallback(async (id) => {
+    setGoals(prev => prev.filter(g => g.id !== id))
+    await dbDelete('goals', id)
+    await syncDelete(uid, 'goals', id, online)
+  }, [uid, online])
+
   const updateSettings = useCallback(async (data) => {
     const updated = { ...settings, ...data, id: 'config', userId: uid }
     setSettings(updated)
@@ -284,10 +311,11 @@ export function JSaveProvider({ children, onLanguageChange }) {
 
   return (
     <JSaveContext.Provider value={{
-      accounts, transactions, items, settings, loading, online,
+      accounts, transactions, items, goals, settings, loading, online,
       addTransaction, updateTransaction, deleteTransaction,
       addAccount, updateAccount, deleteAccount,
       addItem, updateItem, deleteItem,
+      addGoal, updateGoal, deleteGoal,
       updateSettings,
       getAccountBalance, getTotalBalance,
     }}>

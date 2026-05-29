@@ -4,19 +4,22 @@ import { useTheme } from '../contexts/ThemeContext'
 import { LangProvider } from './contexts/LangContext'
 import { JSaveProvider } from './contexts/JSaveContext'
 import { useLang } from './contexts/LangContext'
-import IntroSlides, { hasSeenIntro } from './components/IntroSlides'
+import IntroPage from './pages/IntroPage'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import CalendarPage from './pages/CalendarPage'
 import ItemsPage from './pages/ItemsPage'
 import ReportsPage from './pages/ReportsPage'
 import SettingsPage from './pages/SettingsPage'
+import GoalsPage from './pages/GoalsPage'
 import AdminPage from './pages/AdminPage'
 import BottomNav from './components/BottomNav'
 import OfflineBanner from './components/OfflineBanner'
+import TransactionForm from './components/TransactionForm'
 import { installState, isStandalone, setupPwaInstall, doInstall } from './installPrompt'
 import { db } from '../lib/firebase'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import './design-system.css'
 import './App.css'
 
 function InstallDialog({ onClose }) {
@@ -116,8 +119,9 @@ function JSaveShell() {
   const { dark } = useTheme()
   const { lang } = useLang()
   const [page, setPage] = useState('dashboard')
-  const [showIntro, setShowIntro] = useState(() => !hasSeenIntro())
+  const [showLogin, setShowLogin] = useState(false)
   const [showInstallDialog, setShowInstallDialog] = useState(false)
+  const [showTransactionForm, setShowTransactionForm] = useState(false)
   const [showAdmin, setShowAdmin] = useState(false)
   const [paymentResult, setPaymentResult] = useState(() => {
     const p = new URLSearchParams(window.location.search)
@@ -162,18 +166,22 @@ function JSaveShell() {
   }
 
   if (!user) {
-    return (
-      <div className={`jsave-root${dark ? '' : ' jsave-light'}`}>
-        <LoginPage />
-      </div>
-    )
+    if (showLogin) {
+      return (
+        <div className={`jsave-root${dark ? '' : ' jsave-light'}`}>
+          <LoginPage onBack={() => setShowLogin(false)} />
+        </div>
+      )
+    }
+    return <IntroPage onLogin={() => setShowLogin(true)} />
   }
 
   const pages = {
-    dashboard: <DashboardPage />,
+    dashboard: <DashboardPage onOpenSettings={() => setPage('settings')} onOpenAdd={() => setShowTransactionForm(true)} />,
     calendar:  <CalendarPage />,
     items:     <ItemsPage />,
     reports:   <ReportsPage />,
+    goals:     <GoalsPage />,
     settings:  <SettingsPage onOpenAdmin={admin ? () => setShowAdmin(true) : null} />,
   }
 
@@ -189,15 +197,23 @@ function JSaveShell() {
 
   return (
     <div className={`jsave-root${dark ? '' : ' jsave-light'} jsave-shell`}>
-      {showIntro && <IntroSlides onDone={() => setShowIntro(false)} />}
       {showInstallDialog && user && <InstallDialog onClose={closeInstallDialog} />}
       {paymentResult && user && <PaymentResultModal onClose={closePaymentResult} amount={pendingCoffeeAmt} />}
       {showAdmin && admin && <AdminPage zh={lang === 'zh'} onClose={() => setShowAdmin(false)} />}
       <OfflineBanner />
       <div key={page} className="jsave-page-anim">
-        {pages[page]}
+        {pages[page] ?? pages['dashboard']}
       </div>
-      <BottomNav active={page} onChange={setPage} />
+      {showTransactionForm && (
+        <TransactionForm initial={null} onClose={() => setShowTransactionForm(false)} />
+      )}
+      <BottomNav
+        active={page}
+        onChange={p => {
+          if (p === 'add') { setShowTransactionForm(true) }
+          else setPage(p)
+        }}
+      />
     </div>
   )
 }
