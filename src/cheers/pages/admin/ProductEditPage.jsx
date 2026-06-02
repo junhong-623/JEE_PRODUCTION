@@ -4,7 +4,7 @@ import { getFirestore, doc, getDoc, setDoc, addDoc, collection, getDocs, query, 
 import app from '../../../lib/firebase'
 import { useLang } from '../../contexts/LangContext'
 import { uploadProductImage, uploadProductMedia } from '../../lib/cloudinary'
-import { modifiersToLegacy } from '../../lib/productPrice'
+import { modifiersToLegacy, convertToAdditiveModifiers } from '../../lib/productPrice'
 
 const db = getFirestore(app)
 const MAX_IMAGES = 8
@@ -16,6 +16,8 @@ function BlockEditor({ blocks, onChange, productImages = [] }) {
   const [editLang, setEditLang] = useState('zh')
   const [uploading, setUploading] = useState(null)
   const [pickerIdx, setPickerIdx] = useState(null)
+  const [dragBlockIdx, setDragBlockIdx] = useState(null)
+  const [dragOverBlockIdx, setDragOverBlockIdx] = useState(null)
 
   function addBlock(type) {
     const b = type === 'text'
@@ -28,14 +30,6 @@ function BlockEditor({ blocks, onChange, productImages = [] }) {
 
   function update(idx, patch) {
     onChange(blocks.map((b, i) => i === idx ? { ...b, ...patch } : b))
-  }
-
-  function move(idx, dir) {
-    const arr = [...blocks]
-    const swap = idx + (dir === 'up' ? -1 : 1)
-    if (swap < 0 || swap >= arr.length) return
-    ;[arr[idx], arr[swap]] = [arr[swap], arr[idx]]
-    onChange(arr)
   }
 
   async function handleMediaUpload(idx, file) {
@@ -56,7 +50,7 @@ function BlockEditor({ blocks, onChange, productImages = [] }) {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-medium text-cheers-dark-brown">富媒体内容</h3>
-          <p className="text-xs text-cheers-brown/50">图片、视频、补充说明，显示在商品描述下方</p>
+          <p className="text-xs text-cheers-brown/50">图片、视频、补充说明 · 拖动左侧 ⠿ 可调整顺序</p>
         </div>
         <div className="flex gap-1 text-xs">
           {BLOCK_LANG_TABS.map(l => (
@@ -70,19 +64,32 @@ function BlockEditor({ blocks, onChange, productImages = [] }) {
 
       <div className="space-y-3">
         {blocks.map((block, idx) => (
-          <div key={idx} className="border border-cheers-cream rounded-xl p-3 space-y-2">
+          <div
+            key={idx}
+            draggable
+            onDragStart={() => setDragBlockIdx(idx)}
+            onDragOver={e => { e.preventDefault(); setDragOverBlockIdx(idx) }}
+            onDrop={e => {
+              e.preventDefault()
+              if (dragBlockIdx === null || dragBlockIdx === idx) return
+              const arr = [...blocks]
+              const [item] = arr.splice(dragBlockIdx, 1)
+              arr.splice(idx, 0, item)
+              onChange(arr)
+              setDragBlockIdx(null); setDragOverBlockIdx(null)
+            }}
+            onDragEnd={() => { setDragBlockIdx(null); setDragOverBlockIdx(null) }}
+            className={`border border-cheers-cream rounded-xl p-3 space-y-2 transition-opacity
+              ${dragBlockIdx === idx ? 'opacity-40' : ''}
+              ${dragOverBlockIdx === idx && dragBlockIdx !== idx ? 'ring-2 ring-cheers-brown ring-offset-1' : ''}`}
+          >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-cheers-brown/60 uppercase tracking-wide">
+              <span className="flex items-center gap-1.5 text-xs font-medium text-cheers-brown/60 uppercase tracking-wide">
+                <span className="cursor-grab text-cheers-brown/30 select-none text-base leading-none">⠿</span>
                 {block.type === 'text' ? '文字' : block.type === 'image' ? '图片' : '视频'}
               </span>
-              <div className="flex items-center gap-1">
-                <button type="button" onClick={() => move(idx, 'up')} disabled={idx === 0}
-                  className="text-cheers-brown/40 hover:text-cheers-brown disabled:opacity-20 px-1 text-xs">▲</button>
-                <button type="button" onClick={() => move(idx, 'down')} disabled={idx === blocks.length - 1}
-                  className="text-cheers-brown/40 hover:text-cheers-brown disabled:opacity-20 px-1 text-xs">▼</button>
-                <button type="button" onClick={() => onChange(blocks.filter((_, i) => i !== idx))}
-                  className="text-red-400 hover:text-red-600 px-1 text-sm ml-1">×</button>
-              </div>
+              <button type="button" onClick={() => onChange(blocks.filter((_, i) => i !== idx))}
+                className="text-red-400 hover:text-red-600 px-1 text-sm">×</button>
             </div>
 
             {block.type === 'text' && (
@@ -171,35 +178,15 @@ function BlockEditor({ blocks, onChange, productImages = [] }) {
 }
 
 // ── Modifier Editor ───────────────────────────────────────────────────────────
-// modifiers: [{ name, withImage, options: [{label, imageUrl, price, costPrice}] }, ...]
-// variantPrices: { "mod1Label|mod2Label": { price, costPrice } }
+// 加法定价：每个选项有 priceDelta（加价）
+// modifiers: [{ name, withImage, options: [{label, priceDelta, imageUrl}] }, ...]
+//
 
-function ModifierEditor({ modifiers, variantPrices, onModifiers, onVariantPrices, productImages }) {
-  const [optInputs, setOptInputs] = useState(['', '']) // input text per modifier group
+function ModifierEditor({ modifiers, onModifiers, productImages }) {
+  const [optInputs, setOptInputs] = useState([]) // string input per group index
 
   function updateMod(idx, patch) {
     onModifiers(modifiers.map((m, i) => i === idx ? { ...m, ...patch } : m))
-  }
-
-  function addOption(modIdx) {
-    const label = optInputs[modIdx]?.trim()
-    if (!label) return
-    const newOpt = modIdx === 0
-      ? { label, imageUrl: null, price: '', costPrice: '' }
-      : { label }
-    updateMod(modIdx, { options: [...(modifiers[modIdx].options || []), newOpt] })
-    setOptInputs(prev => prev.map((v, i) => i === modIdx ? '' : v))
-  }
-
-  function removeOption(modIdx, optIdx) {
-    const removedLabel = modifiers[modIdx].options[optIdx]?.label
-    updateMod(modIdx, { options: modifiers[modIdx].options.filter((_, i) => i !== optIdx) })
-    // Clean up variant prices if removing mod2 option
-    if (modIdx === 1 && removedLabel) {
-      const updated = { ...variantPrices }
-      Object.keys(updated).forEach(k => { if (k.endsWith(`|${removedLabel}`)) delete updated[k] })
-      onVariantPrices(updated)
-    }
   }
 
   function updateOpt(modIdx, optIdx, patch) {
@@ -208,28 +195,35 @@ function ModifierEditor({ modifiers, variantPrices, onModifiers, onVariantPrices
     })
   }
 
-  function setVariant(mod1Label, mod2Label, field, value) {
-    const key = `${mod1Label}|${mod2Label}`
-    onVariantPrices(prev => ({ ...prev, [key]: { ...(prev[key] || {}), [field]: value } }))
+  function addOption(modIdx) {
+    const label = (optInputs[modIdx] || '').trim()
+    if (!label) return
+    updateMod(modIdx, {
+      options: [...(modifiers[modIdx].options || []), { label, priceDelta: 0, imageUrl: null }]
+    })
+    setOptInputs(prev => { const n = [...prev]; n[modIdx] = ''; return n })
   }
 
-  const mod1 = modifiers[0]
-  const mod2 = modifiers[1]
+  function removeOption(modIdx, optIdx) {
+    updateMod(modIdx, { options: modifiers[modIdx].options.filter((_, i) => i !== optIdx) })
+  }
+
+  function addGroup() {
+    const defaultName = modifiers.length === 0 ? '规格' : `规格${modifiers.length + 1}`
+    onModifiers([...modifiers, { name: defaultName, withImage: false, options: [] }])
+  }
 
   return (
     <div className="card p-4 space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-medium text-cheers-dark-brown">商品规格（可选）</h3>
-          <p className="text-xs text-cheers-brown/50">自定义规格名称，如颜色、尺码、口味、规格等</p>
+          <p className="text-xs text-cheers-brown/50">自定义规格，如颜色、口味、大小；加价填 +RM，不加填 0</p>
         </div>
-        {modifiers.length < 2 && (
-          <button type="button"
-            onClick={() => onModifiers([...modifiers, { name: modifiers.length === 0 ? '规格' : '尺码', options: [] }])}
-            className="btn-ghost text-xs py-1.5 px-3 border border-cheers-brown/30">
-            + 添加规格组
-          </button>
-        )}
+        <button type="button" onClick={addGroup}
+          className="btn-ghost text-xs py-1.5 px-3 border border-cheers-brown/30">
+          + 添加规格组
+        </button>
       </div>
 
       {modifiers.length === 0 && (
@@ -238,155 +232,72 @@ function ModifierEditor({ modifiers, variantPrices, onModifiers, onVariantPrices
 
       {modifiers.map((mod, modIdx) => (
         <div key={modIdx} className="border border-cheers-cream rounded-xl p-3 space-y-3">
-          {/* Modifier group header */}
+          {/* Header */}
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-cheers-brown/50 font-medium">规格 {modIdx + 1}</span>
-            <input
-              value={mod.name}
-              onChange={e => updateMod(modIdx, { name: e.target.value })}
-              placeholder="规格名称（如：颜色）"
-              className="input text-sm flex-1 min-w-[120px]"
-            />
-            {modIdx === 0 && (
-              <label className="flex items-center gap-1.5 text-xs text-cheers-brown/70 cursor-pointer whitespace-nowrap">
-                <input type="checkbox" checked={!!mod.withImage} onChange={e => updateMod(0, { withImage: e.target.checked })}
-                  className="accent-cheers-brown" />
-                可关联图片
-              </label>
-            )}
+            <span className="text-xs text-cheers-brown/50 font-medium shrink-0">规格 {modIdx + 1}</span>
+            <input value={mod.name} onChange={e => updateMod(modIdx, { name: e.target.value })}
+              placeholder="规格名称（如：口味）"
+              className="input text-sm flex-1 min-w-[100px]" />
+            <label className="flex items-center gap-1.5 text-xs text-cheers-brown/70 cursor-pointer whitespace-nowrap">
+              <input type="checkbox" checked={!!mod.withImage}
+                onChange={e => updateMod(modIdx, { withImage: e.target.checked })}
+                className="accent-cheers-brown" />
+              关联图片
+            </label>
             <button type="button"
               onClick={() => onModifiers(modifiers.filter((_, i) => i !== modIdx))}
-              className="text-red-400 hover:text-red-600 text-xs px-2">删除规格组</button>
+              className="text-red-400 hover:text-red-600 text-xs px-1">删除</button>
           </div>
 
-          {/* Options list */}
-          {modIdx === 0 && mod.options.length > 0 && !mod2 && (
-            // Single modifier: show price per option
-            <div className="space-y-2">
-              <div className="grid grid-cols-[1fr_80px_80px_auto] gap-2 text-xs text-cheers-brown/50">
-                <span>选项</span><span className="text-center">售价(RM)</span><span className="text-center">成本(RM)</span><span />
+          {/* Options */}
+          {mod.options.length > 0 && (
+            <div className="space-y-1.5">
+              <div className="grid grid-cols-[1fr_72px_auto] gap-2 text-xs text-cheers-brown/40 px-1">
+                <span>选项名称{mod.withImage ? '  +  关联图片' : ''}</span>
+                <span className="text-center">加价(RM)</span>
+                <span />
               </div>
               {mod.options.map((opt, optIdx) => (
-                <div key={optIdx} className="grid grid-cols-[1fr_80px_80px_auto] gap-2 items-center">
+                <div key={optIdx} className="grid grid-cols-[1fr_72px_auto] gap-2 items-center">
                   <div className="flex items-center gap-1.5">
-                    <input value={opt.label} onChange={e => updateOpt(0, optIdx, { label: e.target.value })}
-                      className="input text-sm flex-1" />
+                    <input value={opt.label} onChange={e => updateOpt(modIdx, optIdx, { label: e.target.value })}
+                      className="input text-sm flex-1" placeholder="如：草莓" />
                     {mod.withImage && (
-                      <select value={opt.imageUrl || ''} onChange={e => updateOpt(0, optIdx, { imageUrl: e.target.value || null })}
-                        className="input text-xs py-1 w-24 flex-shrink-0">
+                      <select value={opt.imageUrl || ''}
+                        onChange={e => updateOpt(modIdx, optIdx, { imageUrl: e.target.value || null })}
+                        className="input text-xs py-1 w-20 shrink-0">
                         <option value="">无图</option>
                         {productImages.map((url, i) => <option key={i} value={url}>图{i + 1}</option>)}
                       </select>
                     )}
                   </div>
-                  <input type="number" step="0.01" min="0" placeholder="—"
-                    value={opt.price} onChange={e => updateOpt(0, optIdx, { price: e.target.value })}
+                  <input type="number" step="0.01" min="0" placeholder="0"
+                    value={opt.priceDelta === 0 ? '0' : (opt.priceDelta || '')}
+                    onChange={e => updateOpt(modIdx, optIdx, { priceDelta: parseFloat(e.target.value) || 0 })}
                     className="input text-xs text-center px-1 py-1" />
-                  <input type="number" step="0.01" min="0" placeholder="—"
-                    value={opt.costPrice} onChange={e => updateOpt(0, optIdx, { costPrice: e.target.value })}
-                    className="input text-xs text-center px-1 py-1 bg-amber-50/50" />
-                  <button type="button" onClick={() => removeOption(0, optIdx)}
+                  <button type="button" onClick={() => removeOption(modIdx, optIdx)}
                     className="text-red-400 hover:text-red-600 text-lg leading-none px-1">×</button>
                 </div>
               ))}
             </div>
           )}
 
-          {modIdx === 0 && mod.options.length > 0 && mod2 && (
-            // Two modifiers: show image association for mod1 options (no per-option price, matrix handles it)
-            <div className="space-y-2">
-              <div className="flex flex-wrap gap-2">
-                {mod.options.map((opt, optIdx) => (
-                  <div key={optIdx} className="flex items-center gap-1.5 bg-cheers-cream/40 px-2.5 py-1.5 rounded-lg">
-                    <input value={opt.label} onChange={e => updateOpt(0, optIdx, { label: e.target.value })}
-                      className="bg-transparent outline-none text-sm font-medium text-cheers-dark-brown w-20" />
-                    {mod.withImage && (
-                      <select value={opt.imageUrl || ''} onChange={e => updateOpt(0, optIdx, { imageUrl: e.target.value || null })}
-                        className="text-xs bg-transparent outline-none text-cheers-brown/60 max-w-[60px]">
-                        <option value="">无图</option>
-                        {productImages.map((url, i) => <option key={i} value={url}>图{i + 1}</option>)}
-                      </select>
-                    )}
-                    <button type="button" onClick={() => removeOption(0, optIdx)}
-                      className="text-red-400 hover:text-red-600 text-base leading-none">×</button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {modIdx === 1 && mod.options.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {mod.options.map((opt, optIdx) => (
-                <span key={optIdx} className="inline-flex items-center gap-1 bg-cheers-cream text-cheers-dark-brown text-sm pl-3 pr-2 py-1 rounded-full">
-                  <input value={opt.label} onChange={e => updateOpt(1, optIdx, { label: e.target.value })}
-                    className="bg-transparent outline-none w-14 text-sm" />
-                  <button type="button" onClick={() => removeOption(1, optIdx)}
-                    className="text-cheers-brown/50 hover:text-cheers-brown leading-none">×</button>
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Add option input */}
+          {/* Add option */}
           <div className="flex gap-2">
-            <input
-              className="input text-sm flex-1"
-              placeholder={modIdx === 0 ? `添加${mod.name || '规格'}选项` : `添加${mod.name || '尺码'}选项`}
+            <input className="input text-sm flex-1"
+              placeholder={`添加${mod.name || '规格'}选项（回车确认）`}
               value={optInputs[modIdx] || ''}
-              onChange={e => setOptInputs(prev => prev.map((v, i) => i === modIdx ? e.target.value : v))}
-              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addOption(modIdx) } }}
-            />
+              onChange={e => setOptInputs(prev => { const n = [...prev]; n[modIdx] = e.target.value; return n })}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addOption(modIdx) } }} />
             <button type="button" className="btn-secondary px-4" onClick={() => addOption(modIdx)}>添加</button>
           </div>
         </div>
       ))}
 
-      {/* Price matrix (mod1 × mod2) */}
-      {mod1?.options?.length > 0 && mod2?.options?.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-cheers-dark-brown">
-            价格矩阵：{mod1.name} × {mod2.name}
-          </p>
-          <p className="text-xs text-cheers-brown/40">售价（上）/ 成本价（下，金色底）；留空表示沿用商品基础价格</p>
-          <div className="overflow-x-auto">
-            <table className="text-sm border-collapse">
-              <thead>
-                <tr className="text-left">
-                  <th className="text-xs font-medium text-cheers-brown/60 py-1.5 pr-4 whitespace-nowrap">{mod1.name} ↓ / {mod2.name} →</th>
-                  {mod2.options.map(o2 => (
-                    <th key={o2.label} className="text-xs font-medium text-cheers-brown/60 py-1.5 px-2 text-center whitespace-nowrap">{o2.label}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {mod1.options.map(o1 => (
-                  <tr key={o1.label} className="border-t border-cheers-cream/60">
-                    <td className="py-2 pr-4 font-medium text-cheers-dark-brown whitespace-nowrap">{o1.label}</td>
-                    {mod2.options.map(o2 => {
-                      const key = `${o1.label}|${o2.label}`
-                      const vp = variantPrices[key] || {}
-                      return (
-                        <td key={o2.label} className="py-2 px-2">
-                          <div className="flex flex-col gap-1">
-                            <input type="number" step="0.01" min="0" placeholder="售—"
-                              value={vp.price || ''}
-                              onChange={e => setVariant(o1.label, o2.label, 'price', e.target.value)}
-                              className="input text-xs w-20 text-center px-1 py-1" />
-                            <input type="number" step="0.01" min="0" placeholder="本—"
-                              value={vp.costPrice || ''}
-                              onChange={e => setVariant(o1.label, o2.label, 'costPrice', e.target.value)}
-                              className="input text-xs w-20 text-center px-1 py-1 bg-amber-50/50" />
-                          </div>
-                        </td>
-                      )
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+      {modifiers.length > 0 && (
+        <p className="text-xs text-cheers-brown/40">
+          💡 最终售价 = 基础售价 + 各规格已选选项的加价之和。不加价填 0 即可。
+        </p>
       )}
     </div>
   )
@@ -415,10 +326,8 @@ export default function ProductEditPage() {
     imageUrls: [],
     descriptionBlocks: [],
   })
-  // New modifier state (replaces form.sizes and form.colors)
+  // 加法定价 modifier 状态
   const [modifiers, setModifiers] = useState([])
-  // Flat map: "mod1Label|mod2Label" → { price, costPrice }
-  const [variantPrices, setVariantPrices] = useState({})
 
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -452,62 +361,8 @@ export default function ProductEditPage() {
             descriptionBlocks: data.descriptionBlocks || [],
           })
 
-          // Load modifiers (new format or auto-convert from old)
-          if (data.modifiers?.length) {
-            const mods = data.modifiers.map(mod => ({
-              ...mod,
-              options: mod.options.map(opt => ({
-                label: opt.label,
-                imageUrl: opt.imageUrl ?? null,
-                price: opt.price != null ? String(opt.price) : '',
-                costPrice: opt.costPrice != null ? String(opt.costPrice) : '',
-              })),
-            }))
-            setModifiers(mods)
-            // Rebuild variantPrices from modifiers[0].options[].variants
-            const vp = {}
-            for (const opt of (data.modifiers[0]?.options || [])) {
-              for (const v of (opt.variants || [])) {
-                vp[`${opt.label}|${v.label}`] = {
-                  price: v.price != null ? String(v.price) : '',
-                  costPrice: v.costPrice != null ? String(v.costPrice) : '',
-                }
-              }
-            }
-            setVariantPrices(vp)
-          } else {
-            // Auto-convert from old colors/sizes format
-            const mods = []
-            if (data.colors?.length) {
-              mods.push({
-                name: '颜色', withImage: true,
-                options: data.colors.map(c => ({
-                  label: c.label,
-                  imageUrl: c.imageUrl ?? null,
-                  price: c.price != null ? String(c.price) : '',
-                  costPrice: c.costPrice != null ? String(c.costPrice) : '',
-                })),
-              })
-            }
-            if (data.sizes?.length) {
-              mods.push({
-                name: '尺码',
-                options: data.sizes.map(s => ({ label: typeof s === 'string' ? s : s.label })),
-              })
-            }
-            setModifiers(mods)
-            // Build variantPrices from old colors[].sizes
-            const vp = {}
-            for (const c of (data.colors || [])) {
-              for (const s of (c.sizes || [])) {
-                vp[`${c.label}|${s.label}`] = {
-                  price: s.price != null ? String(s.price) : '',
-                  costPrice: s.costPrice != null ? String(s.costPrice) : '',
-                }
-              }
-            }
-            setVariantPrices(vp)
-          }
+          // 自动转换为加法定价格式（convertToAdditiveModifiers 处理所有旧格式）
+          setModifiers(convertToAdditiveModifiers(data))
 
           if (data.tripId) {
             const catSnap = await getDocs(query(collection(db, 'cheers_categories'), orderBy('order')))
@@ -555,31 +410,17 @@ export default function ProductEditPage() {
     e.preventDefault()
     setSaving(true)
 
-    // Build final modifiers with variants from variantPrices
-    const mod1 = modifiers[0]
-    const mod2 = modifiers[1]
-    const finalModifiers = modifiers.map((mod, modIdx) => {
-      if (modIdx !== 0) return { name: mod.name, options: mod.options.map(o => ({ label: o.label })) }
-      return {
-        name: mod.name,
-        withImage: !!mod.withImage,
-        options: mod.options.map(opt => {
-          const variants = mod2 ? mod2.options.map(o2 => {
-            const vp = variantPrices[`${opt.label}|${o2.label}`] || {}
-            return { label: o2.label, price: parseNum(vp.price), costPrice: parseNum(vp.costPrice) }
-          }).filter(v => v.price != null || v.costPrice != null) : []
-          return {
-            label: opt.label,
-            imageUrl: opt.imageUrl ?? null,
-            price: parseNum(opt.price),
-            costPrice: parseNum(opt.costPrice),
-            variants,
-          }
-        }),
-      }
-    })
+    // 保存加法定价格式（priceDelta per option）
+    const finalModifiers = modifiers.map(mod => ({
+      name: mod.name,
+      withImage: !!mod.withImage,
+      options: mod.options.map(opt => ({
+        label: opt.label,
+        imageUrl: opt.imageUrl ?? null,
+        priceDelta: parseFloat(opt.priceDelta) || 0,
+      })),
+    }))
 
-    // Also generate legacy colors/sizes for backward compat (order history, old code)
     const legacy = modifiersToLegacy(finalModifiers)
 
     const data = {
@@ -595,7 +436,7 @@ export default function ProductEditPage() {
       imageUrls: form.imageUrls,
       imageUrl: form.imageUrls[0] || '',
       modifiers: finalModifiers,
-      ...legacy,  // colors + sizes (backward compat)
+      ...legacy,
       descriptionBlocks: form.descriptionBlocks,
     }
 
@@ -683,7 +524,7 @@ export default function ProductEditPage() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label">基础售价 (RM)</label>
+              <label className="label">基础售价 (RM)  <span className="text-cheers-brown/40 font-normal">未选任何规格的起始价</span></label>
               <input type="number" step="0.01" min="0" className="input" value={form.price}
                 onChange={e => setForm(f => ({ ...f, price: e.target.value }))} required />
             </div>
@@ -729,9 +570,7 @@ export default function ProductEditPage() {
         {/* Modifiers */}
         <ModifierEditor
           modifiers={modifiers}
-          variantPrices={variantPrices}
           onModifiers={setModifiers}
-          onVariantPrices={setVariantPrices}
           productImages={form.imageUrls}
         />
 

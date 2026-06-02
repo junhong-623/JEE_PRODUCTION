@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { optimizeUrl } from '../lib/cloudinary'
 import CartItemEditModal from '../components/ui/CartItemEditModal'
 import { trackViewCart } from '../lib/tracking'
+import { formatVariants } from '../lib/productPrice'
 
 function ConfirmModal({ itemName, onConfirm, onCancel, lang }) {
   return (
@@ -55,7 +56,7 @@ export default function CartPage() {
   }
 
   function confirmRemove() {
-    if (confirmItem) removeFromCart(confirmItem.productId, confirmItem.size, confirmItem.color)
+    if (confirmItem) removeFromCart(confirmItem)
     setConfirmItem(null)
   }
 
@@ -94,7 +95,7 @@ export default function CartPage() {
 
       <div className="space-y-3 mb-6">
         {items.map(item => (
-          <div key={`${item.productId}-${item.size || ''}-${item.color || ''}`}
+          <div key={`${item.productId}-${JSON.stringify(item.selectedMods ?? { s: item.size, c: item.color })}`}
             className="flex items-center gap-3 py-3 border-b border-cheers-cream last:border-0">
 
             {/* Clickable image */}
@@ -111,16 +112,16 @@ export default function CartPage() {
               <Link to={`/products/${item.productId}`}>
                 <p className="text-sm font-medium text-cheers-dark-brown truncate">{item.name}</p>
               </Link>
-              {(item.color || item.size) && (
-                <p className="text-xs text-cheers-brown/50 mt-0.5">{[item.color, item.size].filter(Boolean).join(' · ')}</p>
+              {formatVariants(item) && (
+                <p className="text-xs text-cheers-brown/50 mt-0.5">{formatVariants(item)}</p>
               )}
               {/* Qty row */}
               <div className="flex items-center gap-2 mt-1.5">
                 <div className="flex items-center border border-cheers-cream rounded-lg overflow-hidden">
-                  <button onClick={() => updateQuantity(item.productId, item.quantity - 1, item.size, item.color)}
+                  <button onClick={() => updateQuantity(item, item.quantity - 1)}
                     className="px-2 py-0.5 text-cheers-brown hover:bg-cheers-cream/50 text-sm leading-none">−</button>
                   <span className="px-2 py-0.5 text-cheers-dark-brown text-sm font-medium min-w-[1.5rem] text-center">{item.quantity}</span>
-                  <button onClick={() => updateQuantity(item.productId, item.quantity + 1, item.size, item.color)}
+                  <button onClick={() => updateQuantity(item, item.quantity + 1)}
                     className="px-2 py-0.5 text-cheers-brown hover:bg-cheers-cream/50 text-sm leading-none">+</button>
                 </div>
                 {/* Edit variant button */}

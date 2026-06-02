@@ -1,13 +1,19 @@
 // 商品规格价格工具
-// 支持新的 modifiers 格式 和 旧的 colors/sizes 格式（向后兼容）
-//
-// 新格式: product.modifiers = [{ name, options: [{ label, price, costPrice, imageUrl, variants: [{label, price, costPrice}] }] }, ...]
-// 旧格式: product.colors = [{ label, price, costPrice, imageUrl, sizes: [{label, price, costPrice}] }], product.sizes = string[]
+// 支持三种格式：
+//   A. 加法格式（新）：modifiers[].options[].priceDelta
+//   B. 矩阵格式（旧新）：modifiers[0].options[].variants[]
+//   C. 旧格式：colors[].sizes[]
 
 function parsePrice(v) {
   if (v === null || v === undefined || v === '') return null
   const n = Number(v)
   return Number.isFinite(n) && n > 0 ? n : null
+}
+
+function parseDelta(v) {
+  if (v === null || v === undefined || v === '') return 0
+  const n = Number(v)
+  return Number.isFinite(n) ? n : 0
 }
 
 // ─── 格式检测 ─────────────────────────────────────────────────────────────────
@@ -16,45 +22,71 @@ function hasModifiers(product) {
   return Array.isArray(product?.modifiers) && product.modifiers.length > 0
 }
 
-// ─── 新格式 helper ─────────────────────────────────────────────────────────────
+// 判断是否为加法定价格式（选项上有 priceDelta 字段）
+export function hasAdditiveModifiers(product) {
+  if (!hasModifiers(product)) return false
+  const firstOpt = product.modifiers[0]?.options?.[0]
+  return firstOpt !== undefined && 'priceDelta' in firstOpt
+}
 
-// 取 modifier1 的选项列表（新格式）
+// ─── 加法定价 API ─────────────────────────────────────────────────────────────
+
+// selectedMods: { groupName: selectedOptionLabel }
+// 最终价格 = 基础价 + 各已选选项 priceDelta 之和
+export function effectivePriceFromMods(product, selectedMods) {
+  const base = Number(product?.price) || 0
+  if (!selectedMods || !hasAdditiveModifiers(product)) return base
+  let total = base
+  for (const mod of product.modifiers) {
+    const label = selectedMods[mod.name]
+    if (!label) continue
+    const opt = mod.options?.find(o => o.label === label)
+    if (opt) total += parseDelta(opt.priceDelta)
+  }
+  return Math.max(0, total)
+}
+
+// 加法定价下的价格范围（min = 每组最小加价之和, max = 每组最大加价之和）
+export function priceRangeAdditive(product) {
+  const base = Number(product?.price) || 0
+  if (!hasAdditiveModifiers(product)) return { min: base, max: base, isRange: false }
+  let minDelta = 0, maxDelta = 0
+  for (const mod of product.modifiers) {
+    if (!mod.options?.length) continue
+    const deltas = mod.options.map(o => parseDelta(o.priceDelta))
+    minDelta += Math.min(...deltas)
+    maxDelta += Math.max(...deltas)
+  }
+  const min = Math.max(0, base + minDelta)
+  const max = Math.max(0, base + maxDelta)
+  return { min, max, isRange: min !== max }
+}
+
+// ─── 旧格式 API（向后兼容） ────────────────────────────────────────────────────
+
 function getMod1Options(product) {
   return product.modifiers?.[0]?.options || []
 }
 
-// 取 modifier2 的选项标签列表（新格式），可选按 mod1Label 过滤 variants
-function getMod2Labels(product) {
-  return (product.modifiers?.[1]?.options || []).map(o => o.label)
-}
-
-// ─── 公开 API ─────────────────────────────────────────────────────────────────
-
-// 取 modifier1 选项（新格式返回 option 对象；旧格式返回 color 对象，字段兼容）
 export function getModifier1Options(product) {
   if (hasModifiers(product)) return getMod1Options(product)
   return product?.colors || []
 }
 
-// 取 modifier2 标签列表（给定 mod1 选项后可用的 mod2）
-// 新格式：从 modifiers[1].options 获取
-// 旧格式：从 color.sizes 获取（返回 {label, price, costPrice} 对象数组）
 export function getModifier2Options(product, mod1Label) {
   if (hasModifiers(product)) {
     return (product.modifiers[1]?.options || [])
   }
-  // 旧格式
   if (!mod1Label || !product?.colors) return []
   const c = product.colors.find(c => c.label === mod1Label)
   return c?.sizes ?? []
 }
 
-// 向后兼容：getColorSizes → getModifier2Options（旧调用方用）
 export function getColorSizes(product, colorLabel) {
   return getModifier2Options(product, colorLabel)
 }
 
-// 取有效价格：mod1+mod2 组合价 > mod1 价 > 基础价
+// 旧格式有效价格（mod1+mod2 组合价 > mod1 价 > 基础价）
 export function effectivePrice(product, mod1Label, mod2Label) {
   const base = Number(product?.price) || 0
   if (!mod1Label) return base
@@ -70,7 +102,6 @@ export function effectivePrice(product, mod1Label, mod2Label) {
     return parsePrice(opt.price) ?? base
   }
 
-  // 旧格式
   if (!product?.colors) return base
   const c = product.colors.find(c => c.label === mod1Label)
   if (!c) return base
@@ -82,10 +113,8 @@ export function effectivePrice(product, mod1Label, mod2Label) {
   return parsePrice(c?.price) ?? base
 }
 
-// 取有效成本价
 export function effectiveCostPrice(product, mod1Label, mod2Label) {
   const base = parsePrice(product?.costPrice) ?? null
-
   if (!mod1Label) return base
 
   if (hasModifiers(product)) {
@@ -99,7 +128,6 @@ export function effectiveCostPrice(product, mod1Label, mod2Label) {
     return parsePrice(opt.costPrice) ?? base
   }
 
-  // 旧格式
   if (!product?.colors) return base
   const c = product.colors.find(c => c.label === mod1Label)
   if (!c) return base
@@ -111,8 +139,10 @@ export function effectiveCostPrice(product, mod1Label, mod2Label) {
   return parsePrice(c?.costPrice) ?? base
 }
 
-// 取全局价格范围（所有规格组合）
+// 全局价格范围（自动检测格式）
 export function priceRange(product) {
+  if (hasAdditiveModifiers(product)) return priceRangeAdditive(product)
+
   const base = Number(product?.price) || 0
 
   if (hasModifiers(product)) {
@@ -131,7 +161,6 @@ export function priceRange(product) {
     return { min, max, isRange: min !== max }
   }
 
-  // 旧格式
   const colors = product?.colors || []
   if (!colors.length) return { min: base, max: base, isRange: false }
   const all = []
@@ -147,7 +176,6 @@ export function priceRange(product) {
   return { min, max, isRange: min !== max }
 }
 
-// 取指定 mod1 下的价格范围（涵盖该选项的所有 mod2 有效价）
 export function colorPriceRange(product, mod1Label) {
   const base = Number(product?.price) || 0
 
@@ -163,7 +191,6 @@ export function colorPriceRange(product, mod1Label) {
     return { min, max, isRange: min !== max }
   }
 
-  // 旧格式
   const c = product?.colors?.find(c => c.label === mod1Label)
   if (!c) return { min: base, max: base, isRange: false }
   const colorPrice = parsePrice(c.price) ?? base
@@ -175,18 +202,32 @@ export function colorPriceRange(product, mod1Label) {
   return { min, max, isRange: min !== max }
 }
 
-// 格式化展示价格（列表卡片、未选规格时）
 export function formatPriceDisplay(product, rmPrefix = 'RM') {
   const { min, max, isRange } = priceRange(product)
   if (isRange) return `${rmPrefix} ${min.toFixed(2)} - ${max.toFixed(2)}`
   return `${rmPrefix} ${min.toFixed(2)}`
 }
 
-// ─── 管理员编辑用：旧格式 → modifiers 转换 ─────────────────────────────────────
+// ─── 工具函数：格式化 selectedMods 为显示字符串 ───────────────────────────────
 
-export function convertLegacyToModifiers(product) {
-  if (product?.modifiers?.length) return product.modifiers  // 已是新格式
+// 将 selectedMods 对象或旧的 color/size 格式化为显示字符串
+// e.g. { 口味: "草莓", 大小: "中杯" } → "草莓 · 中杯"
+export function formatVariants(item) {
+  if (item?.selectedMods && Object.keys(item.selectedMods).length > 0) {
+    return Object.values(item.selectedMods).filter(Boolean).join(' · ')
+  }
+  return [item?.color, item?.size].filter(Boolean).join(' · ')
+}
+
+// ─── 管理员编辑用：旧格式 → 加法格式转换 ────────────────────────────────────────
+
+export function convertToAdditiveModifiers(product) {
+  // 已经是加法格式，直接返回
+  if (hasAdditiveModifiers(product)) return product.modifiers
+
+  const base = Number(product?.price) || 0
   const mods = []
+
   if (product?.colors?.length) {
     mods.push({
       name: '颜色',
@@ -194,26 +235,32 @@ export function convertLegacyToModifiers(product) {
       options: product.colors.map(c => ({
         label: c.label,
         imageUrl: c.imageUrl ?? null,
-        price: parsePrice(c.price),
-        costPrice: parsePrice(c.costPrice),
-        variants: (c.sizes || []).map(s => ({
-          label: s.label,
-          price: parsePrice(s.price),
-          costPrice: parsePrice(s.costPrice),
-        })),
+        priceDelta: c.price != null ? Math.max(0, Number(c.price) - base) : 0,
       })),
     })
   }
   if (product?.sizes?.length) {
     mods.push({
       name: '尺码',
-      options: product.sizes.map(s => ({ label: typeof s === 'string' ? s : s.label })),
+      options: product.sizes.map(s => ({ label: typeof s === 'string' ? s : s.label, priceDelta: 0 })),
     })
+  }
+  // 旧矩阵格式 modifiers（有 variants，无 priceDelta）
+  if (!mods.length && product?.modifiers?.length) {
+    return product.modifiers.map((mod, i) => ({
+      name: mod.name,
+      withImage: mod.withImage ?? false,
+      options: mod.options.map(opt => ({
+        label: opt.label,
+        imageUrl: opt.imageUrl ?? null,
+        priceDelta: i === 0 ? Math.max(0, (parsePrice(opt.price) ?? base) - base) : 0,
+      })),
+    }))
   }
   return mods
 }
 
-// ─── 管理员保存用：modifiers → 旧格式（向后兼容订单历史）─────────────────────
+// ─── 管理员保存用：生成旧格式 colors/sizes（向后兼容历史订单显示）────────────────
 
 export function modifiersToLegacy(modifiers) {
   const mod1 = modifiers?.[0]
@@ -222,13 +269,9 @@ export function modifiersToLegacy(modifiers) {
     colors: mod1 ? mod1.options.map(o => ({
       label: o.label,
       imageUrl: o.imageUrl ?? null,
-      price: o.price ?? null,
-      costPrice: o.costPrice ?? null,
-      sizes: (o.variants || []).map(v => ({
-        label: v.label,
-        price: v.price ?? null,
-        costPrice: v.costPrice ?? null,
-      })),
+      price: null,
+      costPrice: null,
+      sizes: [],
     })) : [],
     sizes: mod2 ? mod2.options.map(o => o.label) : [],
   }

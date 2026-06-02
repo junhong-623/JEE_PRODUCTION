@@ -10,6 +10,7 @@ import { optimizeUrl } from '../lib/cloudinary'
 import { effectiveCostPrice } from '../lib/productPrice'
 import { generateUniqueOrderId } from '../lib/orderId'
 import { trackPurchase, trackBeginCheckout, getStoredTrafficSource } from '../lib/tracking'
+import { formatVariants } from '../lib/productPrice'
 
 const db = getFirestore(app)
 
@@ -435,7 +436,7 @@ export default function CheckoutPage() {
           emailjs.send(import.meta.env.VITE_CHEERS_EMAILJS_SERVICE_ID, emailjsTemplateId, {
             to_email: notificationEmail, order_id: orderId, customer_name: form.name,
             customer_email: user.email, customer_phone: form.phone || '—',
-            order_items: items.map(i => `${i.name}${i.size ? ` (${i.size})` : ''} × ${i.quantity}  RM${(i.price * i.quantity).toFixed(2)}`).join('\n'),
+            order_items: items.map(i => { const v = formatVariants(i); return `${i.name}${v ? ` (${v})` : ''} × ${i.quantity}  RM${(i.price * i.quantity).toFixed(2)}` }).join('\n'),
             order_total: `RM ${total.toFixed(2)}`, delivery_info: deliveryInfo,
             order_date: new Date().toLocaleString('zh-MY'),
           }, import.meta.env.VITE_CHEERS_EMAILJS_PUBLIC_KEY).catch(() => {})
@@ -825,10 +826,10 @@ export default function CheckoutPage() {
           <h2 className="font-medium text-cheers-dark-brown mb-3">{t('checkout.orderSummary')}</h2>
           <div className="space-y-2 mb-3">
             {items.map(item => (
-              <div key={`${item.productId}-${item.size ?? ''}-${item.color ?? ''}`} className="flex justify-between text-sm">
+              <div key={`${item.productId}-${JSON.stringify(item.selectedMods ?? { s: item.size, c: item.color })}`} className="flex justify-between text-sm">
                 <span className="text-cheers-dark-brown/70 truncate flex-1 mr-2">
                   {item.name}
-                  {(item.color || item.size) && ` (${[item.color, item.size].filter(Boolean).join(' · ')})`}
+                  {formatVariants(item) && ` (${formatVariants(item)})`}
                   {' × '}{item.quantity}
                 </span>
                 <span className="text-cheers-dark-brown flex-shrink-0">RM {(item.price * item.quantity).toFixed(2)}</span>

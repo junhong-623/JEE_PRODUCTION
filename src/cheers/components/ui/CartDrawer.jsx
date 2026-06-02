@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '../../contexts/CartContext'
 import { useLang } from '../../contexts/LangContext'
 import { optimizeUrl } from '../../lib/cloudinary'
+import { formatVariants } from '../../lib/productPrice'
 
 export default function CartDrawer() {
   const { items, totalItems, subtotal, removeFromCart, updateQuantity } = useCart()
@@ -61,30 +62,28 @@ export default function CartDrawer() {
                   <p className="text-sm">{lang === 'zh' ? '购物车是空的' : 'Your cart is empty'}</p>
                 </div>
               ) : items.map(item => (
-                <div key={`${item.productId}-${item.size ?? ''}-${item.color ?? ''}`} className="flex gap-3">
+                <div key={`${item.productId}-${JSON.stringify(item.selectedMods ?? { s: item.size, c: item.color })}`} className="flex gap-3">
                   {item.imageUrl
                     ? <img src={optimizeUrl(item.imageUrl, { width: 120 })} alt="" className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
                     : <div className="w-16 h-16 rounded-xl bg-cheers-cream/40 flex items-center justify-center text-2xl flex-shrink-0">🛍</div>
                   }
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-cheers-dark-brown truncate">{item.name}</p>
-                    {(item.size || item.color) && (
-                      <p className="text-xs text-cheers-brown/50 mt-0.5">
-                        {[item.color, item.size].filter(Boolean).join(' · ')}
-                      </p>
+                    {formatVariants(item) && (
+                      <p className="text-xs text-cheers-brown/50 mt-0.5">{formatVariants(item)}</p>
                     )}
                     <p className="text-sm font-semibold text-cheers-brown mt-1">
                       RM {(item.price * item.quantity).toFixed(2)}
                     </p>
                     <div className="flex items-center gap-2 mt-2">
                       <div className="flex items-center border border-cheers-cream rounded-lg overflow-hidden">
-                        <button onClick={() => updateQuantity(item.productId, item.quantity - 1, item.size, item.color)}
+                        <button onClick={() => updateQuantity(item, item.quantity - 1)}
                           className="px-2.5 py-1 text-cheers-brown hover:bg-cheers-cream/50 transition-colors text-sm">−</button>
                         <span className="px-3 py-1 text-cheers-dark-brown text-sm min-w-[2rem] text-center">{item.quantity}</span>
-                        <button onClick={() => updateQuantity(item.productId, item.quantity + 1, item.size, item.color)}
+                        <button onClick={() => updateQuantity(item, item.quantity + 1)}
                           className="px-2.5 py-1 text-cheers-brown hover:bg-cheers-cream/50 transition-colors text-sm">+</button>
                       </div>
-                      <button onClick={() => removeFromCart(item.productId, item.size, item.color)}
+                      <button onClick={() => removeFromCart(item)}
                         className="text-xs text-red-400 hover:text-red-600 ml-auto">
                         {lang === 'zh' ? '删除' : 'Remove'}
                       </button>

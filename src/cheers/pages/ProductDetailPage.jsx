@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { getFirestore, doc, getDoc } from 'firebase/firestore'
 import app from '../../lib/firebase'
 import { optimizeUrl } from '../lib/cloudinary'
-import { effectivePrice, formatPriceDisplay, getModifier1Options, getModifier2Options, colorPriceRange } from '../lib/productPrice'
+import { effectivePriceFromMods, hasAdditiveModifiers, formatPriceDisplay, priceRange } from '../lib/productPrice'
 import { trackProductView } from '../lib/tracking'
 import { useLang } from '../contexts/LangContext'
 import { useCart } from '../contexts/CartContext'
@@ -22,10 +22,8 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
   const [qty, setQty] = useState(1)
-  const [selectedSize, setSelectedSize] = useState(null)
-  const [sizeError, setSizeError] = useState(false)
-  const [selectedColor, setSelectedColor] = useState(null)
-  const [colorError, setColorError] = useState(false)
+  const [selectedMods, setSelectedMods] = useState({})   // { groupName: optionLabel }
+  const [modErrors, setModErrors] = useState({})          // { groupName: true }
   const [added, setAdded] = useState(false)
   const [selectedImg, setSelectedImg] = useState(0)
   const [heartAnim, setHeartAnim] = useState(false)
@@ -110,40 +108,29 @@ export default function ProductDetailPage() {
   }
 
   const wishlisted = isWishlisted(product.id)
-  const mod1Options = getModifier1Options(product)
-  const hasColors = mod1Options.length > 0   // kept for handleAddToCart compat
-  const mod1Name = product.modifiers?.[0]?.name || (lang === 'zh' ? '颜色' : 'Color')
-  const mod2Name = product.modifiers?.[1]?.name || (lang === 'zh' ? '尺码' : 'Size')
+  const modifiers = product.modifiers || []
+  const isAdditive = hasAdditiveModifiers(product)
+  const missingGroups = modifiers.filter(mod => !selectedMods[mod.name])
 
-  // Compute available sizes/mod2 options for the selected mod1
-  const availableSizes = (() => {
-    if (hasColors && selectedColor) {
-      const mod2 = getModifier2Options(product, selectedColor.label)
-      if (mod2.length > 0) return mod2
-      // Backward compat: fall back to global sizes
-      return (product.sizes || []).map(s => ({ label: typeof s === 'string' ? s : s.label }))
+  function selectOption(groupName, opt) {
+    setSelectedMods(prev => ({ ...prev, [groupName]: opt.label }))
+    setModErrors(prev => ({ ...prev, [groupName]: false }))
+    // Switch image if this option has one
+    if (opt.imageUrl) {
+      const idx = imgs.indexOf(opt.imageUrl)
+      if (idx !== -1) setSelectedImg(idx)
     }
-    if (!hasColors) {
-      return (product.modifiers?.[1]?.options || (product.sizes || []).map(s => ({ label: typeof s === 'string' ? s : s.label })))
-    }
-    return []
-  })()
-  const hasSizes = availableSizes.length > 0
-
-  function handleSelectColor(color) {
-    setSelectedColor(color)
-    setColorError(false)
-    setSelectedSize(null)
-    setSizeError(false)
-    if (!color.imageUrl) return
-    const idx = imgs.indexOf(color.imageUrl)
-    if (idx !== -1) setSelectedImg(idx)
   }
 
   function handleAddToCart() {
-    if (hasColors && !selectedColor) { setColorError(true); return }
-    if (hasSizes && !selectedSize) { setSizeError(true); return }
-    addToCart({ ...product, name }, qty, selectedSize ?? undefined, selectedColor?.label ?? undefined)
+    if (missingGroups.length > 0) {
+      const errs = {}
+      missingGroups.forEach(m => { errs[m.name] = true })
+      setModErrors(errs)
+      return
+    }
+    const modsToStore = modifiers.length > 0 ? selectedMods : null
+    addToCart({ ...product, name }, qty, modsToStore)
     setAdded(true)
     setCartAnim(true)
     setTimeout(() => setAdded(false), 2000)
@@ -255,63 +242,51 @@ export default function ProductDetailPage() {
           <h1 className="font-serif text-2xl md:text-3xl text-cheers-dark-brown leading-tight mb-3">{name}</h1>
           <p className="text-3xl font-bold text-cheers-brown mb-4">
             {(() => {
-              if (!selectedColor) return formatPriceDisplay(product, t('common.rmPrefix'))
-              if (selectedSize) return `${t('common.rmPrefix')} ${effectivePrice(product, selectedColor.label, selectedSize).toFixed(2)}`
-              const { min, max, isRange } = colorPriceRange(product, selectedColor.label)
+              if (!modifiers.length) return formatPriceDisplay(product, t('common.rmPrefix'))
+              if (isAdditive && missingGroups.length === 0) {
+                return `${t('common.rmPrefix')} ${effectivePriceFromMods(product, selectedMods).toFixed(2)}`
+              }
+              const { min, max, isRange } = priceRange(product)
               return isRange
                 ? `${t('common.rmPrefix')} ${min.toFixed(2)} - ${max.toFixed(2)}`
                 : `${t('common.rmPrefix')} ${min.toFixed(2)}`
             })()}
           </p>
 
-          {hasColors && product.inStock && (
-            <div className="mb-4">
+          {product.inStock && modifiers.map(mod => (
+            <div key={mod.name} className="mb-4">
               <p className="label mb-2">
-                {lang === 'zh' ? `选择${mod1Name}` : `Select ${mod1Name}`}
-                {colorError && <span className="text-red-400 ml-2 text-xs">{lang === 'zh' ? `请选择${mod1Name}` : `Please select ${mod1Name}`}</span>}
+                {lang === 'zh' ? `选择${mod.name}` : `Select ${mod.name}`}
+                {modErrors[mod.name] && (
+                  <span className="text-red-400 ml-2 text-xs">
+                    {lang === 'zh' ? `请选择${mod.name}` : `Please select ${mod.name}`}
+                  </span>
+                )}
               </p>
               <div className="flex flex-wrap gap-2">
-                {mod1Options.map((opt, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => handleSelectColor(opt)}
-                    className={`min-w-[3.5rem] px-4 py-2 rounded-lg border font-medium transition-colors ${
-                      selectedColor?.label === opt.label
-                        ? 'border-cheers-brown bg-cheers-brown text-cheers-cream'
-                        : 'border-cheers-cream text-cheers-dark-brown hover:border-cheers-brown/50'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+                {mod.options.map((opt, i) => {
+                  const deltaStr = isAdditive && opt.priceDelta > 0 ? ` +RM${Number(opt.priceDelta).toFixed(2)}` : ''
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => selectOption(mod.name, opt)}
+                      className={`min-w-[3.5rem] px-4 py-2 rounded-lg border font-medium transition-colors ${
+                        selectedMods[mod.name] === opt.label
+                          ? 'border-cheers-brown bg-cheers-brown text-cheers-cream'
+                          : modErrors[mod.name]
+                          ? 'border-red-300 text-cheers-dark-brown hover:border-cheers-brown/50'
+                          : 'border-cheers-cream text-cheers-dark-brown hover:border-cheers-brown/50'
+                      }`}
+                    >
+                      {opt.label}{deltaStr}
+                    </button>
+                  )
+                })}
               </div>
             </div>
-          )}
+          ))}
 
-          {hasSizes && product.inStock && (
-            <div className="mb-4">
-              <p className="label mb-2">
-                {lang === 'zh' ? `选择${mod2Name}` : `Select ${mod2Name}`}
-                {sizeError && <span className="text-red-400 ml-2 text-xs">{lang === 'zh' ? `请选择${mod2Name}` : `Please select ${mod2Name}`}</span>}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {availableSizes.map(s => (
-                  <button
-                    key={s.label}
-                    onClick={() => { setSelectedSize(s.label); setSizeError(false) }}
-                    className={`min-w-[3.5rem] px-4 py-2 rounded-lg border font-medium transition-colors ${
-                      selectedSize === s.label
-                        ? 'border-cheers-brown bg-cheers-brown text-cheers-cream'
-                        : 'border-cheers-cream text-cheers-dark-brown hover:border-cheers-brown/50'
-                    }`}
-                  >
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           {product.inStock && (
             <div className="flex items-center gap-3 mb-4">

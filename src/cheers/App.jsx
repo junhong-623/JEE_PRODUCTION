@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigationType } from 'react-router-dom'
 import { getFirestore, doc, getDoc } from 'firebase/firestore'
 import app from '../lib/firebase'
 import { applyFonts } from './lib/fontConfig'
@@ -61,7 +61,8 @@ function PageLoader() {
 }
 
 function AppShell() {
-  const { pathname } = useLocation()
+  const { pathname, key } = useLocation()
+  const navType = useNavigationType()
   const isAdmin = pathname.startsWith('/admin')
   const isCart = pathname === '/cart'
 
@@ -74,6 +75,25 @@ function AppShell() {
       }
     }).catch(() => {})
   }, [])
+
+  // 实时保存每个历史条目的滚动位置（用 location.key 区分不同条目）
+  useEffect(() => {
+    const save = () => sessionStorage.setItem(`scroll:${key}`, String(window.scrollY))
+    window.addEventListener('scroll', save, { passive: true })
+    return () => window.removeEventListener('scroll', save)
+  }, [key])
+
+  // 前进/替换：滚到顶；后退：恢复上次位置（等内容渲染后再恢复，应对 Firestore 异步加载）
+  useEffect(() => {
+    if (navType === 'POP') {
+      const y = parseInt(sessionStorage.getItem(`scroll:${key}`) || '0', 10)
+      window.scrollTo(0, y)
+      const t = setTimeout(() => window.scrollTo(0, y), 300)
+      return () => clearTimeout(t)
+    } else {
+      window.scrollTo(0, 0)
+    }
+  }, [pathname, navType, key])
 
   return (
     <div className="page-content min-h-screen flex flex-col">
@@ -89,39 +109,35 @@ function AppShell() {
             <Route path="/tos" element={<PolicyPage type="tos" />} />
             <Route path="/privacy" element={<PolicyPage type="privacy" />} />
             <Route path="/refund" element={<PolicyPage type="refund" />} />
+            <Route path="/wishlist" element={<ProtectedRoute><WishlistPage /></ProtectedRoute>} />
+            <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />
+            <Route path="/payment/:orderId" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />
+            <Route path="/orders" element={<ProtectedRoute><OrdersPage /></ProtectedRoute>} />
+            <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-
-            <Route element={<ProtectedRoute />}>
-              <Route path="/checkout" element={<CheckoutPage />} />
-              <Route path="/payment/:orderId" element={<PaymentPage />} />
-              <Route path="/orders" element={<OrdersPage />} />
-              <Route path="/wishlist" element={<WishlistPage />} />
-              <Route path="/account" element={<AccountPage />} />
-            </Route>
-
             <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
-              <Route index element={<AdminDashboard />} />
+              <Route index element={<Navigate to="dashboard" replace />} />
+              <Route path="dashboard" element={<AdminDashboard />} />
+              <Route path="report" element={<AdminReport />} />
               <Route path="trips" element={<AdminTrips />} />
               <Route path="products" element={<AdminProducts />} />
               <Route path="products/new" element={<AdminProductEdit />} />
               <Route path="products/:id" element={<AdminProductEdit />} />
               <Route path="categories" element={<AdminCategories />} />
               <Route path="orders" element={<AdminOrders />} />
+              <Route path="orders/new" element={<AdminCreateOrder />} />
+              <Route path="coupons" element={<AdminCoupons />} />
               <Route path="settings/payment" element={<AdminPaymentSettings />} />
               <Route path="settings/delivery" element={<AdminDelivery />} />
               <Route path="settings/contact" element={<AdminContact />} />
               <Route path="settings/policies" element={<AdminPolicies />} />
               <Route path="settings/activity" element={<AdminActivity />} />
               <Route path="settings/home" element={<AdminHomeSettings />} />
-              <Route path="settings/fonts" element={<AdminFontSettings />} />
+              <Route path="settings/font" element={<AdminFontSettings />} />
               <Route path="admins" element={<AdminAdmins />} />
-              <Route path="orders/new" element={<AdminCreateOrder />} />
-              <Route path="coupons" element={<AdminCoupons />} />
-              <Route path="report" element={<AdminReport />} />
+              <Route path="guide" element={<AdminGuide />} />
             </Route>
-            <Route path="/admin/guide" element={<AdminRoute><AdminGuide /></AdminRoute>} />
-
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
@@ -129,23 +145,23 @@ function AppShell() {
       <Footer />
       {!isAdmin && <ActivityFeed />}
       {!isAdmin && !isCart && <CartDrawer />}
+      <SnowEffect />
     </div>
   )
 }
 
-export default function CheersApp() {
+export default function App() {
   return (
-    <LangProvider>
-      <AuthProvider>
-        <CartProvider>
-          <WishlistProvider>
-            <BrowserRouter future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
-              <SnowEffect />
+    <BrowserRouter>
+      <LangProvider>
+        <AuthProvider>
+          <CartProvider>
+            <WishlistProvider>
               <AppShell />
-            </BrowserRouter>
-          </WishlistProvider>
-        </CartProvider>
-      </AuthProvider>
-    </LangProvider>
+            </WishlistProvider>
+          </CartProvider>
+        </AuthProvider>
+      </LangProvider>
+    </BrowserRouter>
   )
 }

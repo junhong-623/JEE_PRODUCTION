@@ -289,7 +289,7 @@ function OrdersTab({ user, lang, t }) {
                         <div key={i} className="flex justify-between text-sm">
                           <span className="text-cheers-dark-brown/80 flex-1 mr-2">
                             {item.name}
-                            {(item.color || item.size) && ` (${[item.color, item.size].filter(Boolean).join(' · ')})`}
+                            {item.selectedMods ? ` (${Object.values(item.selectedMods).filter(Boolean).join(' · ')})` : (item.color || item.size) ? ` (${[item.color, item.size].filter(Boolean).join(' · ')})` : ''}
                             {' × '}{item.quantity}
                           </span>
                           <span>RM {(item.price * item.quantity).toFixed(2)}</span>
