@@ -3,7 +3,7 @@ import { getFirestore, doc, getDoc } from 'firebase/firestore'
 import app from '../../../lib/firebase'
 import { useLang } from '../../contexts/LangContext'
 import { useCart } from '../../contexts/CartContext'
-import { effectivePrice, getColorSizes } from '../../lib/productPrice'
+import { effectivePrice, getModifier1Options, getModifier2Options } from '../../lib/productPrice'
 
 const db = getFirestore(app)
 
@@ -35,13 +35,21 @@ export default function CartItemEditModal({ item, onClose }) {
     )
   }
 
-  const colors = product.colors || []
-  const colorObj = colors.find(c => c.label === selectedColor)
-  const rawSizes = selectedColor ? getColorSizes(product, selectedColor) : (product.sizes || []).map(s => ({ label: s }))
-  const hasSizes = rawSizes.length > 0
-  const price = effectivePrice(product, selectedColor, selectedSize)
+  const mod1Options = getModifier1Options(product)
+  const hasMod1 = mod1Options.length > 0
+  const mod1Name = product.modifiers?.[0]?.name || (lang === 'zh' ? '颜色' : 'Color')
+  const mod2Name = product.modifiers?.[1]?.name || (lang === 'zh' ? '尺寸' : 'Size')
 
+  const rawSizes = selectedColor
+    ? getModifier2Options(product, selectedColor)
+    : (product.modifiers?.[1]?.options || (product.sizes || []).map(s => ({ label: typeof s === 'string' ? s : s.label })))
+  const hasSizes = rawSizes.length > 0
+
+  const price = effectivePrice(product, selectedColor, selectedSize)
   const unchanged = selectedColor === item.color && selectedSize === item.size
+
+  // Title: dynamically describe what can be changed
+  const editTitle = [hasMod1 ? mod1Name : '', hasSizes ? mod2Name : ''].filter(Boolean).join(' / ')
 
   function handleConfirm() {
     if (unchanged) { onClose(); return }
@@ -56,37 +64,37 @@ export default function CartItemEditModal({ item, onClose }) {
       <div className="relative w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl p-5 animate-slide-up">
         <div className="flex items-center justify-between mb-4">
           <p className="font-medium text-cheers-dark-brown">
-            {lang === 'zh' ? '修改颜色 / 尺寸' : 'Change Color / Size'}
+            {lang === 'zh' ? `修改${editTitle}` : `Change ${editTitle}`}
           </p>
           <button onClick={onClose} className="text-cheers-brown/40 hover:text-cheers-brown text-xl leading-none">✕</button>
         </div>
 
         <p className="text-sm text-cheers-brown/60 truncate mb-4">{item.name}</p>
 
-        {/* Color picker */}
-        {colors.length > 0 && (
+        {/* Modifier 1 picker */}
+        {hasMod1 && (
           <div className="mb-4">
-            <p className="text-xs font-medium text-cheers-brown mb-2">{lang === 'zh' ? '颜色' : 'Color'}</p>
+            <p className="text-xs font-medium text-cheers-brown mb-2">{mod1Name}</p>
             <div className="flex flex-wrap gap-2">
-              {colors.map(c => (
-                <button key={c.label}
-                  onClick={() => { setSelectedColor(c.label); setSelectedSize(null) }}
+              {mod1Options.map(opt => (
+                <button key={opt.label}
+                  onClick={() => { setSelectedColor(opt.label); setSelectedSize(null) }}
                   className={`px-3 py-1 rounded-full text-sm border transition-colors ${
-                    selectedColor === c.label
+                    selectedColor === opt.label
                       ? 'bg-cheers-brown text-cheers-cream border-cheers-brown'
                       : 'border-cheers-brown/30 text-cheers-dark-brown hover:border-cheers-brown'
                   }`}>
-                  {c.label}
+                  {opt.label}
                 </button>
               ))}
             </div>
           </div>
         )}
 
-        {/* Size picker */}
+        {/* Modifier 2 picker */}
         {hasSizes && (
           <div className="mb-4">
-            <p className="text-xs font-medium text-cheers-brown mb-2">{lang === 'zh' ? '尺寸' : 'Size'}</p>
+            <p className="text-xs font-medium text-cheers-brown mb-2">{mod2Name}</p>
             <div className="flex flex-wrap gap-2">
               {rawSizes.map(s => (
                 <button key={s.label}

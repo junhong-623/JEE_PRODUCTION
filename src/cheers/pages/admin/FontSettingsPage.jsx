@@ -143,8 +143,8 @@ export default function FontSettingsPage() {
       {/* Live preview */}
       <div className="card p-5 space-y-2">
         <p className="text-xs text-cheers-brown/50 mb-3">实时预览 Live Preview</p>
-        <h3 className="text-2xl text-cheers-dark-brown">日本代购精品 Cheers.co</h3>
-        <p className="text-cheers-dark-brown/70">精选日本好物，直送到您手中。Shop Japan's finest, delivered to you.</p>
+        <h3 className="text-2xl text-cheers-dark-brown">国际精选代购 Cheers.co</h3>
+        <p className="text-cheers-dark-brown/70">精选全球好物，直送到您手中。Curated global products, delivered to you.</p>
         <p className="text-cheers-brown font-semibold">RM 99.90</p>
       </div>
     </div>

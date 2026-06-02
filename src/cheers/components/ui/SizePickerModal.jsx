@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useLang } from '../../contexts/LangContext'
 import { useCart } from '../../contexts/CartContext'
-import { effectivePrice, formatPriceDisplay, getColorSizes, colorPriceRange } from '../../lib/productPrice'
+import { effectivePrice, formatPriceDisplay, getModifier1Options, getModifier2Options, colorPriceRange } from '../../lib/productPrice'
 import { optimizeUrl } from '../../lib/cloudinary'
 
 export default function SizePickerModal({ product, onClose }) {
@@ -12,18 +12,23 @@ export default function SizePickerModal({ product, onClose }) {
   const [qty, setQty] = useState(1)
   const [added, setAdded] = useState(false)
 
-  const hasColors = product.colors?.length > 0
+  const mod1Options = getModifier1Options(product)   // colors or modifiers[0].options
+  const hasMod1 = mod1Options.length > 0
+  const mod1Name = product.modifiers?.[0]?.name || (lang === 'zh' ? '颜色' : 'Color')
+  const mod2Name = product.modifiers?.[1]?.name || (lang === 'zh' ? '尺码' : 'Size')
 
-  // Compute available sizes for the selected color
+  // Compute available sizes/mod2 options for the selected mod1
   const availableSizes = (() => {
-    if (hasColors && selectedColor) {
-      const colorSizes = getColorSizes(product, selectedColor.label)
-      if (colorSizes.length > 0) return colorSizes
+    if (hasMod1 && selectedColor) {
+      const mod2 = getModifier2Options(product, selectedColor.label)
+      if (mod2.length > 0) return mod2
       // Backward compat: fall back to global sizes (old products without color.sizes)
-      return (product.sizes || []).map(s => ({ label: s, price: null }))
+      return (product.sizes || []).map(s => ({ label: typeof s === 'string' ? s : s.label }))
     }
-    if (!hasColors) {
-      return (product.sizes || []).map(s => ({ label: s, price: null }))
+    if (!hasMod1) {
+      return (product.modifiers?.[1]?.options || product.sizes || []).map(s =>
+        typeof s === 'string' ? { label: s } : s
+      )
     }
     return []
   })()
@@ -38,17 +43,17 @@ export default function SizePickerModal({ product, onClose }) {
   const name = product.name?.[lang] || product.name?.zh || product.name || ''
 
   function handleAdd() {
-    if (hasColors && !selectedColor) return
+    if (hasMod1 && !selectedColor) return
     if (hasSizes && !selectedSize) return
     addToCart({ ...product, name }, qty, selectedSize ?? undefined, selectedColor?.label ?? undefined)
     setAdded(true)
     setTimeout(() => { onClose() }, 900)
   }
 
-  const missingVariant = (hasColors && !selectedColor)
-    ? (lang === 'zh' ? '请先选择颜色' : 'Select a color first')
+  const missingVariant = (hasMod1 && !selectedColor)
+    ? (lang === 'zh' ? `请先选择${mod1Name}` : `Select ${mod1Name} first`)
     : (hasSizes && !selectedSize)
-    ? (lang === 'zh' ? '请先选择尺码' : 'Select a size first')
+    ? (lang === 'zh' ? `请先选择${mod2Name}` : `Select ${mod2Name} first`)
     : null
 
   return (
@@ -88,24 +93,24 @@ export default function SizePickerModal({ product, onClose }) {
         </div>
 
         <div className="p-4 space-y-4">
-          {hasColors && (
+          {hasMod1 && (
             <div>
               <p className="text-xs font-medium text-cheers-brown mb-2">
-                {lang === 'zh' ? '选择颜色' : 'Select Color'}
+                {lang === 'zh' ? `选择${mod1Name}` : `Select ${mod1Name}`}
                 {!selectedColor && <span className="text-red-400 ml-1">*</span>}
               </p>
               <div className="flex flex-wrap gap-2">
-                {product.colors.map((color, i) => (
+                {mod1Options.map((opt, i) => (
                   <button
                     key={i}
-                    onClick={() => { setSelectedColor(color); setSelectedSize(null) }}
+                    onClick={() => { setSelectedColor(opt); setSelectedSize(null) }}
                     className={`min-w-[3rem] px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors ${
-                      selectedColor?.label === color.label
+                      selectedColor?.label === opt.label
                         ? 'border-cheers-brown bg-cheers-brown text-cheers-cream'
                         : 'border-cheers-cream text-cheers-dark-brown hover:border-cheers-brown/50'
                     }`}
                   >
-                    {color.label}
+                    {opt.label}
                   </button>
                 ))}
               </div>
@@ -115,7 +120,7 @@ export default function SizePickerModal({ product, onClose }) {
           {hasSizes && (
             <div>
               <p className="text-xs font-medium text-cheers-brown mb-2">
-                {lang === 'zh' ? '选择尺码' : 'Select Size'}
+                {lang === 'zh' ? `选择${mod2Name}` : `Select ${mod2Name}`}
                 {!selectedSize && <span className="text-red-400 ml-1">*</span>}
               </p>
               <div className="flex flex-wrap gap-2">

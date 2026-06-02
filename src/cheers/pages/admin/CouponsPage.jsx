@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/AuthContext'
 
 const db = getFirestore(app)
 
-const TAB = { personal: 'personal', promo: 'promo', settings: 'settings' }
+const TAB = { newuser: 'newuser', personal: 'personal', promo: 'promo', settings: 'settings' }
 
 function formatDiscount(discount, type) {
   if (type === 'free_shipping') return '免运费'
@@ -357,6 +357,189 @@ function PromoTab({ adminUid }) {
   )
 }
 
+// ── New User Coupon Tab ──────────────────────────────────────────────────────
+function NewUserCouponTab() {
+  const DEFAULT = {
+    enabled: false,
+    title: '新用户专属优惠',
+    discountType: 'fixed',
+    discount: '',
+    minSpend: '0',
+    expiresAfterDays: '',
+    maxRecipients: '',
+  }
+  const [form, setForm] = useState(DEFAULT)
+  const [stats, setStats] = useState({ granted: 0, used: 0 })
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  useEffect(() => {
+    async function load() {
+      const [settingsSnap, counterSnap, couponsSnap] = await Promise.all([
+        getDoc(doc(db, 'cheers_settings', 'global')),
+        getDoc(doc(db, 'cheers_counters', 'newUserCoupons')),
+        getDocs(collection(db, 'cheers_user_coupons')),
+      ])
+      const config = settingsSnap.data()?.newUserCoupon
+      if (config) {
+        setForm({
+          enabled: config.enabled ?? false,
+          title: config.title || '新用户专属优惠',
+          discountType: config.discountType || 'fixed',
+          discount: config.discount != null ? String(config.discount) : '',
+          minSpend: config.minSpend != null ? String(config.minSpend) : '0',
+          expiresAfterDays: config.expiresAfterDays != null ? String(config.expiresAfterDays) : '',
+          maxRecipients: config.maxRecipients != null ? String(config.maxRecipients) : '',
+        })
+      }
+      const granted = counterSnap.data()?.count || 0
+      let used = 0
+      couponsSnap.forEach(d => { if (d.data().isNewUserCoupon && d.data().used) used++ })
+      setStats({ granted, used })
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  function flash(t) { setMsg(t); setTimeout(() => setMsg(''), 3000) }
+
+  async function handleSave() {
+    if (form.enabled) {
+      if (form.discountType !== 'free_shipping' && (!form.discount || isNaN(Number(form.discount)) || Number(form.discount) <= 0)) {
+        flash('请输入有效的折扣金额'); return
+      }
+    }
+    setSaving(true)
+    const config = {
+      enabled: form.enabled,
+      title: form.title.trim() || '新用户专属优惠',
+      discountType: form.discountType,
+      discount: form.discountType !== 'free_shipping' ? (Number(form.discount) || 0) : 0,
+      minSpend: Number(form.minSpend) || 0,
+      expiresAfterDays: form.expiresAfterDays ? Number(form.expiresAfterDays) : null,
+      maxRecipients: form.maxRecipients ? Number(form.maxRecipients) : null,
+    }
+    await setDoc(doc(db, 'cheers_settings', 'global'), { newUserCoupon: config }, { merge: true })
+    setSaving(false)
+    flash('已保存 ✓')
+  }
+
+  function fmtDiscount() {
+    if (form.discountType === 'free_shipping') return '免运费'
+    if (!form.discount) return '—'
+    return form.discountType === 'fixed' ? `RM ${Number(form.discount).toFixed(2)} OFF` : `${form.discount}% OFF`
+  }
+
+  if (loading) return <div className="py-8 text-center text-cheers-brown/40">加载中…</div>
+
+  return (
+    <div className="space-y-5">
+      {msg && <div className="px-4 py-2 bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg">{msg}</div>}
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: '已发放', value: stats.granted, icon: '🎁' },
+          { label: '已使用', value: stats.used, icon: '✓' },
+          { label: '未使用', value: Math.max(0, stats.granted - stats.used), icon: '💤' },
+        ].map(s => (
+          <div key={s.label} className="card p-3 text-center">
+            <div className="text-xl mb-1">{s.icon}</div>
+            <div className="text-xl font-bold text-cheers-dark-brown">{s.value}</div>
+            <div className="text-xs text-cheers-brown/50">{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Settings */}
+      <div className="card p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-medium text-cheers-dark-brown">新用户注册优惠</h2>
+            <p className="text-xs text-cheers-brown/50 mt-0.5">启用后，每位新注册用户自动获得一张优惠券</p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" checked={form.enabled} onChange={e => setForm(f => ({ ...f, enabled: e.target.checked }))}
+              className="sr-only peer" />
+            <div className="w-11 h-6 bg-cheers-cream rounded-full peer peer-checked:bg-cheers-brown after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-5" />
+          </label>
+        </div>
+
+        <div className={form.enabled ? '' : 'opacity-40 pointer-events-none'}>
+          <div className="space-y-3">
+            <div>
+              <label className="label">优惠券名称（显示给顾客）</label>
+              <input className="input" value={form.title}
+                onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                placeholder="新用户专属优惠" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">折扣类型</label>
+                <select className="input" value={form.discountType}
+                  onChange={e => setForm(f => ({ ...f, discountType: e.target.value, discount: '' }))}>
+                  <option value="fixed">固定金额 (RM)</option>
+                  <option value="percentage">百分比 (%)</option>
+                  <option value="free_shipping">免运费</option>
+                </select>
+              </div>
+              {form.discountType !== 'free_shipping' && (
+                <div>
+                  <label className="label">{form.discountType === 'fixed' ? '折扣金额 (RM)' : '折扣 (%)'}</label>
+                  <input type="number" min="0.01" step="0.01"
+                    max={form.discountType === 'percentage' ? 100 : undefined}
+                    className="input" placeholder="例：10"
+                    value={form.discount}
+                    onChange={e => setForm(f => ({ ...f, discount: e.target.value }))} />
+                </div>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">最低消费 (RM，0 = 无限制)</label>
+                <input type="number" min="0" step="0.01" className="input"
+                  value={form.minSpend}
+                  onChange={e => setForm(f => ({ ...f, minSpend: e.target.value }))} />
+              </div>
+              <div>
+                <label className="label">有效天数（留空 = 永不过期）</label>
+                <input type="number" min="1" className="input" placeholder="如：30"
+                  value={form.expiresAfterDays}
+                  onChange={e => setForm(f => ({ ...f, expiresAfterDays: e.target.value }))} />
+              </div>
+            </div>
+
+            <div>
+              <label className="label">最多名额（留空 = 无限制）</label>
+              <input type="number" min="1" className="input" placeholder="如：100"
+                value={form.maxRecipients}
+                onChange={e => setForm(f => ({ ...f, maxRecipients: e.target.value }))} />
+            </div>
+
+            {/* Preview */}
+            {form.discount || form.discountType === 'free_shipping' ? (
+              <div className="bg-cheers-cream/40 rounded-xl p-3 text-sm text-cheers-brown">
+                <span className="font-medium text-cheers-dark-brown">预览：</span>{' '}
+                {form.title || '新用户专属优惠'} · <span className="font-bold">{fmtDiscount()}</span>
+                {Number(form.minSpend) > 0 && <span className="text-cheers-brown/60"> · 满 RM {Number(form.minSpend).toFixed(2)}</span>}
+                {form.expiresAfterDays && <span className="text-cheers-brown/60"> · 注册后 {form.expiresAfterDays} 天内有效</span>}
+                {form.maxRecipients && <span className="text-cheers-brown/60"> · 限 {form.maxRecipients} 人</span>}
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <button onClick={handleSave} disabled={saving} className="btn-primary py-2 px-6">
+          {saving ? '保存中…' : '保存设置'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── Recommend Settings Tab ───────────────────────────────────────────────────
 function SettingsTab() {
   const [categories, setCategories] = useState([])
@@ -448,9 +631,10 @@ export default function CouponsPage() {
 
       <div className="flex gap-1 mb-5 border-b border-cheers-cream">
         {[
-          { key: TAB.personal,  label: '个人优惠券' },
-          { key: TAB.promo,     label: '优惠码' },
-          { key: TAB.settings,  label: '推荐设置' },
+          { key: TAB.newuser,  label: '🎁 新用户优惠' },
+          { key: TAB.personal, label: '个人优惠券' },
+          { key: TAB.promo,    label: '优惠码' },
+          { key: TAB.settings, label: '推荐设置' },
         ].map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${tab === t.key ? 'border-cheers-brown text-cheers-brown' : 'border-transparent text-cheers-brown/50 hover:text-cheers-brown'}`}>
@@ -459,6 +643,7 @@ export default function CouponsPage() {
         ))}
       </div>
 
+      {tab === TAB.newuser   && <NewUserCouponTab />}
       {tab === TAB.personal  && <PersonalTab adminUid={user?.uid} />}
       {tab === TAB.promo     && <PromoTab    adminUid={user?.uid} />}
       {tab === TAB.settings  && <SettingsTab />}

@@ -203,7 +203,7 @@ export default function GuidePage() {
 
               <Step n={3}>进「商品管理」上架本次代购的商品（详见场景 C）。商品里要选对应的「行程」字段。</Step>
 
-              <Step n={4}>进「主页设置」 → 公告横幅 → 加一条「日本代购接单中，截单日 X 月 X 日」之类的提示。</Step>
+              <Step n={4}>进「主页设置」 → 公告横幅 → 加一条「国际代购接单中，截单日 X 月 X 日」之类的提示。</Step>
               <Shot name="settings-home-banner.png" caption="主页公告横幅设置" />
 
               <Step n={5}>到顾客视角的首页 <code>/</code> 检查一下：行程显示对了吗？公告显示对了吗？</Step>

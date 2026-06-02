@@ -16,25 +16,26 @@ export default function AdminProductsPage() {
   const { t } = useLang()
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
-  const [stats, setStats] = useState({}) // { productId: { views, loggedInViews } }
+  const [trips, setTrips] = useState([])
+  const [stats, setStats] = useState({})
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
-  const [activeTrip, setActiveTrip] = useState(null)
+  const [tripFilter, setTripFilter] = useState('all')
+  const [search, setSearch] = useState('')
   const [selected, setSelected] = useState(new Set())
   const [bulkLoading, setBulkLoading] = useState(false)
-  const [sortBy, setSortBy] = useState('default') // default | views
+  const [sortBy, setSortBy] = useState('default')
 
   async function load() {
-    const settingsSnap = await getDoc(doc(db, 'cheers_settings', 'global'))
-    const tripId = settingsSnap.data()?.activeTripId
-    setActiveTrip(tripId)
-    const [prodSnap, catSnap, statsSnap] = await Promise.all([
+    const [prodSnap, catSnap, tripsSnap, statsSnap] = await Promise.all([
       getDocs(collection(db, 'cheers_products')),
       getDocs(collection(db, 'cheers_categories')),
+      getDocs(collection(db, 'cheers_trips')),
       getDocs(collection(db, 'cheers_product_stats')),
     ])
     setProducts(prodSnap.docs.map(d => ({ id: d.id, ...d.data() })))
     setCategories(catSnap.docs.map(d => ({ id: d.id, ...d.data() })))
+    setTrips(tripsSnap.docs.map(d => ({ id: d.id, ...d.data() })))
     const statsMap = {}
     statsSnap.docs.forEach(d => { statsMap[d.id] = d.data() })
     setStats(statsMap)
@@ -68,15 +69,47 @@ export default function AdminProductsPage() {
     setBulkLoading(false)
   }
 
-  let filtered = filter === 'all' ? products : products.filter(p => getProdCatIds(p).includes(filter))
-  if (sortBy === 'views') {
+  // 旅程筛选后的可用分类
+  const visibleCats = tripFilter === 'all'
+    ? categories
+    : categories.filter(c => c.tripId === tripFilter)
+
+  // 过滤逻辑：旅程 → 分类 → 搜索
+  let filtered = products
+  if (tripFilter !== 'all') {
+    filtered = filtered.filter(p => p.tripId === tripFilter)
+  }
+  if (filter !== 'all') {
+    filtered = filtered.filter(p => getProdCatIds(p).includes(filter))
+  }
+  if (search.trim()) {
+    const q = search.trim().toLowerCase()
+    filtered = filtered.filter(p =>
+      p.name?.zh?.toLowerCase().includes(q) ||
+      p.name?.en?.toLowerCase().includes(q)
+    )
+  }
+
+  // 排序
+  if (sortBy === 'priceAsc') {
+    filtered = [...filtered].sort((a, b) => (a.price || 0) - (b.price || 0))
+  } else if (sortBy === 'priceDesc') {
+    filtered = [...filtered].sort((a, b) => (b.price || 0) - (a.price || 0))
+  } else if (sortBy === 'views') {
     filtered = [...filtered].sort((a, b) => (stats[b.id]?.views || 0) - (stats[a.id]?.views || 0))
   } else if (sortBy === 'adds') {
     filtered = [...filtered].sort((a, b) => (stats[b.id]?.addsToCart || 0) - (stats[a.id]?.addsToCart || 0))
   } else if (sortBy === 'purchases') {
     filtered = [...filtered].sort((a, b) => (stats[b.id]?.purchases || 0) - (stats[a.id]?.purchases || 0))
   }
-  const activeCats = categories.filter(c => c.tripId === activeTrip)
+
+  // 选了旅程但当前分类不在该旅程 → 重置分类
+  const filterInView = filter === 'all' || visibleCats.some(c => c.id === filter)
+  if (!filterInView && filter !== 'all') setFilter('all')
+
+  function getTripName(trip) {
+    return trip.name?.zh || trip.name?.en || trip.country?.zh || trip.country?.en || trip.id
+  }
 
   return (
     <div>
@@ -85,13 +118,44 @@ export default function AdminProductsPage() {
         <Link to="/admin/products/new" className="btn-primary">+ {t('admin.add')}</Link>
       </div>
 
-      {/* Category filter + select all */}
+      {/* 搜索栏 */}
+      <div className="mb-3">
+        <input
+          type="search"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="🔍 搜索商品名称…"
+          className="input w-full text-sm"
+        />
+      </div>
+
+      {/* 旅程筛选 */}
+      {trips.length > 0 && (
+        <div className="flex gap-2 flex-wrap mb-3 items-center">
+          <span className="text-xs text-cheers-brown/50">旅程：</span>
+          <button
+            onClick={() => { setTripFilter('all'); setFilter('all'); setSelected(new Set()) }}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${tripFilter === 'all' ? 'bg-cheers-dark-brown text-cheers-cream' : 'border border-cheers-brown/30 text-cheers-brown'}`}>
+            全部 ({products.length})
+          </button>
+          {trips.map(trip => (
+            <button key={trip.id}
+              onClick={() => { setTripFilter(trip.id); setFilter('all'); setSelected(new Set()) }}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${tripFilter === trip.id ? 'bg-cheers-dark-brown text-cheers-cream' : 'border border-cheers-brown/30 text-cheers-brown'}`}>
+              {trip.flag && <span className="mr-1">{trip.flag}</span>}
+              {getTripName(trip)} ({products.filter(p => p.tripId === trip.id).length})
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* 分类筛选 + 排序 */}
       <div className="flex gap-2 flex-wrap mb-4 items-center">
         <button onClick={() => { setFilter('all'); setSelected(new Set()) }}
           className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${filter === 'all' ? 'bg-cheers-brown text-cheers-cream' : 'border border-cheers-brown/30 text-cheers-brown'}`}>
-          全部 ({products.length})
+          全部分类 ({tripFilter === 'all' ? products.length : products.filter(p => p.tripId === tripFilter).length})
         </button>
-        {activeCats.map(cat => (
+        {visibleCats.map(cat => (
           <button key={cat.id} onClick={() => { setFilter(cat.id); setSelected(new Set()) }}
             className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${filter === cat.id ? 'bg-cheers-brown text-cheers-cream' : 'border border-cheers-brown/30 text-cheers-brown'}`}>
             {cat.name?.zh} ({products.filter(p => getProdCatIds(p).includes(cat.id)).length})
@@ -101,6 +165,8 @@ export default function AdminProductsPage() {
           <select value={sortBy} onChange={e => setSortBy(e.target.value)}
             className="text-xs px-2.5 py-1 rounded-full border border-cheers-brown/20 text-cheers-brown/70 hover:text-cheers-brown bg-transparent">
             <option value="default">默认排序</option>
+            <option value="priceAsc">💰 价格从低到高</option>
+            <option value="priceDesc">💰 价格从高到低</option>
             <option value="views">👀 按浏览</option>
             <option value="adds">🛒 按加购</option>
             <option value="purchases">📦 按下单</option>
@@ -117,13 +183,16 @@ export default function AdminProductsPage() {
       ) : (
         <div className="card overflow-hidden">
           {filtered.length === 0 ? (
-            <div className="py-10 text-center text-cheers-brown/40">暂无商品</div>
+            <div className="py-10 text-center text-cheers-brown/40">
+              {search ? `没有找到包含「${search}」的商品` : '暂无商品'}
+            </div>
           ) : (
             <div className="divide-y divide-cheers-cream">
               {filtered.map(product => {
                 const catNames = getProdCatIds(product)
                   .map(id => categories.find(c => c.id === id)?.name?.zh)
                   .filter(Boolean).join('、') || '未分类'
+                const tripName = trips.find(t => t.id === product.tripId)
                 return (
                   <div key={product.id} className="p-4 flex items-center gap-3">
                     <input type="checkbox" className="w-4 h-4 accent-cheers-brown flex-shrink-0 cursor-pointer"
@@ -136,9 +205,10 @@ export default function AdminProductsPage() {
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-cheers-dark-brown text-sm truncate">{product.name?.zh}</p>
                       <p className="text-xs text-cheers-brown/50 mt-0.5">
-                        RM {product.price?.toFixed(2)} · {catNames} ·
+                        RM {product.price?.toFixed(2)} · {catNames}
+                        {tripName && <span className="text-cheers-brown/30"> · {tripName.flag || ''}{tripName ? (tripName.name?.zh || tripName.country?.zh) : ''}</span>}
                         <span className={product.inStock ? ' text-green-600' : ' text-red-500'}>
-                          {product.inStock ? ' 接单中' : ' 已截单'}
+                          {product.inStock ? ' · 接单中' : ' · 已截单'}
                         </span>
                         {product.featured && <span className="text-cheers-brown"> · ⭐精选</span>}
                       </p>
