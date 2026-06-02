@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { getFirestore, doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore'
 import app from '../../lib/firebase'
 import { useAuth } from './AuthContext'
-import { effectivePrice } from '../lib/productPrice'
+import { effectivePrice, effectivePriceFromMods, hasAdditiveModifiers } from '../lib/productPrice'
 import { trackAddToCart } from '../lib/tracking'
 
 const db = getFirestore(app)
@@ -16,15 +16,19 @@ function saveLocal(items) {
   localStorage.setItem(LOCAL_KEY, JSON.stringify(items))
 }
 
+// 唯一标识一个购物车条目：新格式用 selectedMods，旧格式用 size+color
+function itemMatchKey(item) {
+  if (item.selectedMods != null) return JSON.stringify(item.selectedMods)
+  return `${item.size ?? ''}|${item.color ?? ''}`
+}
+
 export function CartProvider({ children }) {
   const { user } = useAuth()
   const [items, setItems] = useState([])
-  // useRef instead of useState so the flag is never stale inside the onSnapshot closure
   const mergedRef = useRef(false)
 
-  // Load from Firestore when logged in, merge local cart
   useEffect(() => {
-    mergedRef.current = false  // reset on every user change
+    mergedRef.current = false
 
     if (!user) {
       setItems(loadLocal())
@@ -38,11 +42,13 @@ export function CartProvider({ children }) {
       const remote = snap.exists() ? (snap.data().items || []) : []
 
       if (!mergedRef.current && localItems.length > 0) {
-        // Set flag BEFORE the async write to block any re-entrant snapshot
         mergedRef.current = true
         const merged = [...remote]
         for (const localItem of localItems) {
-          const idx = merged.findIndex(i => i.productId === localItem.productId && i.size === localItem.size && i.color === localItem.color)
+          const idx = merged.findIndex(i =>
+            i.productId === localItem.productId &&
+            itemMatchKey(i) === itemMatchKey(localItem)
+          )
           if (idx >= 0) {
             merged[idx] = { ...merged[idx], quantity: merged[idx].quantity + localItem.quantity }
           } else {
@@ -70,11 +76,23 @@ export function CartProvider({ children }) {
     }
   }, [user])
 
-  const addToCart = useCallback(async (product, quantity = 1, size = undefined, color = undefined) => {
-    // 埋点（fire-and-forget，价格用与下方 cart 相同的快照逻辑）
-    trackAddToCart(product, quantity, effectivePrice(product, color, size))
+  // selectedMods: { groupName: optionLabel } | null
+  // 旧接口 addToCart(product, qty, size, color) 已废弃，现统一用 selectedMods
+  const addToCart = useCallback(async (product, quantity = 1, selectedMods = null) => {
+    const price = hasAdditiveModifiers(product)
+      ? effectivePriceFromMods(product, selectedMods)
+      : effectivePrice(product,
+          selectedMods?.['color'] ?? Object.values(selectedMods || {})[0],
+          selectedMods?.['size'] ?? Object.values(selectedMods || {})[1])
+
+    trackAddToCart(product, quantity, price)
+
     setItems(prev => {
-      const idx = prev.findIndex(i => i.productId === product.id && i.size === size && i.color === color)
+      const key = JSON.stringify(selectedMods)
+      const idx = prev.findIndex(i =>
+        i.productId === product.id &&
+        itemMatchKey(i) === (selectedMods != null ? key : `|`)
+      )
       let next
       if (idx >= 0) {
         next = prev.map((i, index) =>
@@ -83,63 +101,62 @@ export function CartProvider({ children }) {
       } else {
         const rawName = product.name
         const name = typeof rawName === 'object' ? (rawName?.zh || rawName?.en || '') : (rawName || '')
-        // 颜色+尺寸价格快照：颜色+尺寸价格 > 颜色价格 > 主价格
-        const price = effectivePrice(product, color, size)
         next = [...prev, {
           productId: product.id,
           name,
           price,
           imageUrl: product.imageUrl || '',
           quantity,
-          ...(size !== undefined && { size }),
-          ...(color !== undefined && { color }),
+          ...(selectedMods != null ? { selectedMods } : {}),
         }]
       }
-      if (user) {
-        setDoc(doc(db, 'cheers_carts', user.uid), { items: next }, { merge: true })
-      } else {
-        saveLocal(next)
-      }
+      if (user) setDoc(doc(db, 'cheers_carts', user.uid), { items: next }, { merge: true })
+      else saveLocal(next)
       return next
     })
   }, [user])
 
-  const removeFromCart = useCallback(async (productId, size = undefined, color = undefined) => {
+  // 接受完整 item 对象，用 itemMatchKey 精确匹配
+  const removeFromCart = useCallback(async (item) => {
     setItems(prev => {
-      const next = prev.filter(i => !(i.productId === productId && i.size === size && i.color === color))
-      if (user) {
-        setDoc(doc(db, 'cheers_carts', user.uid), { items: next }, { merge: true })
-      } else {
-        saveLocal(next)
-      }
+      const next = prev.filter(i =>
+        !(i.productId === item.productId && itemMatchKey(i) === itemMatchKey(item))
+      )
+      if (user) setDoc(doc(db, 'cheers_carts', user.uid), { items: next }, { merge: true })
+      else saveLocal(next)
       return next
     })
   }, [user])
 
-  const updateQuantity = useCallback(async (productId, quantity, size = undefined, color = undefined) => {
-    if (quantity < 1) return removeFromCart(productId, size, color)
+  const updateQuantity = useCallback(async (item, quantity) => {
+    if (quantity < 1) return removeFromCart(item)
     setItems(prev => {
-      const next = prev.map(i => i.productId === productId && i.size === size && i.color === color ? { ...i, quantity } : i)
-      if (user) {
-        setDoc(doc(db, 'cheers_carts', user.uid), { items: next }, { merge: true })
-      } else {
-        saveLocal(next)
-      }
+      const next = prev.map(i =>
+        i.productId === item.productId && itemMatchKey(i) === itemMatchKey(item)
+          ? { ...i, quantity }
+          : i
+      )
+      if (user) setDoc(doc(db, 'cheers_carts', user.uid), { items: next }, { merge: true })
+      else saveLocal(next)
       return next
     })
   }, [user, removeFromCart])
 
-  const updateCartItemVariant = useCallback((productId, oldSize, oldColor, newSize, newColor, newPrice) => {
+  const updateCartItemVariant = useCallback((productId, oldSelectedMods, newSelectedMods, newPrice) => {
     setItems(prev => {
-      const original = prev.find(i => i.productId === productId && i.size === oldSize && i.color === oldColor)
+      const oldKey = JSON.stringify(oldSelectedMods)
+      const newKey = JSON.stringify(newSelectedMods)
+      const original = prev.find(i => i.productId === productId && itemMatchKey(i) === oldKey)
       if (!original) return prev
-      const withoutOld = prev.filter(i => !(i.productId === productId && i.size === oldSize && i.color === oldColor))
-      const existingIdx = withoutOld.findIndex(i => i.productId === productId && i.size === newSize && i.color === newColor)
+      const withoutOld = prev.filter(i => !(i.productId === productId && itemMatchKey(i) === oldKey))
+      const existingIdx = withoutOld.findIndex(i => i.productId === productId && itemMatchKey(i) === newKey)
       let next
       if (existingIdx >= 0) {
-        next = withoutOld.map((i, idx) => idx === existingIdx ? { ...i, quantity: i.quantity + original.quantity, price: newPrice } : i)
+        next = withoutOld.map((i, idx) =>
+          idx === existingIdx ? { ...i, quantity: i.quantity + original.quantity, price: newPrice } : i
+        )
       } else {
-        next = [...withoutOld, { ...original, size: newSize, color: newColor, price: newPrice }]
+        next = [...withoutOld, { ...original, selectedMods: newSelectedMods, price: newPrice }]
       }
       if (user) setDoc(doc(db, 'cheers_carts', user.uid), { items: next }, { merge: true })
       else saveLocal(next)
