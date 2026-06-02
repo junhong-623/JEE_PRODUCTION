@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { getFirestore, doc, getDoc } from 'firebase/firestore'
 import app from '../../lib/firebase'
 import { optimizeUrl } from '../lib/cloudinary'
-import { effectivePrice, formatPriceDisplay, getColorSizes, colorPriceRange } from '../lib/productPrice'
+import { effectivePrice, formatPriceDisplay, getModifier1Options, getModifier2Options, colorPriceRange } from '../lib/productPrice'
 import { trackProductView } from '../lib/tracking'
 import { useLang } from '../contexts/LangContext'
 import { useCart } from '../contexts/CartContext'
@@ -110,18 +110,21 @@ export default function ProductDetailPage() {
   }
 
   const wishlisted = isWishlisted(product.id)
-  const hasColors = product?.colors?.length > 0
+  const mod1Options = getModifier1Options(product)
+  const hasColors = mod1Options.length > 0   // kept for handleAddToCart compat
+  const mod1Name = product.modifiers?.[0]?.name || (lang === 'zh' ? '颜色' : 'Color')
+  const mod2Name = product.modifiers?.[1]?.name || (lang === 'zh' ? '尺码' : 'Size')
 
-  // Compute available sizes for the selected color
+  // Compute available sizes/mod2 options for the selected mod1
   const availableSizes = (() => {
     if (hasColors && selectedColor) {
-      const colorSizes = getColorSizes(product, selectedColor.label)
-      if (colorSizes.length > 0) return colorSizes
-      // Backward compat: fall back to global sizes (old products without color.sizes)
-      return (product.sizes || []).map(s => ({ label: s, price: null }))
+      const mod2 = getModifier2Options(product, selectedColor.label)
+      if (mod2.length > 0) return mod2
+      // Backward compat: fall back to global sizes
+      return (product.sizes || []).map(s => ({ label: typeof s === 'string' ? s : s.label }))
     }
     if (!hasColors) {
-      return (product.sizes || []).map(s => ({ label: s, price: null }))
+      return (product.modifiers?.[1]?.options || (product.sizes || []).map(s => ({ label: typeof s === 'string' ? s : s.label })))
     }
     return []
   })()
@@ -264,22 +267,22 @@ export default function ProductDetailPage() {
           {hasColors && product.inStock && (
             <div className="mb-4">
               <p className="label mb-2">
-                {lang === 'zh' ? '选择颜色' : 'Select Color'}
-                {colorError && <span className="text-red-400 ml-2 text-xs">{lang === 'zh' ? '请选择颜色' : 'Please select a color'}</span>}
+                {lang === 'zh' ? `选择${mod1Name}` : `Select ${mod1Name}`}
+                {colorError && <span className="text-red-400 ml-2 text-xs">{lang === 'zh' ? `请选择${mod1Name}` : `Please select ${mod1Name}`}</span>}
               </p>
               <div className="flex flex-wrap gap-2">
-                {product.colors.map((color, i) => (
+                {mod1Options.map((opt, i) => (
                   <button
                     key={i}
                     type="button"
-                    onClick={() => handleSelectColor(color)}
+                    onClick={() => handleSelectColor(opt)}
                     className={`min-w-[3.5rem] px-4 py-2 rounded-lg border font-medium transition-colors ${
-                      selectedColor?.label === color.label
+                      selectedColor?.label === opt.label
                         ? 'border-cheers-brown bg-cheers-brown text-cheers-cream'
                         : 'border-cheers-cream text-cheers-dark-brown hover:border-cheers-brown/50'
                     }`}
                   >
-                    {color.label}
+                    {opt.label}
                   </button>
                 ))}
               </div>
@@ -289,8 +292,8 @@ export default function ProductDetailPage() {
           {hasSizes && product.inStock && (
             <div className="mb-4">
               <p className="label mb-2">
-                {lang === 'zh' ? '选择尺码' : 'Select Size'}
-                {sizeError && <span className="text-red-400 ml-2 text-xs">{lang === 'zh' ? '请选择尺码' : 'Please select a size'}</span>}
+                {lang === 'zh' ? `选择${mod2Name}` : `Select ${mod2Name}`}
+                {sizeError && <span className="text-red-400 ml-2 text-xs">{lang === 'zh' ? `请选择${mod2Name}` : `Please select ${mod2Name}`}</span>}
               </p>
               <div className="flex flex-wrap gap-2">
                 {availableSizes.map(s => (

@@ -5,7 +5,7 @@ export default {
     logout: '退出登录', admin: '管理后台', home: '首页', account: '我的账号',
   },
   home: {
-    hero: { title: '日本代购', subtitle: '精选日本好物，专业代购服务直送到您手中', cta: '浏览商品' },
+    hero: { title: '国际精选代购', subtitle: '精选全球好物，专业代购服务直送到您手中', cta: '浏览商品' },
     featured: '精选商品', viewAll: '查看全部',
     deadline: '截单日期', active: '接单中', closed: '已截单',
     announcement: '公告',

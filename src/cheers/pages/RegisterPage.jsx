@@ -5,13 +5,14 @@ import { useAuth } from '../contexts/AuthContext'
 import CouponTicket from '../components/ui/CouponTicket'
 
 function CouponGrantModal({ grant, lang, onClose }) {
-  const fakeCoupon = {
+  // Build coupon display from actual grant data
+  const displayCoupon = {
     code: grant.code,
-    title: lang === 'zh' ? '早鸟专属优惠' : 'Early Bird Offer',
-    discount: 0.10,
-    discountType: 'percentage',
+    title: grant.title || (lang === 'zh' ? '新用户专属优惠' : 'Welcome Offer'),
+    discount: grant.discount,
+    discountType: grant.discountType,
+    minSpend: grant.minSpend,
     used: false,
-    rank: grant.rank,
   }
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
@@ -23,11 +24,9 @@ function CouponGrantModal({ grant, lang, onClose }) {
           {lang === 'zh' ? '恭喜获得优惠券！' : 'Congratulations!'}
         </h2>
         <p className="text-sm text-cheers-brown/60 mb-4">
-          {lang === 'zh'
-            ? `您是第 ${grant.rank} 位会员，专属优惠已发放`
-            : `You're member #${grant.rank} — here's your exclusive coupon`}
+          {lang === 'zh' ? '注册成功！专属优惠已发放到您的账号' : 'Welcome! Your exclusive coupon has been issued'}
         </p>
-        <CouponTicket coupon={fakeCoupon} lang={lang} />
+        <CouponTicket coupon={displayCoupon} lang={lang} />
         <p className="text-xs text-green-600 mt-3 mb-4">{lang === 'zh' ? '✓ 结账时自动提醒使用' : '✓ Auto-prompted at checkout'}</p>
         <button onClick={onClose} className="btn-primary w-full py-2.5">
           {lang === 'zh' ? '太棒了！' : 'Awesome!'}

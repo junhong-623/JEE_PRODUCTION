@@ -23,9 +23,9 @@ async function uploadImage(file) {
 
 export default function HomeSettingsPage() {
   const [hero, setHero] = useState({
-    iconType: 'emoji', emoji: '🗾', imageUrl: '',
-    title: { zh: '日本代购', en: 'Japan Proxy Shopping' },
-    subtitle: { zh: '精选日本好物，专业代购服务直送到您手中', en: 'Curated Japanese goods, delivered to your door' },
+    iconType: 'emoji', emoji: '🌏', imageUrl: '',
+    title: { zh: '国际精选代购', en: 'International Selections' },
+    subtitle: { zh: '精选全球好物，专业代购服务直送到您手中', en: 'Curated global products delivered to your door' },
     cta: { zh: '浏览商品', en: 'Shop Now' },
   })
   const [announcements, setAnnouncements] = useState([])

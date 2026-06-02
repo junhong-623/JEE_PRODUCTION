@@ -5,7 +5,7 @@ export default {
     logout: 'Logout', admin: 'Admin', home: 'Home', account: 'My Account',
   },
   home: {
-    hero: { title: 'Japan Proxy Shopping', subtitle: 'Curated Japanese goods delivered right to you', cta: 'Browse Products' },
+    hero: { title: 'International Selections', subtitle: 'Curated global products delivered to your door', cta: 'Browse Products' },
     featured: 'Featured Products', viewAll: 'View All',
     deadline: 'Order Deadline', active: 'Accepting Orders', closed: 'Closed',
     announcement: 'Announcement',
