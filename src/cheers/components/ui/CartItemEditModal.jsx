@@ -70,20 +70,17 @@ export default function CartItemEditModal({ item, onClose }) {
             <div key={mod.name}>
               <p className="text-xs font-medium text-cheers-brown mb-2">{mod.name}</p>
               <div className="flex flex-wrap gap-2">
-                {mod.options.map(opt => {
-                  const deltaStr = isAdditive && opt.priceDelta > 0 ? ` +RM${Number(opt.priceDelta).toFixed(2)}` : ''
-                  return (
-                    <button key={opt.label}
-                      onClick={() => setSelectedMods(prev => ({ ...prev, [mod.name]: opt.label }))}
-                      className={`px-3 py-1 rounded-full text-sm border transition-colors ${
-                        selectedMods[mod.name] === opt.label
-                          ? 'bg-cheers-brown text-cheers-cream border-cheers-brown'
-                          : 'border-cheers-brown/30 text-cheers-dark-brown hover:border-cheers-brown'
-                      }`}>
-                      {opt.label}{deltaStr}
-                    </button>
-                  )
-                })}
+                {mod.options.map(opt => (
+                  <button key={opt.label}
+                    onClick={() => setSelectedMods(prev => ({ ...prev, [mod.name]: opt.label }))}
+                    className={`px-3 py-1 rounded-full text-sm border transition-colors ${
+                      selectedMods[mod.name] === opt.label
+                        ? 'bg-cheers-brown text-cheers-cream border-cheers-brown'
+                        : 'border-cheers-brown/30 text-cheers-dark-brown hover:border-cheers-brown'
+                    }`}>
+                    {opt.label}
+                  </button>
+                ))}
               </div>
             </div>
           ))}

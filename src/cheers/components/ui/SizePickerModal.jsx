@@ -105,7 +105,6 @@ export default function SizePickerModal({ product, onClose }) {
               <div className="flex flex-wrap gap-2">
                 {mod.options.map((opt, i) => {
                   const isSelected = selectedMods[mod.name] === opt.label
-                  const deltaStr = isAdditive && opt.priceDelta > 0 ? ` +RM${Number(opt.priceDelta).toFixed(2)}` : ''
                   return (
                     <button
                       key={i}
@@ -118,7 +117,7 @@ export default function SizePickerModal({ product, onClose }) {
                           : 'border-cheers-cream text-cheers-dark-brown hover:border-cheers-brown/50'
                       }`}
                     >
-                      {opt.label}{deltaStr}
+                      {opt.label}
                     </button>
                   )
                 })}
