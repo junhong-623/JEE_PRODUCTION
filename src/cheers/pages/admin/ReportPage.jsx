@@ -70,16 +70,18 @@ export default function ReportPage() {
   const [tracking, setTracking] = useState({}) // { [key]: qty }
   const [productStats, setProductStats] = useState({})
   const [trafficVisits, setTrafficVisits] = useState({}) // { [source]: visitCount }
+  const [trips, setTrips] = useState([])
   const [loading, setLoading] = useState(true)
   const [procStatuses, setProcStatuses] = useState(new Set(['confirmed', 'purchasing']))
   const [delivStatuses, setDelivStatuses] = useState(new Set(['confirmed', 'purchasing', 'procured', 'shipped']))
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [ordersSnap, prodsSnap, catsSnap, trackSnap, statsSnap, visitsSnap] = await Promise.all([
+    const [ordersSnap, prodsSnap, catsSnap, tripsSnap, trackSnap, statsSnap, visitsSnap] = await Promise.all([
       getDocs(query(collection(db, 'cheers_orders'), orderBy('createdAt', 'desc'))),
       getDocs(collection(db, 'cheers_products')),
       getDocs(collection(db, 'cheers_categories')),
+      getDocs(collection(db, 'cheers_trips')),
       getDocs(collection(db, 'cheers_procurement_tracking')),
       getDocs(collection(db, 'cheers_product_stats')),
       getDoc(doc(db, 'cheers_traffic_stats', 'source_visits')),
@@ -87,6 +89,7 @@ export default function ReportPage() {
     setOrders(ordersSnap.docs.map(d => ({ id: d.id, ...d.data() })))
     setProducts(prodsSnap.docs.map(d => ({ id: d.id, ...d.data() })))
     setCategories(catsSnap.docs.map(d => ({ id: d.id, ...d.data() })))
+    setTrips(tripsSnap.docs.map(d => ({ id: d.id, ...d.data() })))
     const statsMap = {}
     statsSnap.docs.forEach(d => { statsMap[d.id] = d.data() })
     setProductStats(statsMap)
@@ -190,7 +193,7 @@ export default function ReportPage() {
       )}
       {tab === 'sales' && <SalesTab orders={orders} lang={lang} />}
       {tab === 'search' && <SearchTab lang={lang} />}
-      {tab === 'products' && <ProductsAnalyticsTab products={products} productStats={productStats} lang={lang} />}
+      {tab === 'products' && <ProductsAnalyticsTab products={products} productStats={productStats} trips={trips} lang={lang} />}
       {tab === 'traffic' && <TrafficSourceTab orders={orders} trafficVisits={trafficVisits} lang={lang} />}
     </div>
   )
@@ -288,9 +291,10 @@ function SearchTab() {
 }
 
 // ── 商品分析 Tab ──────────────────────────────────────────────────────────────
-function ProductsAnalyticsTab({ products, productStats, lang }) {
+function ProductsAnalyticsTab({ products, productStats, trips, lang }) {
   const [sortKey, setSortKey] = useState('views')
   const [chartMetric, setChartMetric] = useState('views')
+  const [tripFilter, setTripFilter] = useState('') // '' = all, else tripId
 
   function pName(p) {
     const n = p.name
@@ -299,7 +303,17 @@ function ProductsAnalyticsTab({ products, productStats, lang }) {
     return s.length > 14 ? s.slice(0, 13) + '…' : s
   }
 
-  const rows = products.map(p => {
+  function tName(trip) {
+    const n = trip.name
+    if (!n) return trip.id
+    return typeof n === 'object' ? (n.zh || n.en || trip.id) : n
+  }
+
+  const filteredProducts = tripFilter
+    ? products.filter(p => p.tripId === tripFilter)
+    : products
+
+  const rows = filteredProducts.map(p => {
     const s = productStats[p.id] || {}
     const views = s.views || 0
     const adds = s.addsToCart || 0
@@ -328,6 +342,25 @@ function ProductsAnalyticsTab({ products, productStats, lang }) {
 
   return (
     <div className="space-y-6">
+      {/* 旅程过滤器 */}
+      {trips.length > 0 && (
+        <div className="flex flex-wrap gap-2 items-center">
+          <span className="text-xs text-cheers-brown/50 mr-1">旅程：</span>
+          <button
+            onClick={() => setTripFilter('')}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${tripFilter === '' ? 'bg-cheers-brown text-cheers-cream' : 'border border-cheers-brown/30 text-cheers-brown hover:border-cheers-brown'}`}>
+            全部
+          </button>
+          {trips.map(trip => (
+            <button key={trip.id}
+              onClick={() => setTripFilter(trip.id)}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${tripFilter === trip.id ? 'bg-cheers-brown text-cheers-cream' : 'border border-cheers-brown/30 text-cheers-brown hover:border-cheers-brown'}`}>
+              {tName(trip)}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* 漏斗汇总 */}
       <div className="grid grid-cols-3 gap-3">
         {[
