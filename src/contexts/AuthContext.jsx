@@ -1,9 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { onAuthStateChanged } from 'firebase/auth'
-import { auth } from '../lib/firebase'
-import { isAdmin } from '../lib/auth'
 
 const AuthContext = createContext(null)
+const isAdmin = (user) => Boolean(user && user.uid === import.meta.env.VITE_ADMIN_UID)
 
 export function AuthProvider({ children }) {
   const [user, setUser]       = useState(null)
@@ -11,11 +9,27 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    return onAuthStateChanged(auth, (u) => {
-      setUser(u)
-      setAdmin(isAdmin(u))
-      setLoading(false)
-    })
+    let cancelled = false
+    let unsubscribe
+
+    import('../lib/authObserver')
+      .then(({ observeAuth }) => {
+        if (cancelled) return
+        unsubscribe = observeAuth((u) => {
+          setUser(u)
+          setAdmin(isAdmin(u))
+          setLoading(false)
+        })
+      })
+      .catch((error) => {
+        console.error('Auth initialization failed', error)
+        if (!cancelled) setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+      unsubscribe?.()
+    }
   }, [])
 
   return (

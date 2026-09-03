@@ -77,7 +77,7 @@ export default {
   },
   policy: { tos: '服务条款', privacy: '隐私政策', refund: '退款政策' },
   footer: {
-    rights: '版权所有', tagline: '精选日本好物，专业代购服务',
+    rights: '版权所有', tagline: '国际精选好物，专业代购服务',
     tos: '服务条款', privacy: '隐私政策', refund: '退款政策',
   },
   admin: {

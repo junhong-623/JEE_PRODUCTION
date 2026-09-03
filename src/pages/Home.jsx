@@ -1,15 +1,14 @@
-import { useEffect, useState, useMemo } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { useLang } from '../contexts/LangContext'
-import { useTheme } from '../contexts/ThemeContext'
 import { useAuth } from '../contexts/AuthContext'
-import { logout } from '../lib/auth'
-import { ENTRIES_UPDATED_EVENT, getVisibleEntriesByType } from '../lib/projects'
-import AuthModal from '../components/AuthModal'
-import AdminPanel from '../components/AdminPanel'
 import AnimatedJeepLogo from '../components/AnimatedJeepLogo'
 import '../styles/home-hud.css'
+
+const AuthModal = lazy(() => import('../components/AuthModal'))
+const AdminPanel = lazy(() => import('../components/AdminPanel'))
+const ENTRIES_UPDATED_EVENT = 'jeeprod:entries-updated'
 
 /* ── Static data ─────────────────────────────────────────────────────────── */
 
@@ -57,13 +56,14 @@ const MISSIONS = [
     descEn: 'All-in-one travel companion PWA — split bills, share photos, plan itineraries, stay connected with your crew.',
     descZh: '一款专为旅行设计的 PWA — 分账、相册、行程规划、旅伴留言，全在一个应用内搞定。',
     icon: '/matetrip/icons/icon-192.png',
-    href: '/matetrip/intro',
+    detailsHref: '/matetrip/intro',
+    appHref: 'https://matetrip.jeeprod.com',
     color: '#c8643c', glow: 'rgba(200,100,60,0.22)',
-    tele: [
-      { k: 'STATUS',   v: 'LIVE',              kind: 'green' },
-      { k: 'STACK',    v: 'react · firebase' },
-      { k: 'DEPLOYED', v: '2025-01-12' },
-      { k: 'USERS',    v: '~ 80 active' },
+    status: 'LIVE', kind: 'green',
+    facts: [
+      { k: 'TYPE', en: 'live travel PWA', zh: '已上线旅行 PWA' },
+      { k: 'BUILT FOR', en: 'group trips', zh: '多人旅行' },
+      { k: 'CORE', en: 'split · plan · share', zh: '分账 · 行程 · 相册' },
     ],
   },
   {
@@ -73,29 +73,47 @@ const MISSIONS = [
     descEn: 'Track every transaction, monitor cost-per-day for owned items, get smart daily reminders, work fully offline.',
     descZh: '离线优先的个人理财 PWA — 记录收支、追踪预算、日历热力图、物品日均成本，随时随地掌控财务。',
     icon: '/jsave/icons/icon-192.png',
-    href: '/jsave-intro',
+    detailsHref: '/jsave-intro',
+    appHref: 'https://jsave.jeeprod.com',
     color: '#10b981', glow: 'rgba(16,185,129,0.22)',
-    tele: [
-      { k: 'STATUS',   v: 'LIVE',             kind: 'green' },
-      { k: 'STACK',    v: 'react · idb · sw' },
-      { k: 'DEPLOYED', v: '2024-08-30' },
-      { k: 'CHANNEL',  v: 'jsave.jeeprod.com' },
+    status: 'LIVE', kind: 'green',
+    facts: [
+      { k: 'TYPE', en: 'offline-first PWA', zh: '离线优先 PWA' },
+      { k: 'BUILT FOR', en: 'personal finance', zh: '个人财务管理' },
+      { k: 'CORE', en: 'track · budget · remind', zh: '记账 · 预算 · 提醒' },
     ],
   },
   {
     id: 'M-003', name: 'JeeProd Mall',
-    tagEn: '// Curated PWA storefront.',
-    tagZh: '// 用心精选，从丛林到您手中。',
-    descEn: 'Handpicked products with WhatsApp ordering, real-time order tracking, and personal service.',
-    descZh: '精品电商 PWA — 精心挑选的好物、WhatsApp 下单、实时追踪订单，全程贴心服务。',
-    icon: null, letter: '🛍️',
-    href: '/mall/intro',
+    tagEn: '// A working commerce demo.',
+    tagZh: '// 可以完整操作的商店 Demo。',
+    descEn: 'A JeeProd demo storefront covering product discovery, cart, checkout, WhatsApp ordering, and order tracking.',
+    descZh: 'JeeProd 的电商流程 Demo，包含商品浏览、购物车、结账、WhatsApp 下单和订单追踪。',
+    icon: '/logo.svg',
+    detailsHref: '/mall/intro',
+    appHref: '/mall',
     color: '#3a9a3a', glow: 'rgba(58,154,58,0.22)',
-    tele: [
-      { k: 'STATUS',   v: 'BETA',              kind: 'amber' },
-      { k: 'STACK',    v: 'react · firestore' },
-      { k: 'DEPLOYED', v: '2025-09-04' },
-      { k: 'ORDERS',   v: '~ 24 / wk' },
+    status: 'DEMO', kind: 'amber',
+    facts: [
+      { k: 'TYPE', en: 'e-commerce demo', zh: '电商 Demo' },
+      { k: 'BUILT FOR', en: 'store workflows', zh: '商店流程展示' },
+      { k: 'CORE', en: 'browse · cart · order', zh: '浏览 · 购物车 · 下单' },
+    ],
+  },
+  {
+    id: 'M-004', name: 'Cheers.co',
+    tagEn: '// An independent store in production.',
+    tagZh: '// 独立运营、已经上线的商店。',
+    descEn: 'A separate production storefront with customer accounts, checkout, orders, coupons, analytics, and a full admin workflow.',
+    descZh: '独立上线的商店产品，包含会员、结账、订单、优惠券、数据报表和完整管理后台。',
+    icon: 'https://cheers-co.jeeprod.com/logo-300.png',
+    appHref: 'https://cheers-co.jeeprod.com',
+    color: '#b65642', glow: 'rgba(182,86,66,0.22)',
+    status: 'LIVE', kind: 'green',
+    facts: [
+      { k: 'TYPE', en: 'production store', zh: '已上线商店' },
+      { k: 'BUILT FOR', en: 'real operations', zh: '真实业务运营' },
+      { k: 'CORE', en: 'orders · admin · reports', zh: '订单 · 后台 · 报表' },
     ],
   },
 ]
@@ -115,23 +133,11 @@ const SOCIAL = [
   },
 ]
 
-const COMMITS = [
-  { ts: '04:18', repo: 'jeeprod/v2',  msg: 'feat(hero): orbital ring telemetry + cyan scan beam',   sha: 'a3f9c12' },
-  { ts: '04:02', repo: 'matetrip',    msg: 'fix(settlement): round-to-2dp before subtotal',         sha: 'bc14e09' },
-  { ts: '03:41', repo: 'jsave',       msg: 'feat(reminder): salary auto-log on first weekday',      sha: '70d22aa' },
-  { ts: '02:38', repo: 'mall',        msg: 'chore(orders): whatsapp template fallback if no phone', sha: '912f4d1' },
-  { ts: '23:12', repo: 'jeeprod/v2',  msg: 'wip(spec): bento grid for system specification',        sha: '4ee0a73' },
-  { ts: '22:55', repo: 'matetrip',    msg: 'docs(readme): bilingual setup notes + i18n keys',       sha: 'f00cb22' },
-  { ts: '21:09', repo: 'cheers',      msg: 'style: warm beige → sake red accent on tap-state',      sha: '8a2b16f' },
-  { ts: '19:48', repo: 'unserialize', msg: 'feat: paste-detect PHP O: format vs s: format',         sha: 'd9911cc' },
-]
-
-const HEAT_COLORS = [
-  'rgba(255,255,255,0.05)',
-  'rgba(232,68,10,0.25)',
-  'rgba(232,68,10,0.45)',
-  'rgba(232,68,10,0.70)',
-  'rgba(232,68,10,1.00)',
+const BUILD_NOTES = [
+  { project: 'MateTrip', en: 'Designed one shared flow for trip planning, expenses, photos, and companions.', zh: '把行程、分账、相册和旅伴协作收进同一套旅行流程。' },
+  { project: 'JSave', en: 'Built the finance workflow offline-first so daily use does not depend on a connection.', zh: '用离线优先方式做日常记账，没网络时也能继续使用。' },
+  { project: 'Cheers.co', en: 'Connected the customer storefront to orders, coupons, reporting, and store operations.', zh: '把顾客下单、优惠券、订单处理和后台报表串成完整商店系统。' },
+  { project: 'JeeProd Mall', en: 'Kept a public demo where the full store journey can be tested without touching production.', zh: '保留一套公开 Demo，让人可以直接走完商店流程，又不会碰到正式业务。' },
 ]
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
@@ -145,29 +151,10 @@ function useClock() {
   return now
 }
 
-function genHeatmap() {
-  const cells = []
-  for (let w = 0; w < 53; w++) {
-    for (let d = 0; d < 7; d++) {
-      const x = Math.sin(w * 0.71 + d * 1.13) * 0.5 + 0.5
-      const y = Math.sin(w * 0.27 + d * 0.51 + 7.0) * 0.5 + 0.5
-      const v = Math.pow((x + y) / 2, 1.8)
-      let level = 0
-      if (v > 0.18) level = 1
-      if (v > 0.36) level = 2
-      if (v > 0.55) level = 3
-      if (v > 0.78) level = 4
-      if (d === 0 || d === 6) level = Math.max(0, level - 1)
-      cells.push(level)
-    }
-  }
-  return cells
-}
-
 /* ── Boot sequence ───────────────────────────────────────────────────────── */
 
 function BootSequence() {
-  const [gone, setGone] = useState(false)
+  const [gone, setGone] = useState(() => sessionStorage.getItem('jeeprod:boot-seen') === 'true')
   const lines = [
     { t: 0,   text: '> initializing jeeprod.systems v2.0.0',  cls: 'busy' },
     { t: 120, text: '> mounting /telemetry',                   cls: 'ok' },
@@ -177,9 +164,13 @@ function BootSequence() {
     { t: 600, text: '> ready_',                               cls: 'ok' },
   ]
   useEffect(() => {
-    const timer = setTimeout(() => setGone(true), 900)
+    if (gone) return undefined
+    const timer = setTimeout(() => {
+      sessionStorage.setItem('jeeprod:boot-seen', 'true')
+      setGone(true)
+    }, 700)
     return () => clearTimeout(timer)
-  }, [])
+  }, [gone])
   return (
     <div className={`boot${gone ? ' gone' : ''}`}>
       {lines.map((l, i) => (
@@ -195,22 +186,16 @@ function BootSequence() {
 
 function Telemetry() {
   const now = useClock()
-  const utc = now.toISOString().split('T')[1].split('.')[0]
   const kl  = now.toLocaleTimeString('en-GB', { timeZone: 'Asia/Kuala_Lumpur', hour12: false })
-  const uptime = Math.floor((Date.now() - new Date('2017-06-12').getTime()) / 86400000).toLocaleString()
   return (
     <div className="hud-telemetry">
       <div className="tele-left">
         <span className="seg ok">●<b>SYS_OK</b></span>
-        <span className="seg">UTC<b>{utc}</b></span>
         <span className="seg">KL<b>{kl}</b></span>
-        <span className="seg">LAT<b>03.13°N</b></span>
-        <span className="seg">LON<b>101.69°E</b></span>
+        <span className="seg">ROLE<b>FULL-STACK ENGINEER</b></span>
       </div>
       <div className="tele-right">
-        <span className="seg">UPTIME<b>{uptime}d</b></span>
-        <span className="seg">BUILD<b>v2.0.dev</b></span>
-        <span className="seg ok">●<b>ONLINE</b></span>
+        <span className="seg ok">●<b>OPEN TO WORK &amp; PROJECTS</b></span>
       </div>
     </div>
   )
@@ -232,26 +217,18 @@ function HudNav() {
         <div className="hud-nav-inner">
           {/* Brand */}
           <a className="hud-brand" href="#top">
-            <span className="mark" style={{
-              background: 'linear-gradient(135deg, rgba(232,68,10,0.25), rgba(232,68,10,0.08))',
-              borderColor: 'rgba(232,68,10,0.35)',
-              fontFamily: 'var(--font-display)',
-              fontSize: 13,
-              color: 'var(--hud-acc)',
-              letterSpacing: 0,
-              fontStyle: 'italic',
-            }}>JP</span>
+            <span className="mark"><img src="/logo.svg" alt="" /></span>
             <span className="name">JeeProd</span>
             <span className="ver">// v2.0</span>
           </a>
 
           {/* Section links */}
           <div className="hud-nav-links">
-            <a href="#about"><span className="num">00</span>{lang === 'zh' ? '关于' : 'about'}</a>
-            <a href="#specs"><span className="num">01</span>{lang === 'zh' ? '技术' : 'specs'}</a>
-            <a href="#missions"><span className="num">02</span>{lang === 'zh' ? '项目' : 'missions'}</a>
-            <a href="#archive"><span className="num">03</span>{lang === 'zh' ? '作品集' : 'archive'}</a>
-            <a href="#transmissions"><span className="num">04</span>{lang === 'zh' ? '动态' : 'signal'}</a>
+            <a href="#missions"><span className="num">01</span>{lang === 'zh' ? '产品' : 'products'}</a>
+            <a href="#about"><span className="num">02</span>{lang === 'zh' ? '关于' : 'about'}</a>
+            <a href="#specs"><span className="num">03</span>{lang === 'zh' ? '技术' : 'specs'}</a>
+            <a href="#archive"><span className="num">04</span>{lang === 'zh' ? '作品集' : 'archive'}</a>
+            <a href="#transmissions"><span className="num">06</span>{lang === 'zh' ? '做法' : 'process'}</a>
           </div>
 
           {/* Controls */}
@@ -315,25 +292,33 @@ function HudNav() {
 
             {/* Auth */}
             {user ? (
-              <button onClick={logout} className="hud-btn-ghost" style={{ padding: '6px 14px', fontSize: 11 }}>
+              <button onClick={() => import('../lib/auth').then(({ logout }) => logout())} className="hud-btn-ghost" style={{ padding: '6px 14px', fontSize: 11 }}>
                 {t('logout')}
               </button>
             ) : (
-              <button onClick={() => setAuthOpen(true)} className="hud-btn" style={{ padding: '6px 16px', fontSize: 11 }}>
+              <button onClick={() => setAuthOpen(true)} className="hud-btn-ghost" style={{ padding: '6px 14px', fontSize: 11 }}>
                 {t('login')}
               </button>
             )}
 
             {/* Contact shortcut */}
-            <a className="hud-btn-ghost" href="#contact" style={{ padding: '6px 14px', fontSize: 11 }}>
+            <a className="hud-btn" href="#contact" style={{ padding: '6px 14px', fontSize: 11 }}>
               {lang === 'zh' ? '联系' : 'contact'}
             </a>
           </div>
         </div>
       </nav>
 
-      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
-      {admin && <AdminPanel open={adminOpen} onClose={() => setAdminOpen(false)} />}
+      {authOpen && (
+        <Suspense fallback={null}>
+          <AuthModal open onClose={() => setAuthOpen(false)} />
+        </Suspense>
+      )}
+      {admin && adminOpen && (
+        <Suspense fallback={null}>
+          <AdminPanel open onClose={() => setAdminOpen(false)} />
+        </Suspense>
+      )}
     </>
   )
 }
@@ -367,10 +352,8 @@ function SectionEyebrow({ id, num, name, title, sub, spec }) {
 
 function OrbitLogo() {
   const labels = [
-    { style: { top: '-8px',    left: '50%',   transform: 'translateX(-50%)' },  text: 'PWR 100%' },
-    { style: { top: '50%',     right: '-8px', transform: 'translateY(-50%)' },  text: 'LINK · 64ms' },
-    { style: { bottom: '-8px', left: '50%',   transform: 'translateX(-50%)' },  text: 'TZ +08:00' },
-    { style: { top: '50%',     left: '-8px',  transform: 'translateY(-50%)' },  text: 'BUILD v2.0' },
+    { style: { top: '-8px', left: '50%', transform: 'translateX(-50%)' }, text: 'BUILD · SHIP · IMPROVE' },
+    { style: { bottom: '-8px', left: '50%', transform: 'translateX(-50%)' }, text: 'KUALA LUMPUR · GMT+8' },
   ]
   return (
     <div className="hud-orbit">
@@ -391,7 +374,7 @@ function OrbitLogo() {
 
 /* ── Hero ────────────────────────────────────────────────────────────────── */
 
-function Hero({ portfolioCount, bookmarkCount }) {
+function Hero({ portfolioCount }) {
   const { lang } = useLang()
   return (
     <section className="hud-hero" id="top">
@@ -415,43 +398,43 @@ function Hero({ portfolioCount, bookmarkCount }) {
               </span>
               <span className="hud-status cyan">
                 <span className="dot" />
-                {lang === 'zh' ? '接受合作咨询' : 'ACCEPTING INTROS'}
+                {lang === 'zh' ? '求职 · 合作 · 产品' : 'WORK · PROJECTS · PRODUCTS'}
               </span>
             </div>
 
-            <p style={{ fontFamily: 'var(--font-mono)', fontSize: 13, lineHeight: 1.85, color: 'var(--hud-fg-2)', maxWidth: 520, margin: '4px 0 0' }}>
+            <p className="hud-hero-intro">
               {lang === 'zh'
-                ? <>横跨硬件与软件领域的软件工程师，专注于 Web 应用与全栈方案，来自 <span style={{ color: 'var(--hud-fg)' }}>马来西亚 · 吉隆坡</span>。专于离线 PWA、支付集成与管理后台开发。</>
-                : <>Software engineer building portable web apps and small useful tools from <span style={{ color: 'var(--hud-fg)' }}>Klang Valley, Malaysia</span>. Specializes in offline-first PWAs, payment integrations, and admin dashboards.</>
+                ? <>我是余俊宏，一名在<span>马来西亚</span>做产品的全栈软件工程师。我把想法从页面、后台一路做到上线，主要做 PWA、电商与订单流程、支付整合。</>
+                : <>I&apos;m Jun Hong Jee, a full-stack software engineer in <span>Malaysia</span>. I take ideas from interface and back office through to launch, with a focus on PWAs, commerce workflows, and payments.</>
               }
             </p>
 
             <div className="hud-hero-readouts">
               <div className="hud-readout">
-                <span className="k">CALLSIGN</span>
-                <span className="v">jun_hong_jee</span>
+                <span className="k">ROLE</span>
+                <span className="v">{lang === 'zh' ? '全栈软件工程师' : 'full-stack engineer'}</span>
               </div>
               <div className="hud-readout">
-                <span className="k">STACK</span>
-                <span className="v acc">react · vite · firebase</span>
+                <span className="k">BUILD</span>
+                <span className="v acc">PWA · commerce · admin</span>
               </div>
               <div className="hud-readout">
-                <span className="k">FOCUS</span>
-                <span className="v">{lang === 'zh' ? 'pwa · 支付 · 后台' : 'offline · pwa · payments'}</span>
+                <span className="k">DELIVERY</span>
+                <span className="v">{lang === 'zh' ? '从想法做到上线' : 'idea to production'}</span>
               </div>
               <div className="hud-readout">
-                <span className="k">STATUS</span>
-                <span className="v cyan">// shipping_v2.0</span>
+                <span className="k">BASE</span>
+                <span className="v cyan">Malaysia · remote</span>
               </div>
             </div>
 
             <div className="hud-hero-actions">
               <a className="hud-btn" href="#missions">
                 <span className="arrow">&gt;</span>
-                {lang === 'zh' ? 'deploy_introduction.sh' : 'deploy_introduction.sh'}
+                {lang === 'zh' ? '看重点产品' : 'view products'}
               </a>
-              <a className="hud-btn-ghost" href="#archive">
-                {lang === 'zh' ? '查看作品集' : 'view archive'} <span>↓</span>
+              <a className="hud-btn-ghost" href="#contact">
+                {lang === 'zh' ? '找我合作' : 'work with me'} <span>↓</span>
               </a>
             </div>
 
@@ -461,16 +444,16 @@ function Hero({ portfolioCount, bookmarkCount }) {
                 <span className="l">{lang === 'zh' ? '作品' : 'projects'}</span>
               </div>
               <div className="stat">
-                <span className="v">{bookmarkCount}<span className="small">/EA</span></span>
-                <span className="l">{lang === 'zh' ? '书签' : 'bookmarks'}</span>
+                <span className="v">03<span className="small">/LIVE</span></span>
+                <span className="l">{lang === 'zh' ? '上线产品' : 'live products'}</span>
               </div>
               <div className="stat">
-                <span className="v">04<span className="small">/PWA</span></span>
-                <span className="l">{lang === 'zh' ? '应用' : 'live apps'}</span>
+                <span className="v">01<span className="small">/DEMO</span></span>
+                <span className="l">{lang === 'zh' ? '可用演示' : 'working demo'}</span>
               </div>
               <div className="stat">
-                <span className="v">08<span className="small">/YR</span></span>
-                <span className="l">{lang === 'zh' ? '年资' : 'on duty'}</span>
+                <span className="v">08+<span className="small">/YR</span></span>
+                <span className="l">{lang === 'zh' ? '开发经验' : 'experience'}</span>
               </div>
             </div>
           </div>
@@ -488,8 +471,8 @@ function About() {
     <section className="hud-section">
       <div className="hud-container">
         <SectionEyebrow
-          id="about" num="01" name="// IDENT"
-          title={lang === 'zh' ? '操作员档案' : 'Operator profile'}
+          id="about" num="02" name="// ABOUT"
+          title={lang === 'zh' ? '关于我' : 'About me'}
           sub={lang === 'zh' ? '$ cat ./about.md' : '$ cat ./about.md'}
           spec={[
             { k: 'TYPE:', v: 'IDENT' },
@@ -503,15 +486,15 @@ function About() {
               <p className="lead">
                 <span className="prompt">&gt;</span>
                 {lang === 'zh'
-                  ? <>我是 <span className="cyan">余俊宏（Jun Hong Jee）</span>，来自马来西亚的软件工程师。专注于构建实用的 Web 应用 — 离线支持、PWA 与简洁界面。</>
-                  : <>I&apos;m <span className="cyan">Jun Hong Jee</span>, a software engineer based in Malaysia. I build small, useful web apps — focused on offline support, PWAs, and clean interfaces.</>
+                  ? <>我是 <span className="cyan">余俊宏（Jun Hong Jee）</span>。我喜欢做能真正拿来用的产品，不只把画面做完，也会把资料、权限、订单和后台一起顾好。</>
+                  : <>I&apos;m <span className="cyan">Jun Hong Jee</span>. I like building products people can actually use, including the data, permissions, orders, and admin work behind the interface.</>
                 }
               </p>
               <p>
                 <span className="prompt">&gt;</span>
                 {lang === 'zh'
-                  ? '工作分布大约是：60% React + Vite + Tailwind 前端，30% Firebase / Node 后端，10% 逆向支付接口与 PHP 序列化处理。'
-                  : '60% client UIs in React + Vite + Tailwind, 30% Firebase / Node back-ends, 10% reverse-engineering payment gateways and PHP serialised payloads.'
+                  ? '平时以 React、Vite、Firebase 和 Node 为主，也处理支付接口、PHP 系统整合与自动化工具。项目需要什么，我就把那一段补起来。'
+                  : 'I mostly work with React, Vite, Firebase, and Node, and I also handle payment integrations, PHP systems, and automation when the product needs them.'
                 }
               </p>
               <p>
@@ -553,7 +536,7 @@ function Skills() {
     <section className="hud-section">
       <div className="hud-container">
         <SectionEyebrow
-          num="02" name="// SYSTEM_SPEC"
+          num="03" name="// SYSTEM_SPEC"
           title={lang === 'zh' ? '系统规格' : 'System specification'}
           sub="$ neofetch --jeeprod --json | jq ."
           spec={[{ k: 'COMPONENTS:', v: '18' }, { k: 'STATUS:', v: 'NOMINAL' }]}
@@ -592,17 +575,17 @@ function Skills() {
 
 function MissionCard({ m }) {
   const { lang } = useLang()
+  const isExternal = (href) => href?.startsWith('http')
   return (
-    <a
-      href={m.href}
+    <article
       className="hud-frame hud-mission"
-      style={{ '--feat-color': m.color, '--feat-glow': m.glow, textDecoration: 'none' }}
+      style={{ '--feat-color': m.color, '--feat-glow': m.glow }}
     >
       <span className="br" />
       <div className="hud-mission-head">
         <span className="hud-mission-id">{m.id} · {m.name.toUpperCase()}</span>
-        <span className={`hud-status ${m.tele[0].kind || 'green'}`}>
-          <span className="dot" />{m.tele[0].v}
+        <span className={`hud-status ${m.kind || 'green'}`}>
+          <span className="dot" />{m.status}
         </span>
       </div>
       <div className="hud-mission-body">
@@ -620,19 +603,31 @@ function MissionCard({ m }) {
         </div>
         <p className="hud-mission-desc">{lang === 'zh' ? m.descZh : m.descEn}</p>
         <div className="hud-mission-tele">
-          {m.tele.slice(1).map(tele => (
-            <div key={tele.k} className="hud-readout">
-              <span className="k">{tele.k}</span>
-              <span className="v">{tele.v}</span>
+          {m.facts.map(fact => (
+            <div key={fact.k} className="hud-readout">
+              <span className="k">{fact.k}</span>
+              <span className="v">{lang === 'zh' ? fact.zh : fact.en}</span>
             </div>
           ))}
         </div>
       </div>
       <div className="hud-mission-foot">
-        <span>{lang === 'zh' ? '运行时间 · 99.94%' : 'uptime · 99.94%'}</span>
-        <span className="launch">&gt; {lang === 'zh' ? '启动任务' : 'launch_mission'} ↗</span>
+        {m.detailsHref && (
+          <a className="mission-link" href={m.detailsHref}>
+            {lang === 'zh' ? '了解项目' : 'project details'} <span>→</span>
+          </a>
+        )}
+        <a
+          className="mission-link launch"
+          href={m.appHref}
+          target={isExternal(m.appHref) ? '_blank' : undefined}
+          rel={isExternal(m.appHref) ? 'noopener noreferrer' : undefined}
+        >
+          {lang === 'zh' ? (m.status === 'DEMO' ? '打开 Demo' : '打开产品') : (m.status === 'DEMO' ? 'open demo' : 'open product')}
+          <span>{isExternal(m.appHref) ? '↗' : '→'}</span>
+        </a>
       </div>
-    </a>
+    </article>
   )
 }
 
@@ -642,10 +637,10 @@ function Missions() {
     <section className="hud-section" id="missions">
       <div className="hud-container">
         <SectionEyebrow
-          num="03" name="// LIVE_ROSTER"
-          title={lang === 'zh' ? '进行中的任务' : 'Active missions'}
-          sub="$ ls -lh /var/log/missions/ | head -3"
-          spec={[{ k: 'CHANNELS:', v: '3' }, { k: 'LIVE:', v: '2' }, { k: 'BETA:', v: '1' }]}
+          num="01" name="// PRODUCTS"
+          title={lang === 'zh' ? '真正做出来的产品' : 'Products I have shipped'}
+          sub={lang === 'zh' ? '上线产品、独立作品，以及一套可以直接操作的商店 Demo。' : 'Live products, independent work, and one store demo you can use end to end.'}
+          spec={[{ k: 'PRODUCTS:', v: '4' }, { k: 'LIVE:', v: '3' }, { k: 'DEMO:', v: '1' }]}
         />
         <div className="hud-missions">
           {MISSIONS.map(m => <MissionCard key={m.id} m={m} />)}
@@ -781,46 +776,24 @@ function Bookmarks({ entries, loading }) {
 
 function Transmissions() {
   const { lang } = useLang()
-  const cells = useMemo(() => genHeatmap(), [])
-  const total = cells.reduce((a, b) => a + b, 0)
   return (
     <section className="hud-section" id="transmissions">
       <div className="hud-container">
         <SectionEyebrow
-          num="06" name="// SIGNAL"
-          title={lang === 'zh' ? '近期动态' : 'Recent transmissions'}
-          sub="$ git log --all --pretty=oneline | head -8"
-          spec={[{ k: 'COMMITS/YR:', v: total }, { k: 'STREAK:', v: '14d' }]}
+          num="06" name="// BUILD_NOTES"
+          title={lang === 'zh' ? '我怎么把产品做完整' : 'How I build complete products'}
+          sub={lang === 'zh' ? '不放虚构数字，只说每个项目实际解决了什么。' : 'No vanity metrics, just the real product work behind each build.'}
+          spec={[{ k: 'NOTES:', v: BUILD_NOTES.length }, { k: 'SOURCE:', v: 'SELECTED' }]}
         />
         <div className="hud-frame hud-gh">
           <span className="br" />
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
-            <div className="hud-eyebrow">
-              <span className="bracket">[</span>
-              <span className="id">CONTRIBUTION_GRID_2026</span>
-              <span className="bracket">]</span>
-            </div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--hud-fg-3)', letterSpacing: '0.04em' }}>
-              <b style={{ color: 'var(--hud-fg)' }}>{total}</b> {lang === 'zh' ? '次提交 · 近 52 周' : 'commits · last 52 wks'}
-            </div>
-          </div>
-          <div className="hud-gh-grid">
-            {cells.map((lvl, i) => <div key={i} style={{ background: HEAT_COLORS[lvl] }} />)}
-          </div>
-          <div className="hud-gh-foot">
-            <span>{lang === 'zh' ? '一月' : 'jan'}</span>
-            <div className="hud-gh-legend">
-              {HEAT_COLORS.map((c, i) => <span key={i} style={{ background: c }} />)}
-            </div>
-            <span>{lang === 'zh' ? '十二月' : 'dec'}</span>
-          </div>
           <div className="hud-gh-feed">
-            {COMMITS.map((c, i) => (
-              <div className="row" key={i}>
-                <span className="ts">{c.ts}</span>
-                <span className="repo">{c.repo}</span>
-                <span className="msg">{c.msg}</span>
-                <span className="sha">{c.sha}</span>
+            {BUILD_NOTES.map((note, i) => (
+              <div className="row" key={note.project}>
+                <span className="ts">0{String(i + 1)}</span>
+                <span className="repo">{note.project}</span>
+                <span className="msg">{lang === 'zh' ? note.zh : note.en}</span>
+                <span className="sha">DONE</span>
               </div>
             ))}
           </div>
@@ -839,7 +812,7 @@ function ContactBlock() {
       <div className="hud-container">
         <SectionEyebrow
           num="07" name="// HANDSHAKE"
-          title={lang === 'zh' ? '建立连接' : 'Open a channel'}
+          title={lang === 'zh' ? '找我聊聊你的项目' : 'Tell me what you are building'}
           sub="$ echo $YOUR_MESSAGE | mail jeejunhong@gmail.com"
           spec={[{ k: 'INBOX:', v: lang === 'zh' ? '开放' : 'OPEN' }, { k: 'RESPONSE:', v: '< 24h' }]}
         />
@@ -850,8 +823,8 @@ function ContactBlock() {
               <p>
                 <span className="prompt">&gt;</span>
                 {lang === 'zh'
-                  ? '有想法想落地？需要整顿一个管理后台？在找能做双语 PWA 的合适搭档？'
-                  : "Have a build in mind? An admin panel that needs taming? A bilingual PWA you can't find the right partner for?"
+                  ? '你可以找我谈全职机会、freelance 项目，也可以聊 PWA、商店、管理后台或支付流程。把现在卡住的地方告诉我就好。'
+                  : 'Reach out about full-time roles, freelance projects, PWAs, storefronts, admin systems, or payment flows. Tell me what is stuck and we can start there.'
                 }
               </p>
               <p style={{ marginTop: 8 }}>
@@ -917,8 +890,8 @@ function HomeSEO({ lang }) {
     ? 'Jee Production — 马来西亚软件工程师 Jun Hong Jee'
     : 'Jee Production — Jun Hong Jee | Software Engineer Malaysia'
   const descStr = lang === 'zh'
-    ? '马来西亚软件工程师 Jun Hong Jee 的个人作品集，包括项目、工具与精选书签。'
-    : 'Portfolio of Jun Hong Jee — Software Engineer based in Malaysia. Projects, tools, and curated bookmarks.'
+    ? '马来西亚全栈软件工程师余俊宏的作品集，专注 PWA、电商与订单流程、支付整合和管理后台。'
+    : 'Portfolio of Jun Hong Jee, a full-stack software engineer in Malaysia building PWAs, commerce workflows, payment integrations, and admin systems.'
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
@@ -932,7 +905,7 @@ function HomeSEO({ lang }) {
       {
         '@type': 'WebSite', '@id': 'https://www.jeeprod.com/#website',
         url: 'https://www.jeeprod.com/', name: 'Jee Production',
-        description: 'Portfolio of Jun Hong Jee — Software Engineer based in Malaysia.',
+        description: 'Full-stack product portfolio of Jun Hong Jee, based in Malaysia.',
         author: { '@id': 'https://www.jeeprod.com/#person' },
       },
     ],
@@ -963,10 +936,11 @@ export default function Home() {
   useEffect(() => {
     const load = () => {
       setLoading(true)
-      Promise.all([
-        getVisibleEntriesByType('portfolio'),
-        getVisibleEntriesByType('bookmark'),
-      ])
+      return import('../lib/projects')
+        .then(({ getVisibleEntriesByType }) => Promise.all([
+          getVisibleEntriesByType('portfolio'),
+          getVisibleEntriesByType('bookmark'),
+        ]))
         .then(([portfolio, bookmarks]) => {
           setAllPortfolio(portfolio)
           setAllBookmarks(bookmarks)
@@ -991,11 +965,10 @@ export default function Home() {
       <Telemetry />
       <Hero
         portfolioCount={loading ? '…' : portfolioEntries.length}
-        bookmarkCount={loading ? '…' : bookmarkEntries.length}
       />
+      <Missions />
       <About />
       <Skills />
-      <Missions />
       <Archive entries={portfolioEntries} loading={loading} />
       <Bookmarks entries={bookmarkEntries} loading={loading} />
       <Transmissions />

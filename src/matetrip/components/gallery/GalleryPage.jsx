@@ -435,7 +435,7 @@ export default function GalleryPage({ toast, readOnly }) {
                 <label className="form-label"># Tags</label>
                 <input className="form-input" value={photoForm.tags}
                   onChange={e => setPhotoForm(f => ({ ...f, tags: e.target.value }))}
-                  placeholder={tr.tagPlaceholder || "beach, food, night"} />
+                  placeholder={tr.galleryTagPlaceholder || "beach, food, night"} />
                 {allTagsList.length > 0 && (
                   <div className="tag-suggestions">
                     {allTagsList.map(tag => {

@@ -21,6 +21,18 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: { index: resolve(__dirname, 'jsave.html') },
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined
+          if (id.includes('@firebase') || id.includes('/firebase/')) return 'firebase-vendor'
+          if (
+            id.includes('/react/') ||
+            id.includes('/react-dom/') ||
+            id.includes('/scheduler/')
+          ) return 'react-vendor'
+          return undefined
+        },
+      },
     },
   },
   server: {

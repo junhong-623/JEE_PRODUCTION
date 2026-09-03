@@ -306,7 +306,7 @@ export default function TransactionForm({ initial, onClose }) {
                 value={amount} onChange={e => setAmount(e.target.value)} required
                 style={{
                   background: 'transparent', border: 'none', outline: 'none',
-                  fontFamily: 'var(--font-display)', fontSize: 44, letterSpacing: -2, color: '#f1f5f9',
+                  fontFamily: 'var(--font-display)', fontSize: 44, letterSpacing: 0,
                   width: '100%', textAlign: 'center', appearance: 'none', WebkitAppearance: 'none',
                   color: type === 'income' ? '#10b981' : type === 'expense' ? '#f87171' : '#f1f5f9',
                 }}

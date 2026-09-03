@@ -62,6 +62,12 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
+            if (id.includes('@firebase/auth') || id.includes('/firebase/auth')) return 'firebase-auth'
+            if (
+              id.includes('@firebase/analytics') ||
+              id.includes('@firebase/installations') ||
+              id.includes('/firebase/analytics')
+            ) return 'firebase-analytics'
             if (id.includes('firebase')) return 'firebase'
             if (
               id.includes('react-dom') ||
