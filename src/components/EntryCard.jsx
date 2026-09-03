@@ -8,7 +8,14 @@ export default function EntryCard({ entry, index }) {
   const description = lang === 'zh' && entry.descriptionZh ? entry.descriptionZh : entry.description
   const typePath = entry.type === 'bookmark' ? 'bookmarks' : 'portfolio'
 
-  const openEntry = () => navigate(entry.internalPath || `/${typePath}/${entry.slug}`)
+  const opensDirectly = Boolean(entry.externalDirect && entry.url)
+  const openEntry = () => {
+    if (opensDirectly) {
+      window.location.assign(entry.url)
+      return
+    }
+    navigate(entry.internalPath || `/${typePath}/${entry.slug}`)
+  }
 
   return (
     <article
@@ -46,7 +53,7 @@ export default function EntryCard({ entry, index }) {
       </p>
 
       <div className="mt-6 flex items-center justify-between border-t border-ink/8 pt-4 font-mono text-xs uppercase tracking-[0.2em] text-ink/38 dark:border-paper/8 dark:text-paper/38">
-        <span>{entry.internalPath ? t('openApp') : t('openLink')}</span>
+        <span>{entry.internalPath && !opensDirectly ? t('openApp') : t('openLink')}</span>
         <span className="transition-transform group-hover:translate-x-1">+</span>
       </div>
     </article>

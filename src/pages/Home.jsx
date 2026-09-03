@@ -658,7 +658,14 @@ function HudEntryCard({ entry, index }) {
   const title = lang === 'zh' && entry.titleZh ? entry.titleZh : entry.title
   const description = lang === 'zh' && entry.descriptionZh ? entry.descriptionZh : entry.description
   const typePath = entry.type === 'bookmark' ? 'bookmarks' : 'portfolio'
-  const openEntry = () => navigate(entry.internalPath || `/${typePath}/${entry.slug}`)
+  const opensDirectly = Boolean(entry.externalDirect && entry.url)
+  const openEntry = () => {
+    if (opensDirectly) {
+      window.location.assign(entry.url)
+      return
+    }
+    navigate(entry.internalPath || `/${typePath}/${entry.slug}`)
+  }
 
   return (
     <article
@@ -688,7 +695,7 @@ function HudEntryCard({ entry, index }) {
       <p className="hud-archive-desc">{description || t('entryFallback')}</p>
       <div className="hud-archive-foot">
         <span className="o">{entry.type === 'bookmark' ? t('bookmarks') : t('portfolio')}</span>
-        <span className="a">&gt; {entry.internalPath ? t('openApp') : t('openLink')}</span>
+        <span className="a">&gt; {entry.internalPath && !opensDirectly ? t('openApp') : t('openLink')}</span>
       </div>
     </article>
   )

@@ -100,8 +100,9 @@ export const manualPortfolioEntries = [
     descriptionZh: '希望公会主播招募平台。',
     visible: true,
     order: -105,
-    iconUrl: '',
-    internalPath: '/h-agency',
+    url: 'https://agency.jeeprod.com/',
+    iconUrl: 'https://agency.jeeprod.com/hagency/logo.jpg',
+    externalDirect: true,
   },
   {
     id: 'portfolio__flowchart',
