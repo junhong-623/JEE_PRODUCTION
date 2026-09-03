@@ -128,7 +128,6 @@ export function DecisionNode({ data, selected }) {
       <div style={{
         position: 'absolute', inset: 0, display: 'flex',
         alignItems: 'center', justifyContent: 'center',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
         pointerEvents: 'none',
       }}>
         <span style={{ ...circleLabel, color: '#713f12', fontSize: 12, padding: '0 14px' }}>

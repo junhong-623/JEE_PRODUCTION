@@ -77,7 +77,7 @@ export default {
   },
   policy: { tos: 'Terms of Service', privacy: 'Privacy Policy', refund: 'Refund Policy' },
   footer: {
-    rights: 'All rights reserved', tagline: 'Curated Japanese goods, professional proxy service',
+    rights: 'All rights reserved', tagline: 'Curated international goods, professional proxy service',
     tos: 'Terms', privacy: 'Privacy', refund: 'Refund',
   },
   admin: {

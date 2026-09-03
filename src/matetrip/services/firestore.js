@@ -145,8 +145,6 @@ export const deleteMessage = (tripId, messageId) =>
 
 // ─── Trip sharing ──────────────────────────────────────────────────────────────
 export const getTripByJoinCode = async (joinCode) => {
-  const { collection, query, where, getDocs } = await import("firebase/firestore");
-  const { db } = await import("./firebase");
   const q = query(collection(db, "trips"), where("joinCode", "==", joinCode.toUpperCase().trim()));
   const snap = await getDocs(q);
   if (snap.empty) return null;

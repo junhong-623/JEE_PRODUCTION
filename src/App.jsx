@@ -46,7 +46,7 @@ export default function App() {
     const favicon = document.querySelector('#app-favicon')
     const isMatetrip = location.pathname.startsWith('/matetrip') && !location.pathname.startsWith('/matetrip-admin')
     const isMall = location.pathname.startsWith('/mall') && !location.pathname.startsWith('/mall/admin')
-    const isJSave = location.pathname.startsWith('/jsave')
+    const isJSave = location.pathname === '/jsave' || location.pathname.startsWith('/jsave/')
 
     const manifest = ensureHeadTag('link[data-app-manifest]', () => {
       const link = document.createElement('link')
@@ -145,14 +145,6 @@ export default function App() {
     document.title = cfg.title
   }, [location.pathname])
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center aurora-bg">
-        <img src="/logo.svg" alt="Loading" className="w-16 animate-pulse" />
-      </div>
-    )
-  }
-
   return (
     <Suspense fallback={
       <div className="flex min-h-screen items-center justify-center aurora-bg">
@@ -167,11 +159,11 @@ export default function App() {
         <Route path="/unserialize" element={<UnserializeTool />} />
         <Route path="/portfolio/:slug" element={<Redirect type="portfolio" />} />
         <Route path="/bookmarks/:slug" element={<Redirect type="bookmark" />} />
-        <Route path="/matetrip-admin/*" element={admin ? <MatetripAdminPage /> : <Navigate to="/" replace />} />
+        <Route path="/matetrip-admin/*" element={loading ? null : admin ? <MatetripAdminPage /> : <Navigate to="/" replace />} />
         <Route path="/h-agency" element={<HAgencyPage />} />
-        <Route path="/h-agency/admin" element={admin ? <HAgencyAdminPage /> : <Navigate to="/" replace />} />
+        <Route path="/h-agency/admin" element={loading ? null : admin ? <HAgencyAdminPage /> : <Navigate to="/" replace />} />
         <Route path="/lucky-calc" element={<LuckyCalc />} />
-        <Route path="/mall/admin/*" element={admin ? <MallAdminPage /> : <Navigate to="/" replace />} />
+        <Route path="/mall/admin/*" element={loading ? null : admin ? <MallAdminPage /> : <Navigate to="/" replace />} />
         <Route path="/mall/*" element={<MallPage />} />
         <Route path="/flowchart/*" element={<FlowchartPage />} />
         <Route path="/jsave-intro" element={<JSaveIntroPage />} />

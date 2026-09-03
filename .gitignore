@@ -2,7 +2,11 @@ node_modules
 dist
 dist-jsave
 dist-matetrip
+dist-cheers/
 .env
 .env.local
 .DS_Store
-.claude/settings.local.json
+.firebase/
+.claude/
+.codex-review/
+scripts/ship.ps1

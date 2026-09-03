@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { collection, doc, getDocs, getDoc } from "firebase/firestore";
+import { arrayRemove, arrayUnion, collection, doc, getDocs, getDoc, updateDoc } from "firebase/firestore";
 import { MATETRIP_BASE } from "../../utils/basePath";
 import { db } from "../../services/firebase";
 import { useTrip } from "../../contexts/TripContext";
@@ -84,8 +84,7 @@ export default function TripsPage({ toast, onNavigate }) {
     if (!confirm(`Remove this member from the trip?`)) return;
     setKicking(uid);
     try {
-      const { updateDoc, doc: firestoreDoc, arrayRemove } = await import("firebase/firestore");
-      await updateDoc(firestoreDoc(db, "trips", trip.id), {
+      await updateDoc(doc(db, "trips", trip.id), {
         memberIds: arrayRemove(uid),
       });
       setMemberProfiles(prev => prev.filter(p => p.uid !== uid));
@@ -98,12 +97,11 @@ export default function TripsPage({ toast, onNavigate }) {
   const handleTransferOwner = async (trip, newOwnerUid, newOwnerName) => {
     if (!confirm(`将房主权限转让给 ${newOwnerName}？转让后你将变为普通成员。`)) return;
     try {
-      const { updateDoc, doc: firestoreDoc, arrayRemove, arrayUnion } = await import("firebase/firestore");
-      await updateDoc(firestoreDoc(db, "trips", trip.id), {
+      await updateDoc(doc(db, "trips", trip.id), {
         createdBy: newOwnerUid,
         memberIds: arrayRemove(newOwnerUid), // remove new owner from members first
       });
-      await updateDoc(firestoreDoc(db, "trips", trip.id), {
+      await updateDoc(doc(db, "trips", trip.id), {
         memberIds: arrayUnion(user.uid),     // add old owner as member
       });
       // Update local state

@@ -2,7 +2,6 @@ import { createContext, useContext, useState } from "react";
 
 const zh = {
   // Nav
-  photos:       "照片",
   overview:     "概览",
   dashboard:    "仪表盘",
   data:         "数据",
