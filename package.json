@@ -16,7 +16,10 @@
     "preview:jsave": "vite preview --config vite.jsave.config.js --outDir dist-jsave",
     "dev:cheers": "vite --config vite.cheers.config.js",
     "build:cheers": "node scripts/prepare-cheers.mjs && vite build --config vite.cheers.config.js",
-    "preview:cheers": "vite preview --config vite.cheers.config.js --outDir dist-cheers"
+    "preview:cheers": "vite preview --config vite.cheers.config.js --outDir dist-cheers",
+    "dev:hagency": "node scripts/prepare-hagency.mjs && vite --config vite.hagency.config.js",
+    "build:hagency": "node scripts/prepare-hagency.mjs && vite build --config vite.hagency.config.js && node scripts/finalize-hagency.mjs",
+    "preview:hagency": "vite preview --config vite.hagency.config.js --outDir dist-hagency"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",

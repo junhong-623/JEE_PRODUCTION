@@ -4,6 +4,7 @@ const { defineSecret } = require('firebase-functions/params')
 const { v2: cloudinary } = require('cloudinary')
 const admin = require('firebase-admin')
 const webpush = require('web-push')
+const crypto = require('crypto')
 
 admin.initializeApp()
 
@@ -17,6 +18,100 @@ const ADMIN_UIDS = [
   'QVLyCaNT5FgDDxXA95ZpHAiSCvy2',
   'IhcEvknXK1OQ24PdA3UmwnyxzSq1',
 ]
+
+const HAGENCY_EXPERIENCE = new Set(['无经验', '1-3个月', '3-12个月', '1年以上'])
+const HAGENCY_SPECIALIZATION = new Set(['唱歌', '跳舞', '聊天互动', '才艺表演', '其他'])
+
+function cleanHAgencyText(value, maxLength, required = false) {
+  if (value == null) value = ''
+  if (typeof value !== 'string') throw new HttpsError('invalid-argument', 'Invalid application field.')
+  const cleaned = value.trim().replace(/\u0000/g, '')
+  if (required && !cleaned) throw new HttpsError('invalid-argument', 'Please complete all required fields.')
+  if (cleaned.length > maxLength) throw new HttpsError('invalid-argument', 'An application field is too long.')
+  return cleaned
+}
+
+/**
+ * Callable: submitHAgencyApplication
+ * Validates and stores public recruitment applications server-side.
+ */
+exports.submitHAgencyApplication = onCall(async (req) => {
+  const input = req.data || {}
+
+  // Honeypot: normal clients always submit this as an empty string.
+  if (input.company) return { accepted: true }
+
+  const name = cleanHAgencyText(input.name, 80, true)
+  const phone = cleanHAgencyText(input.phone, 40, true)
+  const wechat = cleanHAgencyText(input.wechat, 80)
+  const email = cleanHAgencyText(input.email, 160)
+  const experience = cleanHAgencyText(input.experience, 30, true)
+  const specialization = cleanHAgencyText(input.specialization, 30, true)
+  const introduction = cleanHAgencyText(input.introduction, 1200, true)
+  const social = cleanHAgencyText(input.social, 400)
+  const locale = input.locale === 'en' ? 'en' : 'zh'
+  const age = Number(input.age)
+
+  if (!Number.isInteger(age) || age < 13 || age > 99) {
+    throw new HttpsError('invalid-argument', 'Please enter a valid age.')
+  }
+  if (!/^[+\d][\d\s()-]{6,39}$/.test(phone)) {
+    throw new HttpsError('invalid-argument', 'Please enter a valid phone number.')
+  }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new HttpsError('invalid-argument', 'Please enter a valid email address.')
+  }
+  if (!HAGENCY_EXPERIENCE.has(experience) || !HAGENCY_SPECIALIZATION.has(specialization)) {
+    throw new HttpsError('invalid-argument', 'Invalid recruitment selection.')
+  }
+
+  const forwarded = req.rawRequest?.get('x-forwarded-for') || ''
+  const ip = forwarded.split(',')[0].trim() || req.rawRequest?.ip || 'unknown'
+  const ipHash = crypto.createHash('sha256').update(`hagency:${ip}`).digest('hex')
+  const db = admin.firestore()
+  const rateRef = db.collection('hagency_rate_limits').doc(ipHash)
+  const now = Date.now()
+  const windowMs = 24 * 60 * 60 * 1000
+
+  await db.runTransaction(async transaction => {
+    const snap = await transaction.get(rateRef)
+    const record = snap.exists ? snap.data() : null
+    const windowStartedAt = record?.windowStartedAt?.toMillis?.() || 0
+    const withinWindow = now - windowStartedAt < windowMs
+    const count = withinWindow ? Number(record?.count || 0) : 0
+    if (count >= 3) throw new HttpsError('resource-exhausted', 'Too many applications. Please try again later.')
+    transaction.set(rateRef, {
+      count: count + 1,
+      windowStartedAt: withinWindow ? record.windowStartedAt : admin.firestore.Timestamp.fromMillis(now),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    })
+  })
+
+  const month = new Date().toISOString().slice(0, 7).replace('-', '')
+  const suffix = crypto.randomBytes(3).toString('hex').toUpperCase()
+  const applicationNumber = `HA-${month}-${suffix}`
+  const ref = await db.collection('hagency_submissions').add({
+    applicationNumber,
+    name,
+    age,
+    phone,
+    wechat,
+    email,
+    experience,
+    specialization,
+    introduction,
+    social,
+    locale,
+    status: 'pending',
+    source: 'website',
+    submittedAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    notificationStatus: 'client-best-effort',
+    userAgent: String(req.rawRequest?.get('user-agent') || '').slice(0, 300),
+  })
+
+  return { accepted: true, applicationId: ref.id, applicationNumber }
+})
 
 /**
  * Callable: deleteCloudinaryImage

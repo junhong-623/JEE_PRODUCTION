@@ -50,12 +50,17 @@ jobs:
       - name: Build Cheers standalone
         run: npm run build:cheers
 
+      - name: Build H Agency standalone
+        run: npm run build:hagency
+
       - name: Validate build artifacts
         run: |
           test -f dist/index.html || (echo "Missing dist/index.html" && exit 1)
           test -f dist-jsave/jsave.html || (echo "Missing dist-jsave/jsave.html" && exit 1)
           test -f dist-matetrip/matetrip.html || (echo "Missing dist-matetrip/matetrip.html" && exit 1)
           test -f dist-cheers/cheers.html || (echo "Missing dist-cheers/cheers.html" && exit 1)
+          test -f dist-hagency/index.html || (echo "Missing dist-hagency/index.html" && exit 1)
+          test -f dist-hagency/sitemap.xml || (echo "Missing dist-hagency/sitemap.xml" && exit 1)
 
       - name: Deploy to Firebase Hosting
         run: npx --yes firebase-tools@latest deploy --only hosting --project jee-production --token "${{ secrets.FIREBASE_TOKEN }}"
