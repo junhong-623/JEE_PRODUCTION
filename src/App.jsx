@@ -47,6 +47,7 @@ export default function App() {
     const isMatetrip = location.pathname.startsWith('/matetrip') && !location.pathname.startsWith('/matetrip-admin')
     const isMall = location.pathname.startsWith('/mall') && !location.pathname.startsWith('/mall/admin')
     const isJSave = location.pathname === '/jsave' || location.pathname.startsWith('/jsave/')
+    const isHAgency = location.pathname.startsWith('/h-agency')
 
     const manifest = ensureHeadTag('link[data-app-manifest]', () => {
       const link = document.createElement('link')
@@ -119,6 +120,17 @@ export default function App() {
           statusBar: 'black-translucent',
           viewport: 'width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover',
         }
+      : isHAgency
+      ? {
+          manifest: '/hagency/manifest.webmanifest',
+          favicon: '/hagency/logo.jpg',
+          faviconType: 'image/jpeg',
+          touchIcon: '/hagency/logo.jpg',
+          theme: '#24171c',
+          title: 'ℋ Agency 希望公会',
+          statusBar: 'black-translucent',
+          viewport: 'width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover',
+        }
       : {
           manifest: '/manifest.webmanifest',
           favicon: '/logo.svg',
@@ -160,8 +172,8 @@ export default function App() {
         <Route path="/portfolio/:slug" element={<Redirect type="portfolio" />} />
         <Route path="/bookmarks/:slug" element={<Redirect type="bookmark" />} />
         <Route path="/matetrip-admin/*" element={loading ? null : admin ? <MatetripAdminPage /> : <Navigate to="/" replace />} />
-        <Route path="/h-agency" element={<HAgencyPage />} />
         <Route path="/h-agency/admin" element={loading ? null : admin ? <HAgencyAdminPage /> : <Navigate to="/" replace />} />
+        <Route path="/h-agency/*" element={<HAgencyPage />} />
         <Route path="/lucky-calc" element={<LuckyCalc />} />
         <Route path="/mall/admin/*" element={loading ? null : admin ? <MallAdminPage /> : <Navigate to="/" replace />} />
         <Route path="/mall/*" element={<MallPage />} />

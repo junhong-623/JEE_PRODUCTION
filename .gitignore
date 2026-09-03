@@ -3,6 +3,8 @@ dist
 dist-jsave
 dist-matetrip
 dist-cheers/
+dist-hagency/
+public-hagency/hagency/
 .env
 .env.local
 .DS_Store

@@ -1,0 +1,12 @@
+{
+  "name": "ℋ Agency 希望公会",
+  "short_name": "ℋ Agency",
+  "description": "专注中文主播的定位、内容、直播运营与长期成长。",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#120c10",
+  "theme_color": "#24171c",
+  "icons": [
+    { "src": "/hagency/logo.jpg", "sizes": "801x801", "type": "image/jpeg", "purpose": "any" }
+  ]
+}

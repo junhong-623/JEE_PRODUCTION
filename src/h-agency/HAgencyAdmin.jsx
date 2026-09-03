@@ -5,8 +5,16 @@ import { db } from '../lib/firebase'
 const CLOUDINARY_CLOUD = 'db2ixn8zh'
 const CLOUDINARY_PRESET = 'H-Agency'
 
-const STATUS_COLOR = { pending: 'text-yellow-500', approved: 'text-emerald-500', rejected: 'text-red-500' }
-const STATUS_LABEL = { pending: '待审核', approved: '已通过', rejected: '已拒绝' }
+const PIPELINE = ['pending', 'contacted', 'interview', 'trial', 'offer', 'contracted', 'onboarding', 'active', 'rejected']
+const STATUS_COLOR = {
+  pending: 'text-amber-600', contacted: 'text-sky-600', interview: 'text-violet-600', trial: 'text-fuchsia-600',
+  offer: 'text-pink-600', contracted: 'text-emerald-600', onboarding: 'text-teal-600', active: 'text-emerald-700',
+  approved: 'text-emerald-600', rejected: 'text-red-500',
+}
+const STATUS_LABEL = {
+  pending: '新申请', contacted: '已联系', interview: '面试安排', trial: '试播中', offer: '条件确认',
+  contracted: '已签约', onboarding: '培训中', active: '活跃主播', approved: '已通过', rejected: '已拒绝',
+}
 
 const emptyStreamer = { nameZh: '', nameEn: '', income: '', hours: '', fansGrowth: '', badgeZh: '优秀主播', badgeEn: 'Top Streamer', order: 0, photoUrl: '', tiktokUrl: '', bigoUrl: '', instaUrl: '' }
 
@@ -21,6 +29,7 @@ async function uploadToCloudinary(file, folder) {
 }
 
 export default function HAgencyAdmin() {
+  const publicHome = window.location.pathname.startsWith('/h-agency') ? '/h-agency' : '/'
   const [tab, setTab] = useState('submissions')
   const [submissions, setSubmissions] = useState([])
   const [leaderboard, setLeaderboard] = useState([])
@@ -34,6 +43,7 @@ export default function HAgencyAdmin() {
   const [avatarFile, setAvatarFile] = useState(null)
   const [avatarPreview, setAvatarPreview] = useState(null)
   const [savingStreamer, setSavingStreamer] = useState(false)
+  const [promotingSubmissionId, setPromotingSubmissionId] = useState(null)
   const avatarInputRef = useRef(null)
   const formRef = useRef(null)
   const importInputRef = useRef(null)
@@ -90,6 +100,7 @@ export default function HAgencyAdmin() {
 
   // ── Leaderboard ──────────────────────────────────────────
   const openForm = (s) => {
+    setPromotingSubmissionId(null)
     setEditingStreamer(s.id)
     setStreamerForm({
       nameZh: s.nameZh || '', nameEn: s.nameEn || '',
@@ -98,6 +109,7 @@ export default function HAgencyAdmin() {
       order: s.order || 0,
       photoUrl: s.photoUrl || '', tiktokUrl: s.tiktokUrl || '',
       bigoUrl: s.bigoUrl || '', instaUrl: s.instaUrl || '',
+      sourceApplicationId: s.sourceApplicationId || null,
     })
     setAvatarFile(null)
     setAvatarPreview(s.photoUrl || null)
@@ -107,7 +119,16 @@ export default function HAgencyAdmin() {
   const promoteSubmission = (sub) => {
     setTab('leaderboard')
     setEditingStreamer('new')
-    setStreamerForm({ ...emptyStreamer, nameZh: sub.name, order: leaderboard.length + 1 })
+    setPromotingSubmissionId(sub.id)
+    setStreamerForm({
+      ...emptyStreamer,
+      nameZh: sub.name,
+      badgeZh: sub.specialization || '签约主播',
+      order: leaderboard.length + 1,
+      tiktokUrl: /tiktok|douyin/i.test(sub.social || '') ? sub.social : '',
+      bigoUrl: /bigo/i.test(sub.social || '') ? sub.social : '',
+      instaUrl: /instagram\.com|(^|\s)@/i.test(sub.social || '') ? sub.social : '',
+    })
     setAvatarFile(null)
     setAvatarPreview(null)
     setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
@@ -126,9 +147,16 @@ export default function HAgencyAdmin() {
         hours: Number(streamerForm.hours) || 0,
         fansGrowth: Number(streamerForm.fansGrowth) || 0,
         order: Number(streamerForm.order) || 0,
+        sourceApplicationId: promotingSubmissionId || streamerForm.sourceApplicationId || null,
       }
       if (editingStreamer === 'new') {
         const ref = await addDoc(collection(db, 'hagency_leaderboard'), data)
+        if (promotingSubmissionId) {
+          await updateDoc(doc(db, 'hagency_submissions', promotingSubmissionId), {
+            status: 'active', talentId: ref.id, convertedAt: serverTimestamp(),
+          })
+          setSubmissions(items => items.map(item => item.id === promotingSubmissionId ? { ...item, status: 'active', talentId: ref.id } : item))
+        }
         setLeaderboard(l => [...l, { id: ref.id, ...data }].sort((a, b) => a.order - b.order))
       } else {
         await updateDoc(doc(db, 'hagency_leaderboard', editingStreamer), data)
@@ -136,6 +164,7 @@ export default function HAgencyAdmin() {
       }
       setNotice({ ok: true, msg: '保存成功' })
       setEditingStreamer(null)
+      setPromotingSubmissionId(null)
       setStreamerForm(emptyStreamer)
       setAvatarFile(null)
       setAvatarPreview(null)
@@ -315,7 +344,13 @@ export default function HAgencyAdmin() {
   }
 
   const filteredSubs = statusFilter === 'all' ? submissions : submissions.filter(s => s.status === statusFilter)
-  const approvedSubs = submissions.filter(s => s.status === 'approved')
+  const promotableSubs = submissions.filter(s => ['approved', 'contracted', 'onboarding'].includes(s.status) && !s.talentId)
+  const pipelineStats = {
+    pending: submissions.filter(s => !s.status || s.status === 'pending').length,
+    inProgress: submissions.filter(s => ['contacted', 'interview', 'trial', 'offer'].includes(s.status)).length,
+    signed: submissions.filter(s => ['contracted', 'onboarding', 'active', 'approved'].includes(s.status)).length,
+    active: submissions.filter(s => s.status === 'active').length,
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -333,12 +368,12 @@ export default function HAgencyAdmin() {
             <span className="font-display text-2xl text-pink-500" style={{ fontStyle: 'italic' }}>ℋ Agency</span>
             <span className="font-mono text-xs uppercase tracking-[0.25em] text-gray-400">Admin</span>
           </div>
-          <a href="/h-agency" className="rounded-full border border-pink-200 px-3 py-1.5 font-mono text-xs text-pink-500 transition-colors hover:bg-pink-50 dark:border-pink-800 dark:hover:bg-pink-950/30">
+          <a href={publicHome} className="rounded-full border border-pink-200 px-3 py-1.5 font-mono text-xs text-pink-500 transition-colors hover:bg-pink-50 dark:border-pink-800 dark:hover:bg-pink-950/30">
             查看公开页面 →
           </a>
         </div>
         <div className="mx-auto flex max-w-5xl gap-1 px-6 pb-3">
-          {[['submissions', `申请 (${submissions.filter(s => s.status === 'pending').length} 待审)`], ['leaderboard', '排行榜'], ['posts', '动态']].map(([k, label]) => (
+          {[['submissions', `招募流程 (${pipelineStats.pending} 新)`], ['leaderboard', '主播资料'], ['posts', '内容动态']].map(([k, label]) => (
             <button key={k} onClick={() => setTab(k)} className={`rounded-full px-4 py-1.5 font-mono text-xs uppercase tracking-[0.18em] transition-colors ${tab === k ? 'bg-pink-500 text-white' : 'text-gray-500 hover:text-pink-500'}`}>
               {label}
             </button>
@@ -352,8 +387,22 @@ export default function HAgencyAdmin() {
         {/* ── Submissions ── */}
         {tab === 'submissions' && (
           <div>
-            <div className="mb-4 flex items-center gap-2">
-              {['all', 'pending', 'approved', 'rejected'].map(s => (
+            <div className="mb-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                ['新申请', pipelineStats.pending, '需要尽快查看'],
+                ['跟进中', pipelineStats.inProgress, '联系至条件确认'],
+                ['已签约', pipelineStats.signed, '含培训和活跃主播'],
+                ['已转主播', pipelineStats.active, '已建立公开资料'],
+              ].map(([label, value, note]) => (
+                <div key={label} className="border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-gray-400">{label}</p>
+                  <p className="mt-2 font-display text-3xl text-[#a94f6a]">{value}</p>
+                  <p className="mt-1 text-[11px] text-gray-400">{note}</p>
+                </div>
+              ))}
+            </div>
+            <div className="ha-no-scrollbar mb-4 flex gap-2 overflow-x-auto pb-2">
+              {['all', ...PIPELINE, 'approved'].map(s => (
                 <button key={s} onClick={() => setStatusFilter(s)} className={`rounded-full border px-3 py-1 font-mono text-xs transition-colors ${statusFilter === s ? 'border-pink-500 bg-pink-500 text-white' : 'border-gray-200 text-gray-500 hover:border-pink-300 dark:border-gray-700'}`}>
                   {s === 'all' ? '全部' : STATUS_LABEL[s]}
                 </button>
@@ -379,16 +428,17 @@ export default function HAgencyAdmin() {
                       <p className="mt-2 text-sm leading-5 text-gray-600 dark:text-gray-300">{s.introduction}</p>
                       {s.social && <p className="mt-1 text-xs text-gray-400">社媒: {s.social}</p>}
                     </div>
-                    <div className="flex shrink-0 flex-col gap-1.5">
-                      {s.status !== 'approved' && (
-                        <button onClick={() => updateStatus(s.id, 'approved')} className="rounded-xl bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400">通过</button>
+                    <div className="flex shrink-0 flex-col items-end gap-2">
+                      <label className="text-right">
+                        <span className="mb-1 block font-mono text-[9px] uppercase tracking-[0.16em] text-gray-400">当前阶段</span>
+                        <select value={s.status || 'pending'} onChange={e => updateStatus(s.id, e.target.value)} className="rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600 outline-none focus:border-pink-400 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                          {PIPELINE.map(status => <option key={status} value={status}>{STATUS_LABEL[status]}</option>)}
+                        </select>
+                      </label>
+                      {['approved', 'contracted', 'onboarding'].includes(s.status) && !s.talentId && (
+                        <button onClick={() => promoteSubmission(s)} className="rounded-xl bg-pink-50 px-3 py-1.5 text-xs font-medium text-pink-600 hover:bg-pink-100 dark:bg-pink-950/40 dark:text-pink-400">建立主播档案 →</button>
                       )}
-                      {s.status !== 'rejected' && (
-                        <button onClick={() => updateStatus(s.id, 'rejected')} className="rounded-xl bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 dark:bg-red-950/40 dark:text-red-400">拒绝</button>
-                      )}
-                      {s.status === 'approved' && (
-                        <button onClick={() => promoteSubmission(s)} className="rounded-xl bg-pink-50 px-3 py-1.5 text-xs font-medium text-pink-600 hover:bg-pink-100 dark:bg-pink-950/40 dark:text-pink-400">↑ 排行榜</button>
-                      )}
+                      {s.talentId && <span className="text-[10px] text-emerald-600">✓ 已关联主播档案</span>}
                     </div>
                   </div>
                   {s.submittedAt?.toDate && (
@@ -417,7 +467,7 @@ export default function HAgencyAdmin() {
                 </button>
                 <input ref={importInputRef} type="file" accept=".csv,.json" onChange={handleImport} className="hidden" />
                 <button
-                  onClick={() => { setEditingStreamer('new'); setStreamerForm({ ...emptyStreamer, order: leaderboard.length + 1 }); setAvatarFile(null); setAvatarPreview(null); setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50) }}
+                  onClick={() => { setPromotingSubmissionId(null); setEditingStreamer('new'); setStreamerForm({ ...emptyStreamer, order: leaderboard.length + 1 }); setAvatarFile(null); setAvatarPreview(null); setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50) }}
                   className="rounded-full bg-pink-500 px-4 py-2 text-sm font-medium text-white hover:bg-pink-600"
                 >
                   + 添加主播
@@ -491,7 +541,7 @@ export default function HAgencyAdmin() {
                   <button onClick={saveStreamer} disabled={savingStreamer} className="rounded-full bg-pink-500 px-5 py-2 text-sm font-medium text-white hover:bg-pink-600 disabled:opacity-60">
                     {savingStreamer ? '保存中...' : '保存'}
                   </button>
-                  <button onClick={() => { setEditingStreamer(null); setStreamerForm(emptyStreamer); setAvatarFile(null); setAvatarPreview(null) }} className="rounded-full border border-gray-200 px-5 py-2 text-sm hover:border-gray-400 dark:border-gray-700">取消</button>
+                  <button onClick={() => { setEditingStreamer(null); setPromotingSubmissionId(null); setStreamerForm(emptyStreamer); setAvatarFile(null); setAvatarPreview(null) }} className="rounded-full border border-gray-200 px-5 py-2 text-sm hover:border-gray-400 dark:border-gray-700">取消</button>
                 </div>
               </div>
             )}
@@ -533,15 +583,15 @@ export default function HAgencyAdmin() {
             </div>
 
             {/* Approved submissions */}
-            {approvedSubs.length > 0 && (
+            {promotableSubs.length > 0 && (
               <div className="mt-10">
                 <div className="mb-3 flex items-center gap-3">
                   <div className="h-px flex-1 bg-gray-100 dark:bg-gray-800" />
-                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-gray-400">已通过申请 · 点击加入排行榜</span>
+                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-gray-400">已签约申请 · 建立公开主播资料</span>
                   <div className="h-px flex-1 bg-gray-100 dark:bg-gray-800" />
                 </div>
                 <div className="space-y-2">
-                  {approvedSubs.map(s => (
+                  {promotableSubs.map(s => (
                     <div key={s.id} className="flex items-center gap-3 rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/50 p-3 dark:border-emerald-900/30 dark:bg-emerald-950/10">
                       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm dark:bg-emerald-950/40">✓</div>
                       <div className="flex-1 min-w-0">
@@ -549,7 +599,7 @@ export default function HAgencyAdmin() {
                         <p className="text-xs text-gray-400">{s.specialization} · {s.experience}</p>
                       </div>
                       <button onClick={() => promoteSubmission(s)} className="rounded-xl bg-pink-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-pink-600">
-                        ↑ 加入排行榜
+                        建立主播档案 →
                       </button>
                     </div>
                   ))}
