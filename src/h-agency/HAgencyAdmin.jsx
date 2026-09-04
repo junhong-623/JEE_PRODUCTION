@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, serverTimestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import { logout } from '../lib/auth'
+import { useAuth } from '../contexts/AuthContext'
 
 const CLOUDINARY_CLOUD = 'db2ixn8zh'
 const CLOUDINARY_PRESET = 'H-Agency'
@@ -30,12 +32,23 @@ async function uploadToCloudinary(file, folder) {
 
 export default function HAgencyAdmin() {
   const publicHome = window.location.pathname.startsWith('/h-agency') ? '/h-agency' : '/'
+  const loginHome = window.location.pathname.startsWith('/h-agency') ? '/' : '/admin/login'
+  const { user } = useAuth()
   const [tab, setTab] = useState('submissions')
   const [submissions, setSubmissions] = useState([])
   const [leaderboard, setLeaderboard] = useState([])
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(false)
   const [notice, setNotice] = useState(null)
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+      window.location.replace(loginHome)
+    } catch {
+      setNotice({ ok: false, msg: '退出失败，请稍后再试。' })
+    }
+  }
 
   // Leaderboard form
   const [editingStreamer, setEditingStreamer] = useState(null)
@@ -368,9 +381,11 @@ export default function HAgencyAdmin() {
             <span className="font-display text-2xl text-pink-500" style={{ fontStyle: 'italic' }}>ℋ Agency</span>
             <span className="font-mono text-xs uppercase tracking-[0.25em] text-gray-400">Admin</span>
           </div>
-          <a href={publicHome} className="rounded-full border border-pink-200 px-3 py-1.5 font-mono text-xs text-pink-500 transition-colors hover:bg-pink-50 dark:border-pink-800 dark:hover:bg-pink-950/30">
-            查看公开页面 →
-          </a>
+          <div className="flex items-center gap-2">
+            {user?.email && <span className="hidden max-w-44 truncate text-[11px] text-gray-400 md:block">{user.email}</span>}
+            <a href={publicHome} className="rounded-full border border-pink-200 px-3 py-1.5 font-mono text-xs text-pink-500 transition-colors hover:bg-pink-50 dark:border-pink-800 dark:hover:bg-pink-950/30">公开页面 →</a>
+            <button onClick={handleLogout} className="rounded-full border border-gray-200 px-3 py-1.5 font-mono text-xs text-gray-500 transition-colors hover:border-gray-400 hover:text-gray-700 dark:border-gray-700 dark:hover:text-gray-300">退出</button>
+          </div>
         </div>
         <div className="mx-auto flex max-w-5xl gap-1 px-6 pb-3">
           {[['submissions', `招募流程 (${pipelineStats.pending} 新)`], ['leaderboard', '主播资料'], ['posts', '内容动态']].map(([k, label]) => (
