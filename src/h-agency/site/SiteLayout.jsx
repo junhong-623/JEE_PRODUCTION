@@ -31,6 +31,13 @@ export default function SiteLayout({ children }) {
       <style>{`
         @keyframes ha-page-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         .ha-page { animation: ha-page-in .42s ease-out both; }
+        .ha-reveal { opacity: 0; transform: translateY(28px); transition: opacity .75s cubic-bezier(.2,.75,.2,1), transform .9s cubic-bezier(.2,.75,.2,1); transition-delay: var(--ha-reveal-delay, 0ms); }
+        .ha-reveal-left { transform: translateX(-32px); }
+        .ha-reveal-right { transform: translateX(32px); }
+        .ha-reveal-scale { transform: scale(.965); }
+        .ha-reveal.is-visible { opacity: 1; transform: translate3d(0,0,0) scale(1); }
+        .ha-reveal img { transition: transform 1.2s cubic-bezier(.2,.75,.2,1), filter 1s ease; }
+        .ha-reveal-scale:not(.is-visible) img { transform: scale(1.045); filter: saturate(.86); }
         @media (prefers-reduced-motion: reduce) { .ha-shell *, .ha-shell *::before, .ha-shell *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }
       `}</style>
       <header className={`fixed inset-x-0 top-0 z-50 border-b transition duration-300 ${solid ? 'border-white/10 bg-[#120c10]/95 shadow-[0_10px_35px_rgba(20,10,14,.18)] backdrop-blur-md' : 'border-transparent bg-transparent'}`}>

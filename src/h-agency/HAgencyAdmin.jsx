@@ -18,7 +18,18 @@ const STATUS_LABEL = {
   contracted: '已签约', onboarding: '培训中', active: '活跃主播', approved: '已通过', rejected: '已拒绝',
 }
 
-const emptyStreamer = { nameZh: '', nameEn: '', income: '', hours: '', fansGrowth: '', badgeZh: '优秀主播', badgeEn: 'Top Streamer', order: 0, photoUrl: '', tiktokUrl: '', bigoUrl: '', instaUrl: '' }
+const emptyStreamer = {
+  nameZh: '', nameEn: '', slug: '', introZh: '', introEn: '', platform: '', handle: '',
+  income: '', hours: '', fansGrowth: '', badgeZh: '优秀主播', badgeEn: 'Top Streamer', order: 0,
+  photoUrl: '', tiktokUrl: '', bigoUrl: '', instaUrl: '', visible: true, homeFeatured: false, homePosition: '',
+}
+
+const parseBoolean = (value, fallback = false) => {
+  if (typeof value === 'boolean') return value
+  if (value === 1 || value === '1' || String(value).toLowerCase() === 'true' || String(value).toLowerCase() === 'yes') return true
+  if (value === 0 || value === '0' || String(value).toLowerCase() === 'false' || String(value).toLowerCase() === 'no') return false
+  return fallback
+}
 
 async function uploadToCloudinary(file, folder) {
   const form = new FormData()
@@ -117,11 +128,16 @@ export default function HAgencyAdmin() {
     setEditingStreamer(s.id)
     setStreamerForm({
       nameZh: s.nameZh || '', nameEn: s.nameEn || '',
+      slug: s.slug || '', introZh: s.introZh || '', introEn: s.introEn || '',
+      platform: s.platform || '', handle: s.handle || '',
       income: s.income || '', hours: s.hours || '', fansGrowth: s.fansGrowth || '',
       badgeZh: s.badgeZh || '优秀主播', badgeEn: s.badgeEn || 'Top Streamer',
       order: s.order || 0,
       photoUrl: s.photoUrl || '', tiktokUrl: s.tiktokUrl || '',
       bigoUrl: s.bigoUrl || '', instaUrl: s.instaUrl || '',
+      visible: s.visible !== false,
+      homeFeatured: Boolean(s.homeFeatured),
+      homePosition: s.homePosition || '',
       sourceApplicationId: s.sourceApplicationId || null,
     })
     setAvatarFile(null)
@@ -160,7 +176,17 @@ export default function HAgencyAdmin() {
         hours: Number(streamerForm.hours) || 0,
         fansGrowth: Number(streamerForm.fansGrowth) || 0,
         order: Number(streamerForm.order) || 0,
+        visible: streamerForm.visible !== false,
+        homeFeatured: Boolean(streamerForm.homeFeatured),
+        homePosition: streamerForm.homeFeatured ? Math.min(3, Math.max(1, Number(streamerForm.homePosition) || 1)) : null,
         sourceApplicationId: promotingSubmissionId || streamerForm.sourceApplicationId || null,
+      }
+      if (data.homeFeatured) {
+        const conflict = leaderboard.find(item => item.id !== editingStreamer && item.homeFeatured && Number(item.homePosition) === data.homePosition)
+        if (conflict) {
+          await updateDoc(doc(db, 'hagency_leaderboard', conflict.id), { homeFeatured: false, homePosition: null })
+          setLeaderboard(items => items.map(item => item.id === conflict.id ? { ...item, homeFeatured: false, homePosition: null } : item))
+        }
       }
       if (editingStreamer === 'new') {
         const ref = await addDoc(collection(db, 'hagency_leaderboard'), data)
@@ -247,8 +273,13 @@ export default function HAgencyAdmin() {
           fansGrowth: Number(row.fansGrowth) || 0,
           badgeZh: row.badgeZh || '优秀主播', badgeEn: row.badgeEn || 'Top Streamer',
           order: Number(row.order) || currentBoard.length + 1,
+          slug: row.slug || '', introZh: row.introZh || '', introEn: row.introEn || '',
+          platform: row.platform || '', handle: row.handle || '',
           photoUrl: row.photoUrl || '', tiktokUrl: row.tiktokUrl || '',
           bigoUrl: row.bigoUrl || '', instaUrl: row.instaUrl || '',
+          visible: parseBoolean(row.visible, true),
+          homeFeatured: parseBoolean(row.homeFeatured, false),
+          homePosition: parseBoolean(row.homeFeatured, false) ? Math.min(3, Math.max(1, Number(row.homePosition) || 1)) : null,
         }
 
         if (!data.nameZh) {
@@ -331,13 +362,14 @@ export default function HAgencyAdmin() {
   }
 
   const SAMPLE_STREAMERS = [
-    { nameZh: '小花', nameEn: 'XiaoHua', income: 8000, hours: 120, fansGrowth: 5000, badgeZh: '优秀主播', badgeEn: 'Top Streamer', order: 1, photoUrl: '', tiktokUrl: 'https://tiktok.com/@example', bigoUrl: '', instaUrl: '' },
-    { nameZh: '大明', nameEn: 'DaMing',  income: 5500, hours:  90, fansGrowth: 3200, badgeZh: '人气主播', badgeEn: 'Rising Star',  order: 2, photoUrl: '', tiktokUrl: '', bigoUrl: 'https://bigo.tv/example', instaUrl: 'https://instagram.com/example' },
+    { nameZh: '盼夏', nameEn: 'Panxia', slug: 'panxia', introZh: 'ℋ Agency 希望公会旗下百万主播。', introEn: 'Million Creator represented by ℋ Agency.', platform: 'BIGO LIVE', handle: 'panxia825', badgeZh: '百万主播', badgeEn: 'Million Creator', order: 1, photoUrl: 'https://agency.jeeprod.com/hagency/talents/panxia.jpg', tiktokUrl: '', bigoUrl: '', instaUrl: '', visible: true, homeFeatured: true, homePosition: 1 },
+    { nameZh: '小暖', nameEn: 'Xiaonuan', slug: 'xiaonuan', introZh: 'ℋ Agency 希望公会旗下百万主播。', introEn: 'Million Creator represented by ℋ Agency.', platform: '抖音', handle: '07nuannuan15', badgeZh: '百万主播', badgeEn: 'Million Creator', order: 2, photoUrl: 'https://agency.jeeprod.com/hagency/talents/xiaonuan.jpg', tiktokUrl: '', bigoUrl: '', instaUrl: '', visible: true, homeFeatured: true, homePosition: 2 },
+    { nameZh: '贝贝', nameEn: 'Beibei', slug: 'beibei', introZh: 'ℋ Agency 希望公会旗下百万主播。', introEn: 'Million Creator represented by ℋ Agency.', platform: '抖音', handle: 'bellbell__00', badgeZh: '百万主播', badgeEn: 'Million Creator', order: 3, photoUrl: 'https://agency.jeeprod.com/hagency/talents/beibei-million.jpg', tiktokUrl: '', bigoUrl: '', instaUrl: '', visible: true, homeFeatured: true, homePosition: 3 },
   ]
 
   const downloadSample = (format) => {
     let content, mime, ext
-    const headers = ['nameZh','nameEn','income','hours','fansGrowth','badgeZh','badgeEn','order','photoUrl','tiktokUrl','bigoUrl','instaUrl']
+    const headers = ['nameZh','nameEn','slug','introZh','introEn','platform','handle','income','hours','fansGrowth','badgeZh','badgeEn','order','photoUrl','tiktokUrl','bigoUrl','instaUrl','visible','homeFeatured','homePosition']
     if (format === 'csv') {
       const rows = SAMPLE_STREAMERS.map(r => headers.map(h => `"${String(r[h] ?? '').replace(/"/g, '""')}"`).join(','))
       content = [headers.join(','), ...rows].join('\n')
@@ -468,9 +500,9 @@ export default function HAgencyAdmin() {
         {/* ── Leaderboard ── */}
         {tab === 'leaderboard' && (
           <div>
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-display text-2xl text-gray-900 dark:text-gray-100">排行榜管理</h3>
-              <div className="flex items-center gap-2">
+            <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div><h3 className="font-display text-2xl text-gray-900 dark:text-gray-100">主播资料与首页展示</h3><p className="mt-1 text-xs text-gray-400">管理主播资料、公开状态，以及首页三个推荐位置。</p></div>
+              <div className="flex flex-wrap items-center gap-2">
                 <button onClick={() => downloadSample('csv')} className="rounded-full border border-gray-200 px-4 py-2 text-sm text-gray-500 hover:border-pink-300 hover:text-pink-500 dark:border-gray-700">
                   📄 样本 CSV
                 </button>
@@ -525,7 +557,7 @@ export default function HAgencyAdmin() {
 
                 {/* Basic info */}
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {[['nameZh', '主播名称（中文）'], ['nameEn', 'Streamer Name (EN)'], ['badgeZh', '称号（中文）'], ['badgeEn', 'Badge (EN)']].map(([k, label]) => (
+                  {[['nameZh', '主播名称（中文）'], ['nameEn', 'Streamer Name (EN)'], ['slug', '网址名称（如 panxia）'], ['platform', '主要平台'], ['handle', '平台 ID'], ['badgeZh', '称号（中文）'], ['badgeEn', 'Badge (EN)']].map(([k, label]) => (
                     <label key={k} className="block">
                       <span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-gray-400">{label}</span>
                       <input value={streamerForm[k]} onChange={e => setStreamerForm(f => ({ ...f, [k]: e.target.value }))} className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
@@ -537,6 +569,16 @@ export default function HAgencyAdmin() {
                       <input type="number" value={streamerForm[k]} onChange={e => setStreamerForm(f => ({ ...f, [k]: e.target.value }))} className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
                     </label>
                   ))}
+                </div>
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <label className="block"><span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-gray-400">个人简介（中文）</span><textarea rows={3} value={streamerForm.introZh} onChange={e => setStreamerForm(f => ({ ...f, introZh: e.target.value }))} className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" /></label>
+                  <label className="block"><span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-gray-400">Profile Introduction (EN)</span><textarea rows={3} value={streamerForm.introEn} onChange={e => setStreamerForm(f => ({ ...f, introEn: e.target.value }))} className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" /></label>
+                </div>
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <label className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800"><span><span className="block text-sm font-medium text-gray-700 dark:text-gray-200">公开主播资料</span><span className="mt-0.5 block text-[11px] text-gray-400">关闭后不会显示在公开网站</span></span><input type="checkbox" checked={streamerForm.visible !== false} onChange={e => setStreamerForm(f => ({ ...f, visible: e.target.checked }))} className="h-4 w-4 accent-pink-500" /></label>
+                  <div className="rounded-xl border border-pink-200 bg-white px-4 py-3 dark:border-pink-900/40 dark:bg-gray-800"><label className="flex items-center justify-between"><span><span className="block text-sm font-medium text-gray-700 dark:text-gray-200">放到首页推荐</span><span className="mt-0.5 block text-[11px] text-gray-400">首页最多展示三个位置</span></span><input type="checkbox" checked={Boolean(streamerForm.homeFeatured)} onChange={e => setStreamerForm(f => ({ ...f, homeFeatured: e.target.checked, homePosition: e.target.checked ? (f.homePosition || 1) : '' }))} className="h-4 w-4 accent-pink-500" /></label>{streamerForm.homeFeatured && <label className="mt-3 block"><span className="mb-1 block font-mono text-[9px] uppercase tracking-[0.18em] text-pink-500">首页位置</span><select value={streamerForm.homePosition || 1} onChange={e => setStreamerForm(f => ({ ...f, homePosition: Number(e.target.value) }))} className="w-full rounded-lg border border-pink-200 bg-pink-50 px-3 py-2 text-sm text-gray-700 outline-none"><option value={1}>位置 1 · 左侧</option><option value={2}>位置 2 · 中间</option><option value={3}>位置 3 · 右侧</option></select></label>}</div>
                 </div>
 
                 {/* Platform links */}
@@ -583,7 +625,9 @@ export default function HAgencyAdmin() {
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-gray-900 dark:text-gray-100">{s.nameZh}{s.nameEn && ` / ${s.nameEn}`}</p>
                     <p className="text-xs text-gray-400">¥{(s.income || 0).toLocaleString()} · {s.hours || 0}h · +{(s.fansGrowth || 0).toLocaleString()} fans</p>
-                    <div className="mt-0.5 flex gap-2">
+                    <div className="mt-1 flex flex-wrap gap-2">
+                      {s.visible === false && <span className="rounded-full bg-gray-100 px-2 py-0.5 font-mono text-[9px] text-gray-500">未公开</span>}
+                      {s.homeFeatured && <span className="rounded-full bg-pink-100 px-2 py-0.5 font-mono text-[9px] text-pink-600">首页 #{s.homePosition || '?'}</span>}
                       {s.tiktokUrl && <span className="rounded-full bg-black/5 px-2 py-0.5 font-mono text-[9px] text-gray-500">TikTok</span>}
                       {s.bigoUrl && <span className="rounded-full bg-purple-50 px-2 py-0.5 font-mono text-[9px] text-purple-400">BIGO</span>}
                       {s.instaUrl && <span className="rounded-full bg-orange-50 px-2 py-0.5 font-mono text-[9px] text-orange-400">Instagram</span>}

@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { CURRENT_RANKING, MILLION_HONORS } from './content'
 import { useHAgencySite } from './SiteContext'
+import Reveal from './Reveal'
 
 export function Seo({ title, description, image = 'https://agency.jeeprod.com/hagency/og.png' }) {
   const { basePath = '' } = useHAgencySite()
@@ -33,7 +34,7 @@ export function Seo({ title, description, image = 'https://agency.jeeprod.com/ha
 
 export function SectionHeader({ title, sub, dark = false, intro, action }) {
   return (
-    <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
+    <Reveal className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
       <div>
         <p className={`font-mono text-[10px] uppercase tracking-[0.3em] ${dark ? 'text-[#d99eb0]' : 'text-[#b66b81]'}`}>{sub}</p>
         <h2 className={`mt-4 max-w-3xl font-display text-4xl leading-tight sm:text-5xl ${dark ? 'text-[#f2d8df]' : 'text-[#24171c]'}`}>{title}</h2>
@@ -44,7 +45,7 @@ export function SectionHeader({ title, sub, dark = false, intro, action }) {
           {action}
         </div>
       )}
-    </div>
+    </Reveal>
   )
 }
 
@@ -76,7 +77,8 @@ export function TalentCard({ talent, index = 0 }) {
   const name = lang === 'zh' ? talent.nameZh : (talent.nameEn || talent.nameZh)
   const badge = lang === 'zh' ? (talent.badgeZh || '签约主播') : (talent.badgeEn || talent.badgeZh || 'Signed Talent')
   return (
-    <Link to={path(`/talents/${talent.slug || talent.id}`)} className="group relative block overflow-hidden bg-[#20161a]">
+    <Reveal delay={Math.min(index, 3) * 90} direction="scale" className="h-full">
+      <Link to={path(`/talents/${talent.slug || talent.id}`)} className="group relative block h-full overflow-hidden bg-[#20161a]">
       <div className="aspect-[4/5] overflow-hidden">
         <img src={talent.photoUrl || '/hagency/logo.jpg'} alt={name} className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.025]" loading="lazy" />
       </div>
@@ -87,7 +89,8 @@ export function TalentCard({ talent, index = 0 }) {
         {(talent.platform || talent.handle) && <p className="mt-4 border-t border-white/15 pt-3 font-mono text-[9px] uppercase tracking-[0.16em] text-white/40">{talent.platform}{talent.handle ? ` · @${talent.handle}` : ''}</p>}
       </div>
       <span className="absolute left-5 top-5 font-mono text-[9px] uppercase tracking-[0.25em] text-white/60">{String(index + 1).padStart(2, '0')}</span>
-    </Link>
+      </Link>
+    </Reveal>
   )
 }
 
@@ -96,7 +99,8 @@ export function HonorGrid({ compact = false }) {
   return (
     <div className={`grid gap-5 sm:grid-cols-2 lg:grid-cols-3 ${compact ? 'mt-10' : 'mt-12'}`}>
       {MILLION_HONORS.map((talent, index) => (
-        <article key={talent.id} className={`group ${index === 2 ? 'sm:col-span-2 lg:col-span-1' : ''}`}>
+        <Reveal key={talent.id} delay={index * 90} direction="scale" className={index === 2 ? 'sm:col-span-2 lg:col-span-1' : ''}>
+          <article className="group">
           <Link to={path(`/talents/${talent.slug}`)} className="relative block aspect-[3/4] overflow-hidden border border-white/10 bg-[#261a20]">
             <img src={talent.image} alt={`${lang === 'zh' ? talent.nameZh : talent.nameEn} · ${lang === 'zh' ? talent.accoladeZh : talent.accoladeEn}`} className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.018]" loading="lazy" />
             <span className="absolute left-4 top-4 rounded-full border border-white/20 bg-black/25 px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.2em] text-white/75 backdrop-blur-sm">0{index + 1}</span>
@@ -108,7 +112,8 @@ export function HonorGrid({ compact = false }) {
             </div>
             <div className="text-right font-mono text-[9px] uppercase tracking-[0.16em] text-white/35"><p>{talent.platform}</p><p className="mt-1 normal-case tracking-normal">@{talent.handle}</p></div>
           </div>
-        </article>
+          </article>
+        </Reveal>
       ))}
     </div>
   )
@@ -120,10 +125,12 @@ export function RankingGrid({ compact = false }) {
     return (
       <div className="mt-10 grid gap-px overflow-hidden border border-[#eadde0] bg-[#eadde0] md:grid-cols-3">
         {CURRENT_RANKING.map((talent, index) => (
-          <article key={talent.id} className="group grid grid-cols-[96px_1fr] items-center bg-white p-3 sm:grid-cols-[112px_1fr]">
+          <Reveal key={talent.id} delay={index * 80} className="bg-white">
+            <article className="group grid grid-cols-[96px_1fr] items-center bg-white p-3 sm:grid-cols-[112px_1fr]">
             <div className="aspect-[3/4] overflow-hidden"><img src={talent.image} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.02]" loading="lazy" /></div>
             <div className="px-5"><p className="font-mono text-[9px] uppercase tracking-[0.2em] text-[#b66b81]">0{talent.rank} · {lang === 'zh' ? talent.rankZh : talent.rankEn}</p><h3 className="mt-2 font-display text-2xl text-[#24171c]">{lang === 'zh' ? talent.nameZh : talent.nameEn}</h3><p className="mt-2 font-mono text-[9px] text-gray-400">@{talent.handle}</p></div>
-          </article>
+            </article>
+          </Reveal>
         ))}
       </div>
     )
@@ -133,7 +140,8 @@ export function RankingGrid({ compact = false }) {
       {CURRENT_RANKING.map((talent, index) => {
         const placement = index === 0 ? 'lg:order-2 lg:-translate-y-10' : index === 1 ? 'lg:order-1' : 'lg:order-3'
         return (
-          <article key={talent.id} className={`group relative bg-white shadow-[0_24px_70px_rgba(64,33,43,0.08)] ${placement}`}>
+          <Reveal key={talent.id} delay={index * 90} direction="scale" className={placement}>
+            <article className="group relative bg-white shadow-[0_24px_70px_rgba(64,33,43,0.08)]">
             <div className="relative aspect-[3/4] overflow-hidden">
               <img src={talent.image} alt={`${lang === 'zh' ? talent.rankZh : talent.rankEn} · ${lang === 'zh' ? talent.nameZh : talent.nameEn}`} className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.018]" loading="lazy" />
               <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#190f14]/65 to-transparent" />
@@ -143,7 +151,8 @@ export function RankingGrid({ compact = false }) {
               <p className={`font-mono text-[9px] uppercase tracking-[0.23em] ${index === 0 ? 'text-[#dba7b7]' : 'text-[#b66b81]'}`}>{lang === 'zh' ? talent.rankZh : talent.rankEn}</p>
               <div className="mt-2 flex items-end justify-between gap-4"><h3 className={`font-display text-3xl ${index === 0 ? 'text-[#f1d7de]' : 'text-[#24171c]'}`}>{lang === 'zh' ? talent.nameZh : talent.nameEn}</h3><p className={`font-mono text-[10px] ${index === 0 ? 'text-white/40' : 'text-gray-400'}`}>@{talent.handle}</p></div>
             </div>
-          </article>
+            </article>
+          </Reveal>
         )
       })}
     </div>
@@ -162,10 +171,12 @@ export function UpdateGrid({ posts, limit }) {
         const title = post.titleZh || post.titleEn || caption || (lang === 'zh' ? 'ℋ Agency 动态' : 'ℋ Agency update')
         const isVideo = post.mediaType === 'video'
         return (
-          <Link key={post.id} to={path(`/updates/${post.slug || post.id}`)} className="group overflow-hidden border border-[#eadde0] bg-[#fbf8f7]">
+          <Reveal key={post.id} delay={index * 80} direction="scale">
+            <Link to={path(`/updates/${post.slug || post.id}`)} className="group block overflow-hidden border border-[#eadde0] bg-[#fbf8f7]">
             {media && <div className="relative aspect-[4/5] overflow-hidden">{isVideo ? <video src={media} className="h-full w-full object-cover" muted playsInline /> : <img src={media} alt="" className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.025]" loading="lazy" />}{isVideo && <span className="absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm">▶</span>}</div>}
             <div className="p-5"><p className="font-mono text-[9px] uppercase tracking-[0.18em] text-[#b66b81]">Journal · {String(index + 1).padStart(2, '0')}</p><h3 className="mt-3 line-clamp-2 font-display text-2xl text-[#24171c]">{title}</h3>{caption && caption !== title && <p className="mt-3 line-clamp-2 text-sm leading-6 text-gray-500">{caption}</p>}</div>
-          </Link>
+            </Link>
+          </Reveal>
         )
       })}
     </div>

@@ -30,15 +30,28 @@ export function HAgencyDataProvider({ children }) {
   }, [])
 
   const talents = useMemo(() => {
-    const knownNames = new Set(FALLBACK_TALENTS.flatMap(t => [t.nameZh, t.nameEn].filter(Boolean).map(name => name.toLowerCase())))
-    const additional = leaderboard.filter(talent => {
-      const names = [talent.nameZh, talent.nameEn].filter(Boolean).map(name => name.toLowerCase())
-      return !names.some(name => knownNames.has(name))
-    })
-    return [...FALLBACK_TALENTS, ...additional].map(talent => ({ ...talent, slug: talentSlug(talent) }))
+    const source = leaderboard.length ? leaderboard : FALLBACK_TALENTS
+    return source
+      .filter(talent => talent.visible !== false)
+      .map(talent => ({
+        ...talent,
+        slug: talentSlug(talent),
+        platform: talent.platform || (talent.bigoUrl ? 'BIGO LIVE' : talent.tiktokUrl ? '抖音 / TikTok' : ''),
+        socialUrl: talent.socialUrl || talent.bigoUrl || talent.tiktokUrl || talent.instaUrl || '',
+      }))
   }, [leaderboard])
 
-  const value = useMemo(() => ({ talents, posts, loading }), [talents, posts, loading])
+  const featuredTalents = useMemo(() => {
+    const selected = talents
+      .filter(talent => talent.homeFeatured)
+      .sort((a, b) => (Number(a.homePosition) || 99) - (Number(b.homePosition) || 99))
+      .slice(0, 3)
+    const selectedIds = new Set(selected.map(talent => talent.id))
+    const remaining = talents.filter(talent => !selectedIds.has(talent.id))
+    return [...selected, ...remaining].slice(0, 3)
+  }, [talents])
+
+  const value = useMemo(() => ({ talents, featuredTalents, posts, loading }), [talents, featuredTalents, posts, loading])
   return <HAgencyDataContext.Provider value={value}>{children}</HAgencyDataContext.Provider>
 }
 
