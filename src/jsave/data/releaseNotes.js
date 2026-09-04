@@ -1,8 +1,25 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.1.0',
+    version: '3.1.1',
     date: '2026-09-05',
     isLatest: true,
+    items: [
+      'Rebuilt the JSave introduction around three clear product stories instead of an emoji feature wall',
+      'Phone layouts now stay complete at narrow mobile widths with no hidden or clipped sections',
+      'Added a polished Kuala Lumpur lifestyle visual and interactive real-interface preview',
+      'Removed the intrusive third-party install banner from the marketing page',
+    ],
+    itemsZh: [
+      '落地页改为三段清晰产品叙事，取代大量 emoji 功能卡片',
+      '窄屏手机布局不再隐藏或裁切内容，产品界面可完整查看',
+      '新增吉隆坡日常场景视觉，以及可互动的真实界面预览',
+      '移除会遮挡营销页面的第三方安装横幅',
+    ],
+  },
+  {
+    version: '3.1.0',
+    date: '2026-09-05',
+    isLatest: false,
     items: [
       'Account-isolated offline storage with ownership-safe migration from the legacy shared cache',
       'Reliable sync reconciliation keeps queued writes and deletes visible until uploaded',
