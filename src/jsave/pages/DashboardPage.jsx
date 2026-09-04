@@ -3,6 +3,7 @@ import { useLang } from '../contexts/LangContext'
 import { useJSave } from '../hooks/useJSave'
 import TransactionForm from '../components/TransactionForm'
 import { Sparkline, ProgressRing } from '../components/JSaveCharts'
+import { localDateDaysAgo, toLocalDateString } from '../utils/date'
 
 function fmt(amount, currency = 'MYR') {
   return new Intl.NumberFormat('en-MY', { style: 'currency', currency, minimumFractionDigits: 2 }).format(amount)
@@ -20,18 +21,16 @@ function fmtShort(amount, currency = 'MYR') {
 function monthRange() {
   const now = new Date()
   const start = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
-  const end = now.toISOString().split('T')[0]
+  const end = toLocalDateString(now)
   return { start, end }
 }
 
 function todayStr() {
-  return new Date().toISOString().split('T')[0]
+  return toLocalDateString()
 }
 
 function yesterdayStr() {
-  const d = new Date()
-  d.setDate(d.getDate() - 1)
-  return d.toISOString().split('T')[0]
+  return localDateDaysAgo(1)
 }
 
 const CAT_ICONS = {
@@ -87,7 +86,7 @@ function TxRow({ tx, accounts, cur, t, onClick }) {
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────
-export default function DashboardPage({ onOpenAdd, onOpenSettings, onNavigate }) {
+export default function DashboardPage({ onOpenSettings, onNavigate }) {
   const { t, lang } = useLang()
   const { transactions, accounts, goals, settings, getTotalBalance, loading } = useJSave()
   const [editTx, setEditTx] = useState(null)
@@ -123,6 +122,9 @@ export default function DashboardPage({ onOpenAdd, onOpenSettings, onNavigate })
       .reduce((s, t) => s + (t.type === 'split' ? (t.myShare ?? t.amount) : t.amount), 0),
     [transactions, yesterday]
   )
+  const dailyBudget = Number(settings?.dailyBudget) || 0
+  const budgetRemaining = dailyBudget - todayExpense
+  const budgetPercent = dailyBudget > 0 ? Math.min(100, (todayExpense / dailyBudget) * 100) : 0
 
   const totalBalance = getTotalBalance()
   const recent = transactions.slice(0, 12)
@@ -130,8 +132,7 @@ export default function DashboardPage({ onOpenAdd, onOpenSettings, onNavigate })
   // Sparkline: last 14 days running balance trend
   const sparkData = useMemo(() => {
     const days = Array.from({ length: 14 }, (_, i) => {
-      const d = new Date(); d.setDate(d.getDate() - (13 - i))
-      return d.toISOString().split('T')[0]
+      return localDateDaysAgo(13 - i)
     })
     let running = accounts.reduce((s, a) => s + (a.initialBalance ?? 0), 0)
     const sorted = [...transactions].sort((a, b) => a.date.localeCompare(b.date))
@@ -242,6 +243,18 @@ export default function DashboardPage({ onOpenAdd, onOpenSettings, onNavigate })
             <div style={{ marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: 9, color: vsColor }}>
               {vsSign} {Math.abs(vsYesterday).toFixed(0)} {t('vsYesterday')}
             </div>
+          )}
+          {dailyBudget > 0 && (
+            <>
+              <div style={{ marginTop: 7, height: 3, borderRadius: 999, background: 'rgba(241,245,249,0.08)', overflow: 'hidden' }}>
+                <div style={{ width: `${budgetPercent}%`, height: '100%', background: budgetRemaining >= 0 ? '#10b981' : '#f43f5e' }} />
+              </div>
+              <div style={{ marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: 8.5, color: budgetRemaining >= 0 ? '#10b981' : '#f43f5e' }}>
+                {budgetRemaining >= 0
+                  ? t('budgetRemaining').replace('{amount}', Math.abs(budgetRemaining).toFixed(0))
+                  : t('budgetOver').replace('{amount}', Math.abs(budgetRemaining).toFixed(0))}
+              </div>
+            </>
           )}
         </div>
         {/* Top goal */}

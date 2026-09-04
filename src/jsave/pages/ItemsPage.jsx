@@ -2,11 +2,10 @@ import { useState } from 'react'
 import { useLang } from '../contexts/LangContext'
 import { useJSave } from '../hooks/useJSave'
 import GlassCard from '../components/GlassCard'
+import { calendarDayDifference, toLocalDateString } from '../utils/date'
 
 function daysSince(dateStr) {
-  const d = new Date(dateStr)
-  const now = new Date()
-  return Math.max(1, Math.floor((now - d) / 86400000))
+  return Math.max(1, calendarDayDifference(new Date(), dateStr))
 }
 
 // Returns the date the item stopped being "active" — supports old disposeDate field
@@ -16,9 +15,7 @@ function endDate(item) {
 
 function daysTotal(purchaseDate, end) {
   if (!end) return daysSince(purchaseDate)
-  const from = new Date(purchaseDate)
-  const to = new Date(end)
-  return Math.max(1, Math.floor((to - from) / 86400000))
+  return Math.max(1, calendarDayDifference(end, purchaseDate))
 }
 
 function itemStatus(item) {
@@ -27,7 +24,7 @@ function itemStatus(item) {
   return 'active'
 }
 
-const today = () => new Date().toISOString().split('T')[0]
+const today = () => toLocalDateString()
 
 export default function ItemsPage() {
   const { t } = useLang()

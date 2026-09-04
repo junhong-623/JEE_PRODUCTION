@@ -2,6 +2,7 @@
 import { useState, useMemo } from 'react'
 import { useLang } from '../contexts/LangContext'
 import { useJSave } from '../hooks/useJSave'
+import { calendarDayDifference, toLocalDateString } from '../utils/date'
 import { ProgressRing } from '../components/JSaveCharts'
 
 /* ──────────────────────────────────────────────────────────────────────
@@ -17,11 +18,11 @@ function fmtCPD(n, cur) {
 }
 
 function daysSince(dateStr) {
-  return Math.max(1, Math.floor((new Date() - new Date(dateStr)) / 86400000))
+  return Math.max(1, calendarDayDifference(new Date(), dateStr))
 }
 function daysTotal(purchaseDate, endD) {
   if (!endD) return daysSince(purchaseDate)
-  return Math.max(1, Math.floor((new Date(endD) - new Date(purchaseDate)) / 86400000))
+  return Math.max(1, calendarDayDifference(endD, purchaseDate))
 }
 function endDate(item) { return item.retiredDate ?? item.saleDate ?? item.disposeDate ?? null }
 function itemStatus(item) {
@@ -29,7 +30,7 @@ function itemStatus(item) {
   if (item.disposeDate) return 'retired'
   return 'active'
 }
-const todayStr = () => new Date().toISOString().split('T')[0]
+const todayStr = () => toLocalDateString()
 
 /* ──────────────────────────────────────────────────────────────────────
    Quick Deposit Modal — click a goal to deposit + "More settings" link
@@ -50,7 +51,7 @@ function QuickDepositModal({ goal, onDeposit, onMoreSettings, onClose, t, lang }
 
   return (
     <div className="jsave-modal-overlay centered" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="jsave-modal glass-card" onClick={e => e.stopPropagation()} style={{ borderRadius: 24, padding: '0 0 16px', maxWidth: 380 }}>
+      <div className="jsave-modal glass-card" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()} style={{ borderRadius: 24, padding: '0 0 16px', maxWidth: 380 }}>
         {/* Goal header */}
         <div style={{ padding: '20px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -64,7 +65,7 @@ function QuickDepositModal({ goal, onDeposit, onMoreSettings, onClose, t, lang }
               <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, letterSpacing: -0.4, color: '#f1f5f9' }}>{goal.name}</div>
             </div>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(241,245,249,0.4)', fontSize: 20, padding: 4 }}>✕</button>
+          <button onClick={onClose} aria-label={t('close')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(241,245,249,0.4)', fontSize: 20, padding: 4 }}>✕</button>
         </div>
 
         {/* Progress bar */}
@@ -160,10 +161,10 @@ function GoalSettingsModal({ initial, onSave, onDelete, onClose, t }) {
 
   return (
     <div className="jsave-modal-overlay centered" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="jsave-modal glass-card" onClick={e => e.stopPropagation()} style={{ borderRadius: 24, maxWidth: 400 }}>
+      <div className="jsave-modal glass-card" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()} style={{ borderRadius: 24, maxWidth: 400 }}>
         <h2 className="jsave-modal-title">
           {isEdit ? t('editGoal') : t('addGoal')}
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(241,245,249,0.5)', fontSize: 20 }}>✕</button>
+          <button onClick={onClose} aria-label={t('close')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(241,245,249,0.5)', fontSize: 20 }}>✕</button>
         </h2>
 
         {/* Emoji picker */}
@@ -234,9 +235,9 @@ function ItemForm({ initial, cur, t, onSave, onDelete, onClose }) {
 
   return (
     <div className="jsave-modal-overlay centered" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="jsave-modal glass-card" onClick={e => e.stopPropagation()} style={{ borderRadius: 24 }}>
+      <div className="jsave-modal glass-card" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()} style={{ borderRadius: 24 }}>
         <h2 className="jsave-modal-title">{initial?.id ? t('itemEdit') : t('addItem')}
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(241,245,249,0.5)', fontSize: 20 }}>✕</button>
+          <button onClick={onClose} aria-label={t('close')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(241,245,249,0.5)', fontSize: 20 }}>✕</button>
         </h2>
         <form onSubmit={handleSubmit} className="jsave-form">
           <div><label className="jsave-label">{t('itemName')}</label>
@@ -437,7 +438,7 @@ function ThingsView({ t, lang }) {
    ────────────────────────────────────────────────────────────────────── */
 function HeroGoalCard({ goal, onClick, t, lang }) {
   const pct = Math.min(1, (goal.currentAmount || 0) / (goal.targetAmount || 1))
-  const daysLeft = goal.deadline ? Math.max(0, Math.round((new Date(goal.deadline) - new Date()) / 86400000)) : null
+  const daysLeft = goal.deadline ? Math.max(0, calendarDayDifference(goal.deadline, new Date())) : null
   const monthsLeft = daysLeft != null ? Math.max(1, daysLeft / 30) : null
   const remaining = (goal.targetAmount || 0) - (goal.currentAmount || 0)
   const monthlyNeeded = monthsLeft ? (remaining / monthsLeft).toFixed(0) : null
@@ -586,7 +587,7 @@ export default function GoalsPage() {
                             </div>
                             <div style={{ marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'rgba(241,245,249,0.5)' }}>
                               RM {fmtAmt(goal.currentAmount || 0)} / {fmtAmt(goal.targetAmount || 0)}
-                              {goal.deadline && ` · ${Math.max(0, Math.round((new Date(goal.deadline) - new Date()) / 86400000))}d`}
+                              {goal.deadline && ` · ${Math.max(0, calendarDayDifference(goal.deadline, new Date()))}d`}
                             </div>
                           </div>
                           <div style={{ color: 'rgba(241,245,249,0.3)', fontSize: 16 }}>›</div>

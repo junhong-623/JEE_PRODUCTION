@@ -156,6 +156,8 @@ export default {
   monthlyIncomeLabel: '月收入',
   currencyLabel: '货币',
   dailyBudgetLabel: '每日预算',
+  budgetRemaining: '今日还可用 RM {amount}',
+  budgetOver: '今日已超出 RM {amount}',
   accountsSection: '账户管理',
   addAccount: '添加账户',
   accountName: '账户名称',
@@ -171,6 +173,7 @@ export default {
   settingsSaved: '设置已保存。',
   save: '保存',
   cancel: '取消',
+  close: '关闭',
   delete: '删除',
   confirm: '确认',
   confirmDelete: '确定要删除吗？',
@@ -184,6 +187,12 @@ export default {
   salaryPreview: '将在每月 {day} 号自动添加 {amount} 到 {account}',
   salaryAdded: '本月薪资已自动添加',
   noAccountForSalary: '请先添加账户',
+
+  // 数据导出
+  dataSection: '你的数据',
+  exportCsv: '导出交易 CSV',
+  exportCsvDesc: '下载全部交易记录，可使用 Excel 或其他表格软件打开。',
+  noTransactionsExport: '暂无交易可导出',
 
   // Activity
   activitySection: '打卡记录',
@@ -219,6 +228,9 @@ export default {
   offline: '当前离线 — 更改已本地保存',
   syncing: '同步中…',
   synced: '已同步',
+  syncFailed: '部分修改暂未同步，JSave 会自动重试',
+  mainNavigation: '主导航',
+  addTransaction: '新增交易',
 
   // Goals
   navGoals: '目标',

@@ -15,6 +15,8 @@ import { createCoffeeBill } from '../services/toyyibpay'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import { db } from '../../lib/firebase'
 import { collection, query, orderBy, getDocs } from 'firebase/firestore'
+import { toLocalDateString } from '../utils/date'
+import { downloadTransactionsCsv } from '../services/export'
 
 const CURRENCIES = ['MYR', 'USD', 'SGD', 'CNY', 'EUR', 'GBP']
 const ACC_TYPES  = ['accCash', 'accBank', 'accEwallet', 'accCredit']
@@ -43,7 +45,7 @@ function ActivityCard({ transactions, t }) {
   const days = useMemo(() => Array.from({ length: 14 }, (_, i) => {
     const d = new Date(today)
     d.setDate(today.getDate() - (13 - i))
-    return { date: d.toISOString().split('T')[0], day: d.getDate(), isToday: i === 13 }
+    return { date: toLocalDateString(d), day: d.getDate(), isToday: i === 13 }
   }), [])
 
   const txDates = useMemo(() => new Set(
@@ -231,10 +233,10 @@ function ReleaseNotesModal({ lang, t, onClose }) {
   const visible = showAll ? RELEASE_NOTES : RELEASE_NOTES.slice(0, PREVIEW)
   return (
     <div className="jsave-modal-overlay centered" onClick={onClose}>
-      <div className="jsave-modal" style={{ maxHeight: '80vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+      <div className="jsave-modal" role="dialog" aria-modal="true" style={{ maxHeight: '80vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
         <div className="jsave-modal-title">
           <span>🚀 {t('whatsNewTitle')}</span>
-          <button className="jsave-modal-close" onClick={onClose}>✕</button>
+          <button className="jsave-modal-close" aria-label={t('close')} onClick={onClose}>✕</button>
         </div>
         <div className="jsave-release-list">
           {visible.map(r => (
@@ -287,7 +289,7 @@ function CoffeePayModal({ zh, url, amount, onClose, onCancel }) {
       <div className="jsave-coffee-pay-modal" onClick={e => e.stopPropagation()}>
         <div className="jsave-coffee-pay-header">
           <span>☕ {zh ? '选择支付方式' : 'Choose Payment'}</span>
-          <button className="jsave-modal-close" onClick={onCancel}>✕</button>
+          <button className="jsave-modal-close" aria-label={zh ? '关闭' : 'Close'} onClick={onCancel}>✕</button>
         </div>
         <p className="jsave-section-sub" style={{ textAlign: 'center', marginBottom: 12 }}>
           RM {amount}
@@ -462,7 +464,7 @@ export default function SettingsPage({ onOpenAdmin }) {
     async function checkDevicePush() {
       if (!('PushManager' in window) || Notification.permission !== 'granted') return
       try {
-        const reg = await navigator.serviceWorker.getRegistration('/jsave/')
+        const reg = await navigator.serviceWorker.getRegistration(`${JSAVE_BASE}/`)
         if (!reg) return
         const sub = await reg.pushManager.getSubscription()
         if (sub) { setDailyReminder(true); setSubId(sub.endpoint.split('/').pop().slice(0, 8)) }
@@ -654,6 +656,22 @@ export default function SettingsPage({ onOpenAdmin }) {
         )}
       </Accordion>
 
+      {/* Data ownership */}
+      <Accordion title={t('dataSection')}>
+        <p className="jsave-section-sub" style={{ marginBottom: 12 }}>{t('exportCsvDesc')}</p>
+        <button
+          className="jsave-btn-ghost jsave-btn-full"
+          disabled={transactions.length === 0}
+          onClick={() => downloadTransactionsCsv({
+            transactions,
+            accounts,
+            currency: settings.currency || 'MYR',
+          })}
+        >
+          📥 {transactions.length ? t('exportCsv') : t('noTransactionsExport')}
+        </button>
+      </Accordion>
+
       {/* Treat me a Coffee */}
       <Accordion title={`☕ ${lang === 'zh' ? '请我喝杯咖啡' : 'Treat Me a Coffee'}`}>
         <TreatCoffee lang={lang} user={user} onShowPayModal={setPayModal} />
@@ -723,10 +741,10 @@ export default function SettingsPage({ onOpenAdmin }) {
 
       {installGuide && (
         <div className="jsave-modal-overlay" onClick={() => setInstallGuide(null)}>
-          <div className="jsave-modal" onClick={e => e.stopPropagation()}>
+          <div className="jsave-modal" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
             <div className="jsave-modal-title">
               <span>{installGuide === 'android' ? '🤖' : '💻'} {installGuide === 'android' ? (lang === 'zh' ? 'Android 安装' : 'Install on Android') : (lang === 'zh' ? '桌面端安装' : 'Install on Desktop')}</span>
-              <button className="jsave-modal-close" onClick={() => setInstallGuide(null)}>✕</button>
+              <button className="jsave-modal-close" aria-label={t('close')} onClick={() => setInstallGuide(null)}>✕</button>
             </div>
             <ol className="jsave-install-guide-steps">
               {(installGuide === 'android'
@@ -776,7 +794,7 @@ function AccountForm({ initial, t, onSave, onDelete, onClose }) {
 
   return (
     <div className="jsave-modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="jsave-modal glass-card">
+      <div className="jsave-modal glass-card" role="dialog" aria-modal="true">
         <h2 className="jsave-modal-title">{initial?.id ? t('accountsSection') : t('addAccount')}</h2>
         <form onSubmit={handleSubmit} className="jsave-form">
           <label className="jsave-label">{t('accountName')}</label>

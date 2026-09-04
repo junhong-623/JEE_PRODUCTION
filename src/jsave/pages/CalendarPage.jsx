@@ -3,6 +3,7 @@ import { useLang } from '../contexts/LangContext'
 import { useJSave } from '../hooks/useJSave'
 import GlassCard from '../components/GlassCard'
 import TransactionForm from '../components/TransactionForm'
+import { toLocalDateString } from '../utils/date'
 
 const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
 
@@ -69,7 +70,7 @@ export default function CalendarPage() {
   for (let i = 0; i < firstDow; i++) cells.push(null)
   for (let d = 1; d <= daysInMonth; d++) cells.push(d)
 
-  const todayStr = now.toISOString().split('T')[0]
+  const todayStr = toLocalDateString(now)
   const selectedDayTx = selectedDay ? (txByDay[pad(selectedDay)] ?? []) : []
 
   return (

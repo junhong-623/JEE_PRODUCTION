@@ -1,9 +1,9 @@
 // JSave Intro Landing Page — /jsave-intro (portfolio route)
 // Claude Design System · Dark mode · Emerald accent · Maximum animations
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { RELEASE_NOTES } from '../jsave/data/releaseNotes'
+import { JSAVE_BASE } from '../jsave/utils/basePath'
 import '../jsave/design-system.css'
 import './JSaveIntro.css'
 
@@ -32,8 +32,8 @@ const COPY = {
     sub: 'JSave is the quiet money tracker that turns daily spending into clear, calm progress. Log in seconds, see where it goes, and watch your goals fill up.',
     ctaA: 'Start saving free',
     ctaB: 'See features ↓',
-    trust: 'No bank login required · Works offline · 100% private',
-    ticker: ['LOG IN 2 SECONDS','BILINGUAL 中英双语','OFFLINE-FIRST','NO ADS','GOAL TRACKING','SMART INSIGHTS','EXPORT ANYTIME','OPEN SOURCE'],
+    trust: 'No bank connection · Offline-ready · Private account sync',
+    ticker: ['FAST MANUAL LOGGING','BILINGUAL 中英双语','OFFLINE-FIRST','NO ADS','GOAL TRACKING','SPENDING INSIGHTS','CSV EXPORT','PRIVATE ACCOUNT SYNC'],
     featHead: 'Built for the way you actually spend',
     featSub: 'Ten small things that add up to a tool you open every day — without dreading it.',
     feats: [
@@ -42,49 +42,48 @@ const COPY = {
       { e: '📊', t: 'Live insights', d: 'Charts that update as you type. Spot leaks before they grow.' },
       { e: '🎯', t: 'Goal jars', d: 'Tokyo, an iPhone, a rainy day — watch each one fill.' },
       { e: '🧮', t: 'Cost-per-day', d: 'Log what you buy — JSave shows the true daily cost as you use it.' },
-      { e: '🔒', t: 'Private by default', d: 'Your data lives on your device. No bank logins, ever.' },
+      { e: '🔒', t: 'Private account', d: 'Your offline cache is isolated by account and syncs only to your private Firestore path.' },
       { e: '✈️', t: 'Works offline', d: 'On a plane, in the hills — JSave never needs a signal.' },
-      { e: '✨', t: 'AI nudges', d: '"Two home dinners saves RM 120." Gentle, specific tips.' },
-      { e: '🔁', t: 'Subscriptions radar', d: 'Every recurring charge surfaced and ranked automatically.' },
-      { e: '📥', t: 'Export anytime', d: 'CSV, PDF, or a clean monthly recap. Your numbers, yours.' },
+      { e: '✨', t: 'Spending nudges', d: 'Simple, local insights highlight where your spending is concentrated.' },
+      { e: '🔁', t: 'Recurring expenses', d: 'Mark a monthly expense once and JSave can add it automatically.' },
+      { e: '📥', t: 'CSV export', d: 'Download all transactions for Excel or another spreadsheet whenever you want.' },
       { e: '🐢', t: 'Slow money, on purpose', d: 'Designed to reduce anxiety, not gamify your wallet.' },
     ],
     demoHead: 'See it move',
-    demoSub: 'This is the real interface. Tap through the screens — every number, chart and jar is live.',
+    demoSub: 'An interactive preview of the real interface. Tap through the screens to explore the workflow.',
     demoTabs: ['Home', 'Ledger', 'Add', 'Insights', 'Goals'],
-    statsHead: 'Quiet numbers, real momentum',
-    statsSub: 'A year of JSave, by the people who keep it open.',
+    statsHead: 'Simple tools, clearly stated',
+    statsSub: 'Product capabilities — no invented usage numbers.',
     stats: [
-      { v: 2.4, p: 'RM ', s: 'M', l: 'Total saved by users', d: 1 },
-      { v: 318000, p: '', s: '+', l: 'Entries logged', d: 0 },
-      { v: 92, p: '', s: '%', l: 'Still active at 6 months', d: 0 },
-      { v: 11, p: '', s: 's', l: 'Avg. time to log', d: 0 },
+      { v: 4, p: '', s: '', l: 'Transaction types', d: 0 },
+      { v: 6, p: '', s: '', l: 'Supported currencies', d: 0 },
+      { v: 2, p: '', s: '', l: 'Interface languages', d: 0 },
+      { v: 0, p: '', s: '', l: 'Bank connections required', d: 0 },
     ],
     growthHead: 'Savings, compounding',
-    growthSub: 'A typical user across their first year — money in jars, not just in a vibe.',
+    growthSub: 'An illustrative savings plan — your real chart is calculated only from your own entries.',
     roadHead: 'Where JSave is heading',
     roadSub: 'Shipped recently, building now, and what is next.',
     road: [
-      { tag: 'SHIPPED', date: 'May 2026', t: 'Bilingual insights v2', d: 'AI nudges now speak both 中文 and English, with category-level tips.', done: true },
-      { tag: 'SHIPPED', date: 'Apr 2026', t: 'Goal jars', d: 'Multiple savings goals with pace tracking and projected dates.', done: true },
-      { tag: 'BUILDING', date: 'Now', t: 'Shared household ledger', d: 'Split a budget with a partner — separate logins, one clear picture.', now: true },
-      { tag: 'NEXT', date: 'Q3 2026', t: 'Recurring auto-detect', d: 'JSave learns your subscriptions and flags price hikes.' },
-      { tag: 'NEXT', date: 'Q4 2026', t: 'Apple Watch quick-log', d: 'Log a coffee from your wrist in one tap.' },
+      { tag: 'SHIPPED', date: 'Sep 2026', t: 'Safer offline sync', d: 'Per-account offline storage, reliable queue replay and idempotent automatic entries.', done: true },
+      { tag: 'SHIPPED', date: 'Sep 2026', t: 'CSV export & budget feedback', d: 'Download transaction data and see daily budget progress from the dashboard.', done: true },
+      { tag: 'SHIPPED', date: 'May 2026', t: 'Goal jars', d: 'Multiple savings goals with pace tracking and projected dates.', done: true },
+      { tag: 'NEXT', date: 'Next', t: 'Better recurring controls', d: 'Dedicated recurring templates with pause, edit and next-run controls.' },
+      { tag: 'NEXT', date: 'Later', t: 'Optional household sharing', d: 'A permission model for shared ledgers, after personal sync is fully hardened.' },
     ],
-    priceHead: 'One price. No surprises.',
-    priceSub: 'JSave stays free for everyday saving. Go Plus when you want the deeper tools.',
+    priceHead: 'Free to use. No fake tiers.',
+    priceSub: 'There is currently one JSave experience, with no paid feature gate.',
     plans: [
-      { name: 'Free', price: 'RM 0', per: 'forever', desc: 'Everything you need to track and save.', cta: 'Start free', feats: ['Unlimited entries','Up to 3 goals','Core insights & charts','Bilingual interface','Offline + private'], hot: false },
-      { name: 'Plus', price: 'RM 12', per: '/ month', desc: 'For people serious about a savings rhythm.', cta: 'Go Plus', feats: ['Everything in Free','Unlimited goals','AI insights & nudges','Subscriptions radar','Export to CSV / PDF','Shared household ledger'], hot: true },
-      { name: 'Lifetime', price: 'RM 188', per: 'once', desc: 'Pay once. Keep Plus forever.', cta: 'Buy lifetime', feats: ['Everything in Plus','All future features','Founder badge 🐢','Priority support'], hot: false },
+      { name: 'JSave', price: 'RM 0', per: 'currently free', desc: 'The complete app available today.', cta: 'Start free', feats: ['Unlimited manual entries','Unlimited goals','Insights & charts','Bilingual interface','Offline cache + private sync','CSV transaction export'], hot: true },
     ],
     faqHead: 'Questions, answered',
     faqSub: 'The things people ask before they start.',
     faqs: [
-      { q: 'Do I have to connect my bank?', a: 'Never. JSave is entry-based by design — you log what you spend, and your data stays on your device. No bank logins, no scraping, no third parties.' },
-      { q: 'Is it really bilingual?', a: 'Fully. Switch between 中文 and English anywhere in the app — every category, report, and AI tip is translated, not just the menus.' },
+      { q: 'Do I have to connect my bank?', a: 'No. JSave is manual-entry by design and never asks for bank credentials.' },
+      { q: 'Where is my data stored?', a: 'JSave keeps an account-isolated offline cache on your device and syncs your records to your private Firebase account path.' },
+      { q: 'Is it really bilingual?', a: 'Yes. Switch between 中文 and English across categories, settings and reports.' },
       { q: 'Does it work offline?', a: 'Yes. JSave is offline-first. Log on a plane, in the hills, anywhere — it syncs whenever you reconnect.' },
-      { q: 'What happens to my data if I stop?', a: 'It is yours. Export everything to CSV or PDF at any time, with one tap. We never lock your numbers behind a subscription.' },
+      { q: 'What happens to my data if I stop?', a: 'You can download all transaction records as CSV from Settings at any time.' },
       { q: 'Why a turtle? 🐢', a: 'Because good money habits are slow and steady. JSave is built to reduce anxiety, not to gamify your wallet.' },
     ],
     finalCtaHead: 'Start with your next ringgit.',
@@ -93,8 +92,8 @@ const COPY = {
     foot: 'Slow money, made calm. Built in KL.',
     footCols: [
       { h: 'Product', items: ['Features','Pricing','Roadmap','Changelog'] },
-      { h: 'Company', items: ['About','Privacy','Open source','Contact'] },
-      { h: 'Get it', items: ['App Store','Google Play','Web app','Mac'] },
+      { h: 'Principles', items: ['No bank connection','Private account data','Honest product claims'] },
+      { h: 'Get it', items: ['Web app','Installable PWA'] },
     ],
     changelog: 'Changelog',
     showAll: (n) => `Show all ${n} versions ↓`,
@@ -112,8 +111,8 @@ const COPY = {
     sub: 'JSave 是一款安静的记账工具，把每天的开销变成清晰、从容的进度。几秒记一笔，看清钱去哪了，看着目标一点点填满。',
     ctaA: '免费开始记账',
     ctaB: '了解功能 ↓',
-    trust: '无需银行登录 · 离线可用 · 100% 私密',
-    ticker: ['两秒记一笔','中英双语','离线优先','没有广告','目标追踪','智能洞察','随时导出','开源透明'],
+    trust: '无需连接银行 · 支持离线 · 私人账号同步',
+    ticker: ['快速手动记账','中英双语','离线优先','没有广告','目标追踪','消费洞察','CSV 导出','私人账号同步'],
     featHead: '为你真实的花钱方式而造',
     featSub: '十个小细节，累加成一个你每天都愿意打开的工具 —— 而不是负担。',
     feats: [
@@ -122,49 +121,48 @@ const COPY = {
       { e: '📊', t: '实时洞察', d: '边输入边更新的图表。在漏洞变大前发现它。' },
       { e: '🎯', t: '目标罐子', d: '东京、一台 iPhone、应急金 —— 看每一个填满。' },
       { e: '🧮', t: '日均成本', d: '记录你买的东西 —— JSave 按使用天数算出真实的每天成本。' },
-      { e: '🔒', t: '默认私密', d: '数据只在你的设备上。永远不需要银行登录。' },
+      { e: '🔒', t: '私人账号', d: '离线缓存按账号隔离，并只同步到你的私人 Firestore 路径。' },
       { e: '✈️', t: '离线可用', d: '飞机上、山里 —— JSave 从不需要信号。' },
-      { e: '✨', t: 'AI 提醒', d: '温和、具体的建议。"在家吃两顿省 RM 120。"' },
-      { e: '🔁', t: '订阅雷达', d: '每一笔周期扣款自动浮现并排序。' },
-      { e: '📥', t: '随时导出', d: 'CSV、PDF，或一份干净的月度回顾。数据归你。' },
+      { e: '✨', t: '消费提示', d: '使用本地规则指出消费最集中的类别，简单而透明。' },
+      { e: '🔁', t: '周期支出', d: '把支出标记为每月重复，JSave 就能按月自动添加。' },
+      { e: '📥', t: 'CSV 导出', d: '随时下载全部交易，可使用 Excel 或其他表格软件打开。' },
       { e: '🐢', t: '慢钱，有意为之', d: '为减少焦虑而设计，而不是让钱包游戏化。' },
     ],
     demoHead: '看它动起来',
-    demoSub: '这就是真实界面。点击切换屏幕 —— 每个数字、图表和罐子都是实时的。',
+    demoSub: '真实界面的互动预览。点击切换屏幕，了解主要操作流程。',
     demoTabs: ['主页', '账本', '新增', '洞察', '目标'],
-    statsHead: '安静的数字，真实的势头',
-    statsSub: 'JSave 的一年 —— 来自每天打开它的人。',
+    statsHead: '简单工具，如实说明',
+    statsSub: '这里只展示产品能力，不使用虚构的用户数据。',
     stats: [
-      { v: 2.4, p: 'RM ', s: 'M', l: '用户累计储蓄', d: 1 },
-      { v: 318000, p: '', s: '+', l: '已记录笔数', d: 0 },
-      { v: 92, p: '', s: '%', l: '半年后仍活跃', d: 0 },
-      { v: 11, p: '', s: '秒', l: '平均记账耗时', d: 0 },
+      { v: 4, p: '', s: '', l: '交易类型', d: 0 },
+      { v: 6, p: '', s: '', l: '支持货币', d: 0 },
+      { v: 2, p: '', s: '', l: '界面语言', d: 0 },
+      { v: 0, p: '', s: '', l: '需要连接银行', d: 0 },
     ],
     growthHead: '储蓄，在复利',
-    growthSub: '一位典型用户的第一年 —— 钱进了罐子，而不只是停在感觉里。',
+    growthSub: '这是一份示例储蓄计划；实际图表只根据你自己的记录计算。',
     roadHead: 'JSave 的去向',
     roadSub: '最近上线、正在打造、以及接下来。',
     road: [
-      { tag: '已上线', date: '2026 年 5 月', t: '双语洞察 v2', d: 'AI 提醒现已支持中英双语，附带类别级别的建议。', done: true },
-      { tag: '已上线', date: '2026 年 4 月', t: '目标罐子', d: '多个储蓄目标，含进度追踪与预计达成日期。', done: true },
-      { tag: '打造中', date: '现在', t: '共享家庭账本', d: '与伴侣共享预算 —— 各自登录，一张清晰的全景图。', now: true },
-      { tag: '接下来', date: '2026 Q3', t: '周期扣款自动识别', d: 'JSave 学习你的订阅，并标记涨价。' },
-      { tag: '接下来', date: '2026 Q4', t: 'Apple Watch 快速记账', d: '在手腕上一点，记下一杯咖啡。' },
+      { tag: '已上线', date: '2026 年 9 月', t: '更安全的离线同步', d: '离线数据按账号隔离、可靠重放队列、自动交易保持幂等。', done: true },
+      { tag: '已上线', date: '2026 年 9 月', t: 'CSV 导出与预算反馈', d: '下载交易数据，并直接在首页查看每日预算进度。', done: true },
+      { tag: '已上线', date: '2026 年 5 月', t: '目标罐子', d: '多个储蓄目标，含进度追踪与预计达成日期。', done: true },
+      { tag: '接下来', date: '下一步', t: '更完整的周期管理', d: '独立周期模板，支持暂停、编辑和查看下次执行。' },
+      { tag: '以后', date: '规划中', t: '可选家庭共享', d: '先完善个人同步，再设计安全清晰的共享权限。' },
     ],
-    priceHead: '一个价格。没有意外。',
-    priceSub: '日常记账永久免费。需要更深的工具时，再升级 Plus。',
+    priceHead: '免费使用，没有虚构方案。',
+    priceSub: '目前只有一套完整的 JSave 体验，没有付费功能墙。',
     plans: [
-      { name: '免费版', price: 'RM 0', per: '永久', desc: '追踪与储蓄所需的一切。', cta: '免费开始', feats: ['无限记账','最多 3 个目标','核心洞察与图表','中英双语界面','离线 + 私密'], hot: false },
-      { name: 'Plus', price: 'RM 12', per: '/ 月', desc: '为认真养成储蓄节奏的你。', cta: '升级 Plus', feats: ['包含免费版全部','无限目标','AI 洞察与提醒','订阅雷达','导出 CSV / PDF','共享家庭账本'], hot: true },
-      { name: '终身版', price: 'RM 188', per: '一次性', desc: '付一次，永久享用 Plus。', cta: '购买终身', feats: ['包含 Plus 全部','所有未来功能','创始徽章 🐢','优先支持'], hot: false },
+      { name: 'JSave', price: 'RM 0', per: '目前免费', desc: '现在可用的完整应用。', cta: '免费开始', feats: ['无限手动记账','无限目标','洞察与图表','中英双语界面','离线缓存 + 私人同步','CSV 交易导出'], hot: true },
     ],
     faqHead: '常见问题',
     faqSub: '开始之前，大家都会问的。',
     faqs: [
-      { q: '我必须绑定银行吗？', a: '永远不需要。JSave 采用手动记账设计 —— 你记下花了什么，数据留在你的设备上。' },
-      { q: '真的是双语吗？', a: '完整双语。可在应用任何位置切换中英文 —— 每个类别、报表、AI 建议都被翻译。' },
+      { q: '我必须绑定银行吗？', a: '不需要。JSave 采用手动记账设计，绝不会索取银行账号密码。' },
+      { q: '数据保存在哪里？', a: 'JSave 会在设备中保留按账号隔离的离线缓存，并同步至你私人的 Firebase 账号路径。' },
+      { q: '真的是双语吗？', a: '是。类别、设置和报表均可切换中文与英文。' },
       { q: '离线能用吗？', a: '可以。JSave 离线优先。在飞机上、山里、任何地方都能记账。' },
-      { q: '如果我不用了，数据怎么办？', a: '数据归你。随时一键导出全部为 CSV 或 PDF。我们绝不把你的数字锁在订阅背后。' },
+      { q: '如果我不用了，数据怎么办？', a: '你可以随时在设置中把全部交易下载为 CSV。' },
       { q: '为什么是乌龟？🐢', a: '因为好的金钱习惯是缓慢而稳定的。JSave 为减少焦虑而造，而不是让钱包游戏化。' },
     ],
     finalCtaHead: '从你的下一分钱开始。',
@@ -173,8 +171,8 @@ const COPY = {
     foot: '慢钱，从容。于吉隆坡打造。',
     footCols: [
       { h: '产品', items: ['功能','价格','路线图','更新日志'] },
-      { h: '公司', items: ['关于','隐私','开源','联系'] },
-      { h: '获取', items: ['App Store','Google Play','网页版','Mac'] },
+      { h: '原则', items: ['无需连接银行','私人账号数据','如实说明功能'] },
+      { h: '获取', items: ['网页版','可安装 PWA'] },
     ],
     changelog: '更新日志',
     showAll: (n) => `查看全部 ${n} 个版本 ↓`,
@@ -212,7 +210,7 @@ function Device({ children }) {
 /* ─────────────────────────────────────────────────────────────────────────
    Main component
    ───────────────────────────────────────────────────────────────────────── */
-export default function JSaveIntro() {
+export default function JSaveIntro({ onOpenApp, withHead = true }) {
   const [lang, setLang] = useState(() => localStorage.getItem('jsave-lang') || 'en')
   const [demoActive, setDemoActive] = useState(0)
   const [faqOpen, setFaqOpen] = useState(0)
@@ -224,9 +222,16 @@ export default function JSaveIntro() {
   const deferredPromptRef = useRef(null)
   const zh = lang === 'zh'
   const c = COPY[lang]
+  const appHref = onOpenApp ? '#' : 'https://jsave.jeeprod.com'
+  const handleOpenApp = event => {
+    if (!onOpenApp) return
+    event.preventDefault()
+    onOpenApp()
+  }
 
   // PWA install setup
   useEffect(() => {
+    if (onOpenApp) return undefined
     const onBeforeInstall = e => { e.preventDefault(); deferredPromptRef.current = e }
     window.addEventListener('beforeinstallprompt', onBeforeInstall)
     const setup = async () => {
@@ -240,10 +245,10 @@ export default function JSaveIntro() {
         await customElements.whenDefined('pwa-install')
       }
       const el = document.createElement('pwa-install')
-      el.setAttribute('manifest-url', '/jsave/manifest.json')
+      el.setAttribute('manifest-url', `${JSAVE_BASE}/manifest.json`)
       el.setAttribute('name', 'JSave')
       el.setAttribute('description', zh ? 'J样省钱，J样享受！' : 'J-Save, J-Joy — personal finance PWA')
-      el.setAttribute('icon', '/jsave/icons/icon-192.png')
+      el.setAttribute('icon', `${JSAVE_BASE}/icons/icon-192.png`)
       el.setAttribute('manual-apple', '')
       document.body.appendChild(el)
       pwaInstallRef.current = el
@@ -254,7 +259,7 @@ export default function JSaveIntro() {
       pwaInstallRef.current?.remove()
       pwaInstallRef.current = null
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [onOpenApp]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const showInstall = () => {
     if (deferredPromptRef.current) {
@@ -310,7 +315,7 @@ export default function JSaveIntro() {
 
   return (
     <div className="ji-root js-bg" style={{ minHeight: '100vh', overflowX: 'hidden' }}>
-      <Helmet>
+      {withHead && <Helmet>
         <title>{metaTitle}</title>
         <meta name="description" content={metaDesc} />
         <meta property="og:title" content={metaTitle} />
@@ -318,7 +323,7 @@ export default function JSaveIntro() {
         <meta property="og:url" content="https://www.jeeprod.com/jsave-intro" />
         <meta property="og:image" content="https://www.jeeprod.com/jsave/icons/icon-512.png" />
         <link rel="canonical" href="https://www.jeeprod.com/jsave-intro" />
-      </Helmet>
+      </Helmet>}
 
       {/* ── Nav ── */}
       <nav className="ji-nav" style={{ position: 'sticky', top: 0, zIndex: 100, background: 'rgba(5,13,26,0.72)', backdropFilter: 'blur(18px) saturate(150%)', WebkitBackdropFilter: 'blur(18px) saturate(150%)', borderBottom: '1px solid var(--js-line-soft)' }}>
@@ -342,7 +347,7 @@ export default function JSaveIntro() {
             <button className="ji-lang-btn" onClick={() => { const l = lang === 'zh' ? 'en' : 'zh'; setLang(l); localStorage.setItem('jsave-lang', l) }}>
               {zh ? '🇺🇸 EN' : '🇨🇳 中文'}
             </button>
-            <Link to="/jsave" className="js-btn-primary ji-nav-cta" style={{ padding: '10px 18px', fontSize: 13 }}>{c.navCta}</Link>
+            <a href={appHref} onClick={handleOpenApp} className="js-btn-primary ji-nav-cta" style={{ padding: '10px 18px', fontSize: 13 }}>{c.navCta}</a>
             {/* Hamburger — mobile only */}
             <button className="ji-hamburger" onClick={() => setShowMenu(m => !m)} aria-label="Menu">
               {showMenu ? '✕' : '☰'}
@@ -359,6 +364,9 @@ export default function JSaveIntro() {
                 {n}
               </a>
             ))}
+            <a href={appHref} onClick={event => { setShowMenu(false); handleOpenApp(event) }} className="ji-mobile-menu-link" style={{ color: 'var(--js-emerald)' }}>
+              {c.navCta} →
+            </a>
           </div>
         )}
       </nav>
@@ -381,15 +389,15 @@ export default function JSaveIntro() {
             </h1>
             <p className="js-body" style={{ marginTop: 22, maxWidth: 440, fontSize: 16 }}>{c.sub}</p>
             <div style={{ marginTop: 30, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-              <Link to="/jsave" className="js-btn-primary">{c.ctaA} <span style={{ fontSize: 15 }}>→</span></Link>
+              <a href={appHref} onClick={handleOpenApp} className="js-btn-primary">{c.ctaA} <span style={{ fontSize: 15 }}>→</span></a>
               <a href="#features" className="js-btn-ghost">{c.ctaB}</a>
             </div>
             <div style={{ marginTop: 22, fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: 0.5, color: 'var(--js-ink-3)' }}>{c.trust}</div>
             <div className="ji-hero-mini-stats" style={{ marginTop: 34 }}>
               {[
-                { v: 48721, p: 'RM ', s: '', l: zh ? '已追踪储蓄' : 'Saved tracked', d: 0 },
-                { v: 12, p: '', s: 'k+', l: zh ? '安静的用户' : 'Quiet users', d: 0 },
-                { v: 4.9, p: '', s: '★', l: zh ? '应用评分' : 'App Store', d: 1 },
+                { v: 4, p: '', s: '', l: zh ? '交易类型' : 'Transaction types', d: 0 },
+                { v: 6, p: '', s: '', l: zh ? '支持货币' : 'Currencies', d: 0 },
+                { v: 2, p: '', s: '', l: zh ? '界面语言' : 'Languages', d: 0 },
               ].map(st => (
                 <div key={st.l}>
                   <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, letterSpacing: -1, color: 'var(--js-ink)' }}>
@@ -574,7 +582,7 @@ export default function JSaveIntro() {
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--js-ink-3)' }}>{p.per}</span>
               </div>
               <p className="js-body-sm" style={{ marginTop: 10, minHeight: 38 }}>{p.desc}</p>
-              <Link to="/jsave" className={p.hot ? 'js-btn-primary' : 'js-btn-ghost'} style={{ width: '100%', justifyContent: 'center', marginTop: 8, boxSizing: 'border-box', display: 'inline-flex' }}>{p.cta}</Link>
+              <a href={appHref} onClick={handleOpenApp} className={p.hot ? 'js-btn-primary' : 'js-btn-ghost'} style={{ width: '100%', justifyContent: 'center', marginTop: 8, boxSizing: 'border-box', display: 'inline-flex' }}>{p.cta}</a>
               <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {p.feats.map(f => (
                   <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
@@ -659,8 +667,8 @@ export default function JSaveIntro() {
             <h2 className="js-h1" style={{ fontSize: 'clamp(40px, 5vw, 68px)' }}>{c.finalCtaHead}</h2>
             <p className="js-body" style={{ marginTop: 18, fontSize: 17, maxWidth: 440, marginInline: 'auto' }}>{c.finalCtaSub}</p>
             <div style={{ marginTop: 32, display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Link to="/jsave" className="js-btn-primary" style={{ padding: '15px 26px', fontSize: 15 }}>{c.finalCtaA} <span style={{ fontSize: 16 }}>→</span></Link>
-              <button className="js-btn-ghost" onClick={showInstall} style={{ padding: '14px 22px', fontSize: 15 }}>📲 {zh ? '安装 App' : 'Install App'}</button>
+              <a href={appHref} onClick={handleOpenApp} className="js-btn-primary" style={{ padding: '15px 26px', fontSize: 15 }}>{c.finalCtaA} <span style={{ fontSize: 16 }}>→</span></a>
+              {!onOpenApp && <button className="js-btn-ghost" onClick={showInstall} style={{ padding: '14px 22px', fontSize: 15 }}>📲 {zh ? '安装 App' : 'Install App'}</button>}
             </div>
           </div>
         </div>
@@ -679,7 +687,7 @@ export default function JSaveIntro() {
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: 2, color: 'var(--js-ink-4)', textTransform: 'uppercase', marginBottom: 16 }}>{col.h}</div>
                 <div className="ji-footer-col-items">
                   {col.items.map(it => (
-                    <a key={it} href="#" style={{ fontFamily: 'var(--font-sans)', fontSize: 13.5, color: 'var(--js-ink-2)', textDecoration: 'none' }}>{it}</a>
+                    <span key={it} style={{ fontFamily: 'var(--font-sans)', fontSize: 13.5, color: 'var(--js-ink-2)' }}>{it}</span>
                   ))}
                 </div>
               </div>
@@ -697,7 +705,7 @@ export default function JSaveIntro() {
       </section>
 
       {/* ── PWA install modal ── */}
-      {installGuide && (() => {
+      {!onOpenApp && installGuide && (() => {
         const langKey = zh ? 'zh' : 'en'
         const step = installGuide === 'android' ? PWA_STEPS[langKey][0] : PWA_STEPS[langKey][2]
         return (
@@ -711,7 +719,7 @@ export default function JSaveIntro() {
               </ol>
               <p className="ji-install-modal-hint">
                 {zh ? '📌 如未看到安装图标，请先访问应用页面再尝试。' : '📌 No install icon? Visit the app page first.'}{' '}
-                <Link to="/jsave" style={{ color: 'var(--js-emerald)' }}>jeeprod.com/jsave</Link>
+                <a href={appHref} onClick={handleOpenApp} style={{ color: 'var(--js-emerald)' }}>jsave.jeeprod.com</a>
               </p>
             </div>
           </div>

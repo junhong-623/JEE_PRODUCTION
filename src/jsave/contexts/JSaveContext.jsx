@@ -4,12 +4,13 @@ import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import {
   subscribeAccounts, subscribeTransactions, subscribeItems, subscribeSettings, subscribeGoals,
 } from '../services/firestore'
-import { dbGetAll, dbPut, dbDelete } from '../services/db'
-import { syncWrite, syncDelete, flushQueue } from '../services/sync'
+import { dbGetAll, dbDelete, migrateLegacyData } from '../services/db'
+import { syncWrite, syncDelete, flushQueue, reconcileRemote } from '../services/sync'
+import { getDueAutoSalary, getDueRecurringTransactions } from '../services/automation'
 
 export const JSaveContext = createContext(null)
 
-const DEFAULT_SETTINGS = {
+export const DEFAULT_SETTINGS = {
   id: 'config',
   monthlyIncome: 0,
   currency: 'MYR',
@@ -19,299 +20,315 @@ const DEFAULT_SETTINGS = {
   language: 'en',
 }
 
+const EMPTY_REMOTE_READY = {
+  accounts: false,
+  transactions: false,
+  items: false,
+  settings: false,
+  goals: false,
+}
+
 export function JSaveProvider({ children, onLanguageChange }) {
   const { user } = useAuth()
   const online = useOnlineStatus()
+  const uid = user?.uid ?? null
   const [accounts, setAccounts] = useState([])
   const [transactions, setTransactions] = useState([])
   const [items, setItems] = useState([])
   const [goals, setGoals] = useState([])
   const [settings, setSettings] = useState(DEFAULT_SETTINGS)
-  const [loading, setLoading] = useState(true)
-  const unsubs = useRef([])
+  const [loading, setLoading] = useState(Boolean(uid))
+  const [hydratedUid, setHydratedUid] = useState(null)
+  const [remoteReady, setRemoteReady] = useState(EMPTY_REMOTE_READY)
+  const [syncError, setSyncError] = useState(null)
   const autoSalaryDone = useRef(new Set())
   const autoRecurringDone = useRef(new Set())
 
-  // Load from IDB immediately for offline-first feel
+  // Reset immediately on account changes, then hydrate only that user's database.
   useEffect(() => {
-    if (!user) { setLoading(false); return }
-    Promise.all([
-      dbGetAll('accounts'),
-      dbGetAll('transactions'),
-      dbGetAll('items'),
-      dbGetAll('settings'),
-      dbGetAll('goals'),
-    ]).then(([accs, txs, itms, sets, gls]) => {
-      if (accs.length) setAccounts(accs)
-      if (txs.length) setTransactions(txs.filter(t => !t.deleted))
-      if (itms.length) setItems(itms)
-      if (gls.length) setGoals(gls)
-      const s = sets.find(s => s.id === 'config')
-      if (s) {
-        setSettings(s)
-        onLanguageChange?.(s.language || 'en')
+    let cancelled = false
+    setAccounts([])
+    setTransactions([])
+    setItems([])
+    setGoals([])
+    setSettings(DEFAULT_SETTINGS)
+    setHydratedUid(null)
+    setRemoteReady(EMPTY_REMOTE_READY)
+    setSyncError(null)
+    setLoading(Boolean(uid))
+    autoSalaryDone.current.clear()
+    autoRecurringDone.current.clear()
+
+    if (!uid) return undefined
+
+    async function hydrate() {
+      try {
+        await migrateLegacyData(uid)
+        const [cachedAccounts, cachedTransactions, cachedItems, cachedSettings, cachedGoals] = await Promise.all([
+          dbGetAll(uid, 'accounts'),
+          dbGetAll(uid, 'transactions'),
+          dbGetAll(uid, 'items'),
+          dbGetAll(uid, 'settings'),
+          dbGetAll(uid, 'goals'),
+        ])
+        if (cancelled) return
+        setAccounts(cachedAccounts)
+        setTransactions(cachedTransactions.filter(transaction => !transaction.deleted))
+        setItems(cachedItems)
+        setGoals(cachedGoals)
+        const cachedConfig = cachedSettings.find(value => value.id === 'config')
+        if (cachedConfig) {
+          const nextSettings = { ...DEFAULT_SETTINGS, ...cachedConfig }
+          setSettings(nextSettings)
+          onLanguageChange?.(nextSettings.language)
+        }
+      } catch (error) {
+        if (!cancelled) setSyncError(error)
+      } finally {
+        if (!cancelled) {
+          setHydratedUid(uid)
+          setLoading(false)
+        }
       }
-    }).finally(() => setLoading(false))
-  }, [user])
+    }
 
-  // Firestore subscriptions — keep IDB + state in sync
+    hydrate()
+    return () => { cancelled = true }
+  }, [uid, onLanguageChange])
+
+  // Start remote listeners only after local hydration so stale local reads cannot
+  // overwrite a newer Firestore snapshot that arrived first.
   useEffect(() => {
-    if (!user) return
-    const uid = user.uid
+    if (!uid || hydratedUid !== uid) return undefined
+    let cancelled = false
 
-    const unsubAccounts = subscribeAccounts(uid, data => {
-      setAccounts(data)
-      data.forEach(d => dbPut('accounts', d))
-    })
-    const unsubTx = subscribeTransactions(uid, data => {
-      setTransactions(data)
-      data.forEach(d => dbPut('transactions', d))
-    })
-    const unsubItems = subscribeItems(uid, data => {
-      setItems(data)
-      data.forEach(d => dbPut('items', d))
-    })
-    const unsubSettings = subscribeSettings(uid, data => {
-      setSettings(data)
-      dbPut('settings', data)
-      onLanguageChange?.(data.language || 'en')
-    })
-
-    const unsubGoals = subscribeGoals(uid, data => {
-      setGoals(data)
-      data.forEach(d => dbPut('goals', d))
-    })
-
-    unsubs.current = [unsubAccounts, unsubTx, unsubItems, unsubSettings, unsubGoals]
-    return () => unsubs.current.forEach(u => u())
-  }, [user])
-
-  // Auto-recurring: runs once after initial data load, auto-adds this month's recurring expenses
-  useEffect(() => {
-    if (loading || !user) return
-
-    const now = new Date()
-    const year = now.getFullYear()
-    const mm = String(now.getMonth() + 1).padStart(2, '0')
-    const monthKey = `${year}-${mm}`
-    const day = String(now.getDate()).padStart(2, '0')
-    const lang = settings?.language || 'en'
-    const prefix = lang === 'zh'
-      ? `${now.getMonth() + 1}月`
-      : now.toLocaleString('en', { month: 'short' })
-
-    const recurringTxs = transactions.filter(t => t.recurring && t.type === 'expense' && !t.deleted)
-    if (!recurringTxs.length) return
-
-    // Group by signature — keep only the latest tx per unique recurring template
-    const latest = new Map()
-    recurringTxs.forEach(t => {
-      const sig = `${t.amount}|${t.category}|${t.accountId}|${t.recurringBaseNote ?? t.note}`
-      const prev = latest.get(sig)
-      if (!prev || t.date > prev.date) latest.set(sig, t)
-    })
-
-    latest.forEach((template, sig) => {
-      const sessionKey = sig + monthKey
-      if (autoRecurringDone.current.has(sessionKey)) return
-      autoRecurringDone.current.add(sessionKey)
-
-      // Already has a recurring tx this month with the same signature
-      const alreadyThisMonth = recurringTxs.some(
-        t => t.date.startsWith(monthKey) &&
-          `${t.amount}|${t.category}|${t.accountId}|${t.recurringBaseNote ?? t.note}` === sig
-      )
-      if (alreadyThisMonth) return
-
-      const baseNote = template.recurringBaseNote ?? template.note
-      const tx = {
-        ...template,
-        id: crypto.randomUUID(),
-        date: `${monthKey}-${day}`,
-        note: baseNote ? `${prefix} - ${baseNote}` : prefix,
-        recurringBaseNote: baseNote,
-        recurring: true,
-        autoAdded: true,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        deleted: false,
-        userId: user.uid,
+    const markReady = store => setRemoteReady(previous => ({ ...previous, [store]: true }))
+    const onError = store => error => {
+      if (cancelled) return
+      setSyncError(error)
+      markReady(store)
+    }
+    const applyRemote = (store, setter, normalize = value => value) => async remoteData => {
+      try {
+        const merged = await reconcileRemote(uid, store, normalize(remoteData))
+        if (!cancelled) setter(merged)
+      } catch (error) {
+        if (!cancelled) setSyncError(error)
+      } finally {
+        if (!cancelled) markReady(store)
       }
-      setTransactions(prev => [tx, ...prev])
-      syncWrite(user.uid, 'transactions', tx, online)
-    })
-  }, [loading]) // eslint-disable-line react-hooks/exhaustive-deps
+    }
 
-  // Flush sync queue when back online
+    const unsubscribers = [
+      subscribeAccounts(uid, applyRemote('accounts', setAccounts), onError('accounts')),
+      subscribeTransactions(uid, applyRemote('transactions', data => {
+        setTransactions([...data].sort((a, b) => (b.date || '').localeCompare(a.date || '')))
+      }), onError('transactions')),
+      subscribeItems(uid, applyRemote('items', setItems), onError('items')),
+      subscribeGoals(uid, applyRemote('goals', setGoals), onError('goals')),
+      subscribeSettings(uid, applyRemote('settings', data => {
+        const nextSettings = { ...DEFAULT_SETTINGS, ...(data[0] || {}) }
+        setSettings(nextSettings)
+        onLanguageChange?.(nextSettings.language)
+      }, data => [{ ...DEFAULT_SETTINGS, ...data, userId: uid }]), onError('settings')),
+    ]
+
+    return () => {
+      cancelled = true
+      unsubscribers.forEach(unsubscribe => unsubscribe())
+    }
+  }, [uid, hydratedUid, onLanguageChange])
+
   useEffect(() => {
-    if (online && user) flushQueue(user.uid)
-  }, [online, user])
+    if (online && uid && hydratedUid === uid) {
+      flushQueue(uid).then(() => setSyncError(null)).catch(setSyncError)
+    }
+  }, [online, uid, hydratedUid])
 
-  // Auto-salary: runs once after initial data load
-  useEffect(() => {
-    if (loading || !user) return
-    const { autoSalary, salaryDay, salaryAccountId, monthlyIncome } = settings
-    if (!autoSalary || !salaryDay || !salaryAccountId || !monthlyIncome) return
-
-    const now = new Date()
-    const dayOfMonth = now.getDate()
-    // Only fire on the exact salary day — no grace period.
-    // This prevents retroactive fills when the user opens the app days later.
-    if (dayOfMonth !== salaryDay) return
-
-    const year = now.getFullYear()
-    const mm = String(now.getMonth() + 1).padStart(2, '0')
-    const monthKey = `${year}-${mm}`
-
-    // lastAutoSalaryMonth persists to Firestore/IDB — survives transaction deletion.
-    // Once recorded for a month, we never re-add even if the tx is deleted.
-    if (settings.lastAutoSalaryMonth === monthKey) return
-
-    if (autoSalaryDone.current.has(monthKey)) return
-    autoSalaryDone.current.add(monthKey)
-
-    // Record the month BEFORE adding the transaction.
-    // If user later deletes the tx, this flag prevents re-adding.
-    const updatedSettings = { ...settings, lastAutoSalaryMonth: monthKey, id: 'config', userId: user.uid }
-    setSettings(updatedSettings)
-    syncWrite(user.uid, 'settings', updatedSettings, online)
-
-    const alreadyAdded = transactions.some(
-      t => t.autoAdded && t.category === 'catSalary' && t.date.startsWith(monthKey)
+  const automationReady = Boolean(
+    uid && hydratedUid === uid && (
+      !online || (remoteReady.accounts && remoteReady.transactions && remoteReady.settings)
     )
-    if (alreadyAdded) return
+  )
 
-    const tx = {
-      type: 'income',
-      amount: monthlyIncome,
-      category: 'catSalary',
-      accountId: salaryAccountId,
-      date: `${monthKey}-${String(salaryDay).padStart(2, '0')}`,
-      note: 'Auto salary',
-      autoAdded: true,
-      userId: user.uid,
+  useEffect(() => {
+    if (!automationReady || !uid) return
+    const due = getDueRecurringTransactions({
+      transactions,
+      uid,
+      language: settings.language,
+    })
+
+    for (const transaction of due) {
+      if (autoRecurringDone.current.has(transaction.id)) continue
+      autoRecurringDone.current.add(transaction.id)
+      setTransactions(previous =>
+        previous.some(item => item.id === transaction.id) ? previous : [transaction, ...previous]
+      )
+      syncWrite(uid, 'transactions', transaction, online).catch(setSyncError)
+    }
+  }, [automationReady, uid, transactions, settings.language, online])
+
+  useEffect(() => {
+    if (!automationReady || !uid) return
+    const due = getDueAutoSalary({ transactions, settings, uid })
+    if (!due || autoSalaryDone.current.has(due.monthKey)) return
+    autoSalaryDone.current.add(due.monthKey)
+
+    async function applyAutoSalary() {
+      if (due.transaction) {
+        setTransactions(previous =>
+          previous.some(item => item.id === due.transaction.id) ? previous : [due.transaction, ...previous]
+        )
+        await syncWrite(uid, 'transactions', due.transaction, online)
+      }
+      const updatedSettings = {
+        ...settings,
+        id: 'config',
+        userId: uid,
+        lastAutoSalaryMonth: due.monthKey,
+      }
+      setSettings(updatedSettings)
+      await syncWrite(uid, 'settings', updatedSettings, online)
+    }
+
+    applyAutoSalary().catch(setSyncError)
+  }, [automationReady, uid, transactions, settings, online])
+
+  const addTransaction = useCallback(async data => {
+    const transaction = {
+      ...data,
+      userId: uid,
       id: crypto.randomUUID(),
       createdAt: Date.now(),
       updatedAt: Date.now(),
       deleted: false,
     }
-    setTransactions(prev => [tx, ...prev])
-    syncWrite(user.uid, 'transactions', tx, online)
-  }, [loading]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const uid = user?.uid
-
-  const addTransaction = useCallback(async (data) => {
-    const tx = { ...data, userId: uid, id: crypto.randomUUID(), createdAt: Date.now(), updatedAt: Date.now(), deleted: false }
-    setTransactions(prev => [tx, ...prev])
-    await syncWrite(uid, 'transactions', tx, online)
+    setTransactions(previous => [transaction, ...previous])
+    await syncWrite(uid, 'transactions', transaction, online)
   }, [uid, online])
 
   const updateTransaction = useCallback(async (id, data) => {
-    const updated = { ...data, id, userId: uid, updatedAt: Date.now() }
-    setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updated } : t))
+    const current = transactions.find(transaction => transaction.id === id) || {}
+    const updated = { ...current, ...data, id, userId: uid, updatedAt: Date.now() }
+    setTransactions(previous => previous.map(transaction => transaction.id === id ? updated : transaction))
     await syncWrite(uid, 'transactions', updated, online)
-  }, [uid, online])
+  }, [uid, online, transactions])
 
-  const deleteTransaction = useCallback(async (id) => {
-    setTransactions(prev => prev.filter(t => t.id !== id))
-    await dbDelete('transactions', id)
+  const deleteTransaction = useCallback(async id => {
+    setTransactions(previous => previous.filter(transaction => transaction.id !== id))
+    await dbDelete(uid, 'transactions', id)
     await syncDelete(uid, 'transactions', id, online)
   }, [uid, online])
 
-  const addAccount = useCallback(async (data) => {
-    const acc = { ...data, userId: uid, id: crypto.randomUUID(), createdAt: Date.now() }
-    setAccounts(prev => [...prev, acc])
-    await syncWrite(uid, 'accounts', acc, online)
-    return acc
+  const addAccount = useCallback(async data => {
+    const account = { ...data, userId: uid, id: crypto.randomUUID(), createdAt: Date.now() }
+    setAccounts(previous => [...previous, account])
+    await syncWrite(uid, 'accounts', account, online)
+    return account
   }, [uid, online])
 
   const updateAccount = useCallback(async (id, data) => {
-    const updated = { ...data, id, userId: uid }
-    setAccounts(prev => prev.map(a => a.id === id ? { ...a, ...updated } : a))
+    const current = accounts.find(account => account.id === id) || {}
+    const updated = { ...current, ...data, id, userId: uid }
+    setAccounts(previous => previous.map(account => account.id === id ? updated : account))
     await syncWrite(uid, 'accounts', updated, online)
-  }, [uid, online])
+  }, [uid, online, accounts])
 
-  const deleteAccount = useCallback(async (id) => {
-    setAccounts(prev => prev.filter(a => a.id !== id))
-    await dbDelete('accounts', id)
+  const deleteAccount = useCallback(async id => {
+    setAccounts(previous => previous.filter(account => account.id !== id))
+    await dbDelete(uid, 'accounts', id)
     await syncDelete(uid, 'accounts', id, online)
   }, [uid, online])
 
-  const addItem = useCallback(async (data) => {
+  const addItem = useCallback(async data => {
     const item = { ...data, userId: uid, id: crypto.randomUUID(), createdAt: Date.now() }
-    setItems(prev => [...prev, item])
+    setItems(previous => [...previous, item])
     await syncWrite(uid, 'items', item, online)
   }, [uid, online])
 
   const updateItem = useCallback(async (id, data) => {
-    const updated = { ...data, id, userId: uid }
-    setItems(prev => prev.map(i => i.id === id ? { ...i, ...updated } : i))
+    const current = items.find(item => item.id === id) || {}
+    const updated = { ...current, ...data, id, userId: uid }
+    setItems(previous => previous.map(item => item.id === id ? updated : item))
     await syncWrite(uid, 'items', updated, online)
-  }, [uid, online])
+  }, [uid, online, items])
 
-  const deleteItem = useCallback(async (id) => {
-    setItems(prev => prev.filter(i => i.id !== id))
-    await dbDelete('items', id)
+  const deleteItem = useCallback(async id => {
+    setItems(previous => previous.filter(item => item.id !== id))
+    await dbDelete(uid, 'items', id)
     await syncDelete(uid, 'items', id, online)
   }, [uid, online])
 
-  const addGoal = useCallback(async (data) => {
-    const goal = { ...data, userId: uid, id: crypto.randomUUID(), createdAt: Date.now(), updatedAt: Date.now() }
-    setGoals(prev => [...prev, goal])
+  const addGoal = useCallback(async data => {
+    const goal = {
+      ...data,
+      userId: uid,
+      id: crypto.randomUUID(),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    }
+    setGoals(previous => [...previous, goal])
     await syncWrite(uid, 'goals', goal, online)
     return goal
   }, [uid, online])
 
   const updateGoal = useCallback(async (id, data) => {
-    const updated = { ...data, id, userId: uid, updatedAt: Date.now() }
-    setGoals(prev => prev.map(g => g.id === id ? { ...g, ...updated } : g))
+    const current = goals.find(goal => goal.id === id) || {}
+    const updated = { ...current, ...data, id, userId: uid, updatedAt: Date.now() }
+    setGoals(previous => previous.map(goal => goal.id === id ? updated : goal))
     await syncWrite(uid, 'goals', updated, online)
-  }, [uid, online])
+  }, [uid, online, goals])
 
-  const deleteGoal = useCallback(async (id) => {
-    setGoals(prev => prev.filter(g => g.id !== id))
-    await dbDelete('goals', id)
+  const deleteGoal = useCallback(async id => {
+    setGoals(previous => previous.filter(goal => goal.id !== id))
+    await dbDelete(uid, 'goals', id)
     await syncDelete(uid, 'goals', id, online)
   }, [uid, online])
 
-  const updateSettings = useCallback(async (data) => {
+  const updateSettings = useCallback(async data => {
     const updated = { ...settings, ...data, id: 'config', userId: uid }
     setSettings(updated)
     await syncWrite(uid, 'settings', updated, online)
     if (data.language) onLanguageChange?.(data.language)
   }, [uid, online, settings, onLanguageChange])
 
-  // Computed helpers
-  const getAccountBalance = useCallback((accountId) => {
-    const acc = accounts.find(a => a.id === accountId)
-    const initial = acc?.initialBalance ?? 0
-    return transactions.reduce((sum, t) => {
-      if (t.type === 'income'   && t.accountId     === accountId) return sum + t.amount
-      if (t.type === 'expense'  && t.accountId     === accountId) return sum - t.amount
-      if (t.type === 'transfer' && t.fromAccountId === accountId) return sum - t.amount
-      if (t.type === 'transfer' && t.toAccountId   === accountId) return sum + t.amount
-      if (t.type === 'split') {
+  const getAccountBalance = useCallback(accountId => {
+    const account = accounts.find(value => value.id === accountId)
+    const initial = account?.initialBalance ?? 0
+    return transactions.reduce((sum, transaction) => {
+      if (transaction.type === 'income' && transaction.accountId === accountId) return sum + transaction.amount
+      if (transaction.type === 'expense' && transaction.accountId === accountId) return sum - transaction.amount
+      if (transaction.type === 'transfer' && transaction.fromAccountId === accountId) return sum - transaction.amount
+      if (transaction.type === 'transfer' && transaction.toAccountId === accountId) return sum + transaction.amount
+      if (transaction.type === 'split') {
         let delta = 0
-        if (t.accountId === accountId) delta -= t.amount
-        if (t.splitWith) {
-          t.splitWith.forEach(f => {
-            if (f.settled && f.settledAccountId === accountId) delta += f.share
-          })
-        }
+        if (transaction.accountId === accountId) delta -= transaction.amount
+        transaction.splitWith?.forEach(friend => {
+          if (friend.settled && friend.settledAccountId === accountId) delta += friend.share
+        })
         return sum + delta
       }
       return sum
     }, initial)
   }, [accounts, transactions])
 
-  const getTotalBalance = useCallback(() => {
-    return accounts.reduce((sum, acc) => sum + getAccountBalance(acc.id), 0)
-  }, [accounts, getAccountBalance])
+  const getTotalBalance = useCallback(() =>
+    accounts.reduce((sum, account) => sum + getAccountBalance(account.id), 0),
+  [accounts, getAccountBalance])
+
+  const dataLoading = Boolean(uid) && (loading || hydratedUid !== uid)
 
   return (
     <JSaveContext.Provider value={{
-      accounts, transactions, items, goals, settings, loading, online,
+      accounts: dataLoading ? [] : accounts,
+      transactions: dataLoading ? [] : transactions,
+      items: dataLoading ? [] : items,
+      goals: dataLoading ? [] : goals,
+      settings: dataLoading ? DEFAULT_SETTINGS : settings,
+      loading: dataLoading,
+      online,
+      syncReady: automationReady, syncError,
       addTransaction, updateTransaction, deleteTransaction,
       addAccount, updateAccount, deleteAccount,
       addItem, updateItem, deleteItem,

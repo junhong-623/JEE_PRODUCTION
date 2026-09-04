@@ -156,6 +156,8 @@ export default {
   monthlyIncomeLabel: 'Monthly Income',
   currencyLabel: 'Currency',
   dailyBudgetLabel: 'Daily Budget',
+  budgetRemaining: 'RM {amount} left today',
+  budgetOver: 'RM {amount} over today',
   accountsSection: 'Accounts',
   addAccount: 'Add Account',
   accountName: 'Account Name',
@@ -171,6 +173,7 @@ export default {
   settingsSaved: 'Settings saved.',
   save: 'Save',
   cancel: 'Cancel',
+  close: 'Close',
   delete: 'Delete',
   confirm: 'Confirm',
   confirmDelete: 'Are you sure you want to delete this?',
@@ -184,6 +187,12 @@ export default {
   salaryPreview: 'Will add {amount} to {account} on the {day}th each month',
   salaryAdded: 'Salary auto-added for this month',
   noAccountForSalary: 'Add an account first',
+
+  // Data export
+  dataSection: 'Your Data',
+  exportCsv: 'Export transactions as CSV',
+  exportCsvDesc: 'Download a spreadsheet-compatible copy of all your transactions.',
+  noTransactionsExport: 'No transactions to export',
 
   // Activity
   activitySection: 'Activity',
@@ -219,6 +228,9 @@ export default {
   offline: 'You\'re offline — changes saved locally',
   syncing: 'Syncing…',
   synced: 'Synced',
+  syncFailed: 'Some changes could not sync yet — JSave will retry',
+  mainNavigation: 'Main navigation',
+  addTransaction: 'Add transaction',
 
   // Goals
   navGoals: 'Goals',

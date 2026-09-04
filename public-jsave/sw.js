@@ -1,7 +1,12 @@
-const CACHE = 'jsave-v3'
+const CACHE = 'jsave-v4'
 
 self.addEventListener('install', e => {
   self.skipWaiting()
+  e.waitUntil(
+    fetch('/precache-manifest.json', { cache: 'no-store' })
+      .then(response => response.json())
+      .then(({ assets }) => caches.open(CACHE).then(cache => cache.addAll(assets)))
+  )
 })
 
 self.addEventListener('activate', e => {
@@ -46,12 +51,14 @@ self.addEventListener('fetch', e => {
   if (request.mode === 'navigate') {
     e.respondWith(
       fetch(request)
-        .then(res => {
+        .then(async res => {
           const clone = res.clone()
-          caches.open(CACHE).then(c => c.put(request, clone))
+          if (res.ok) await caches.open(CACHE).then(c => c.put(request, clone))
           return res
         })
-        .catch(() => caches.match(request))
+        .catch(async () =>
+          (await caches.match(request)) || (await caches.match('/jsave.html'))
+        )
     )
     return
   }
@@ -60,10 +67,10 @@ self.addEventListener('fetch', e => {
     e.respondWith(
       caches.match(request).then(cached => {
         if (cached) return cached
-        return fetch(request).then(res => {
+        return fetch(request).then(async res => {
           if (res.ok) {
             const clone = res.clone()
-            caches.open(CACHE).then(c => c.put(request, clone))
+            await caches.open(CACHE).then(c => c.put(request, clone))
           }
           return res
         })

@@ -1,4 +1,6 @@
-import { dbPut, dbDelete, enqueueSync, getSyncQueue, dequeueSync } from './db'
+import {
+  dbPut, dbDelete, dbReplaceAll, enqueueSync, getSyncQueue, dequeueSync,
+} from './db'
 import {
   fsWriteAccount, fsWriteTransaction, fsWriteItem, fsWriteSettings, fsWriteGoal,
   fsDeleteAccount, fsDeleteTransaction, fsDeleteItem, fsDeleteGoal,
@@ -19,41 +21,82 @@ const DELETERS = {
   goals: fsDeleteGoal,
 }
 
+const activeFlushes = new Map()
+
+function writerFor(store) {
+  const writer = WRITERS[store]
+  if (!writer) throw new Error(`Unsupported JSave store: ${store}`)
+  return writer
+}
+
 export async function syncWrite(uid, store, data, online) {
-  await dbPut(store, data)
+  await dbPut(uid, store, data)
   if (online) {
     try {
-      await WRITERS[store](uid, data)
+      await writerFor(store)(uid, data)
+      return
     } catch {
-      await enqueueSync({ store, op: 'write', data, uid, ts: Date.now() })
+      // Persist below and retry on the next reconnect.
     }
-  } else {
-    await enqueueSync({ store, op: 'write', data, uid, ts: Date.now() })
   }
+  await enqueueSync(uid, { store, op: 'write', data, ts: Date.now() })
 }
 
 export async function syncDelete(uid, store, id, online) {
-  await dbDelete(store, id)
+  await dbDelete(uid, store, id)
   if (online) {
     try {
-      await DELETERS[store]?.(uid, id)
+      const deleter = DELETERS[store]
+      if (!deleter) throw new Error(`Unsupported delete store: ${store}`)
+      await deleter(uid, id)
+      return
     } catch {
-      await enqueueSync({ store, op: 'delete', id, uid, ts: Date.now() })
+      // Persist below and retry on the next reconnect.
     }
-  } else {
-    await enqueueSync({ store, op: 'delete', id, uid, ts: Date.now() })
+  }
+  await enqueueSync(uid, { store, op: 'delete', id, ts: Date.now() })
+}
+
+// Merge remote snapshots with pending local operations so a snapshot cannot
+// temporarily hide an offline write or resurrect a locally deleted record.
+export async function reconcileRemote(uid, store, remoteItems) {
+  const byId = new Map(remoteItems.map(item => [item.id, item]))
+  const queue = await getSyncQueue(uid)
+
+  for (const entry of queue) {
+    if (entry.uid !== uid || entry.store !== store) continue
+    if (entry.op === 'write') byId.set(entry.data.id, entry.data)
+    if (entry.op === 'delete') byId.delete(entry.id)
+  }
+
+  const merged = [...byId.values()]
+  await dbReplaceAll(uid, store, merged)
+  return merged
+}
+
+async function runFlush(uid) {
+  const queue = await getSyncQueue(uid)
+  for (const entry of queue) {
+    // Never redirect another account's legacy queue entry into this account.
+    if (entry.uid !== uid) continue
+    try {
+      if (entry.op === 'write') await writerFor(entry.store)(entry.uid, entry.data)
+      if (entry.op === 'delete') {
+        const deleter = DELETERS[entry.store]
+        if (!deleter) throw new Error(`Unsupported delete store: ${entry.store}`)
+        await deleter(entry.uid, entry.id)
+      }
+      await dequeueSync(uid, entry.qid)
+    } catch (error) {
+      console.warn('[JSave sync] retry failed:', { store: entry.store, op: entry.op }, error)
+    }
   }
 }
 
-export async function flushQueue(uid) {
-  const queue = await getSyncQueue()
-  for (const entry of queue) {
-    try {
-      if (entry.op === 'write') await WRITERS[entry.store](uid, entry.data)
-      if (entry.op === 'delete') await DELETERS[entry.store]?.(uid, entry.id)
-      await dequeueSync(entry.qid)
-    } catch (e) {
-      console.warn('[JSave sync] failed:', entry, e)
-    }
-  }
+export function flushQueue(uid) {
+  if (!uid) return Promise.resolve()
+  if (activeFlushes.has(uid)) return activeFlushes.get(uid)
+  const promise = runFlush(uid).finally(() => activeFlushes.delete(uid))
+  activeFlushes.set(uid, promise)
+  return promise
 }

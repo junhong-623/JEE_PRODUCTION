@@ -1,16 +1,16 @@
 import { useLang } from '../contexts/LangContext'
-import { useOnlineStatus } from '../hooks/useOnlineStatus'
+import { useJSave } from '../hooks/useJSave'
 
 export default function OfflineBanner() {
   const { t } = useLang()
-  const online = useOnlineStatus()
+  const { online, syncError } = useJSave()
 
-  if (online) return null
+  if (online && !syncError) return null
 
   return (
     <div className="jsave-offline-banner">
       <span className="jsave-offline-dot" />
-      {t('offline')}
+      {online ? t('syncFailed') : t('offline')}
     </div>
   )
 }

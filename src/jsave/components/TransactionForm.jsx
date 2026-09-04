@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useLang } from '../contexts/LangContext'
 import { useJSave } from '../hooks/useJSave'
+import { toLocalDateString } from '../utils/date'
 
 const INCOME_CATS  = ['catSalary', 'catFreelance', 'catInvestment', 'catGift', 'catOtherIncome']
 const EXPENSE_CATS = ['catFood', 'catTransport', 'catBills', 'catEntertainment', 'catHealth', 'catShopping', 'catOther']
@@ -20,7 +21,7 @@ const TYPE_COLORS = {
   split:    { bg: 'rgba(245,158,11,0.35)', text: '#fff',   border: 'rgba(245,158,11,0.6)' },
 }
 
-const today = () => new Date().toISOString().split('T')[0]
+const today = () => toLocalDateString()
 
 function monthPrefix(lang) {
   const now = new Date()
@@ -99,9 +100,9 @@ function SplitEditView({ initial, onClose }) {
 
   return (
     <div className="jsave-modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="jsave-modal glass-card">
+      <div className="jsave-modal glass-card" role="dialog" aria-modal="true">
         <h2 className="jsave-modal-title">{t('txSplitEdit')}
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(241,245,249,0.5)', fontSize: 20 }}>✕</button>
+          <button onClick={onClose} aria-label={t('close')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(241,245,249,0.5)', fontSize: 20 }}>✕</button>
         </h2>
         <div className="jsave-split-summary">
           <div className="jsave-split-summary-row"><span className="jsave-section-sub">{t('txBillAmount')}</span><span style={{ fontWeight: 600 }}>{fmt(initial.amount, cur)}</span></div>
@@ -147,13 +148,16 @@ function SplitEditView({ initial, onClose }) {
 }
 
 // ── Main form ─────────────────────────────────────────────────────────────────
-export default function TransactionForm({ initial, onClose }) {
+export default function TransactionForm(props) {
+  if (props.initial?.type === 'split' && props.initial?.id) {
+    return <SplitEditView initial={props.initial} onClose={props.onClose} />
+  }
+  return <StandardTransactionForm {...props} />
+}
+
+function StandardTransactionForm({ initial, onClose }) {
   const { t, lang } = useLang()
   const { accounts, addTransaction, updateTransaction, deleteTransaction, settings } = useJSave()
-
-  if (initial?.type === 'split' && initial?.id) {
-    return <SplitEditView initial={initial} onClose={onClose} />
-  }
 
   const [type, setType]           = useState(initial?.type ?? 'expense')
   const [amount, setAmount]       = useState(initial?.amount?.toString() ?? '')
@@ -264,7 +268,7 @@ export default function TransactionForm({ initial, onClose }) {
 
   return (
     <div className="jsave-modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="jsave-modal glass-card" style={{ borderRadius: 24, padding: '0 0 16px' }}>
+      <div className="jsave-modal glass-card" role="dialog" aria-modal="true" style={{ borderRadius: 24, padding: '0 0 16px' }}>
         {/* ── Type segmented control ── */}
         <div style={{ padding: '16px 16px 0' }}>
           <div style={{ display: 'flex', padding: 4, borderRadius: 999, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(241,245,249,0.06)', gap: 2 }}>

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { JSAVE_BASE } from '../utils/basePath'
+import { toLocalDateString } from '../utils/date'
 
 function msUntil(hour) {
   const now = new Date()
@@ -26,7 +27,7 @@ export function useReminders(transactions, settings) {
     function schedule(hour, body) {
       const ms = msUntil(hour)
       ids.push(setTimeout(async () => {
-        const today = new Date().toISOString().split('T')[0]
+        const today = toLocalDateString()
         const has = txRef.current.some(tx => tx.date === today && tx.type !== 'transfer')
         if (!has) {
           try {

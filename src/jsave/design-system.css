@@ -482,3 +482,21 @@
   .js-section-header { flex-direction: column; align-items: flex-start; gap: 12px; }
   .js-section-header .sub { margin-left: 0; max-width: 100%; }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .jsave-root *,
+  .ji-root *,
+  .js-intro-root * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.jsave-root :focus-visible,
+.ji-root :focus-visible,
+.js-intro-root :focus-visible {
+  outline: 2px solid var(--js-emerald);
+  outline-offset: 3px;
+}

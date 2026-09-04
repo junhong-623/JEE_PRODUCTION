@@ -8,7 +8,7 @@
     "dev:jsave": "vite --config vite.jsave.config.js",
     "build": "vite build && node scripts/gen-app-html.mjs",
     "build:prod": "vite build && node scripts/prerender.mjs && node scripts/gen-app-html.mjs",
-    "build:jsave": "node scripts/prepare-jsave.mjs && vite build --config vite.jsave.config.js",
+    "build:jsave": "node scripts/prepare-jsave.mjs && vite build --config vite.jsave.config.js && node scripts/finalize-jsave.mjs",
     "dev:matetrip": "vite --config vite.matetrip.config.js",
     "build:matetrip": "node scripts/prepare-matetrip.mjs && vite build --config vite.matetrip.config.js",
     "preview:matetrip": "vite preview --config vite.matetrip.config.js --outDir dist-matetrip",
@@ -19,7 +19,10 @@
     "preview:cheers": "vite preview --config vite.cheers.config.js --outDir dist-cheers",
     "dev:hagency": "node scripts/prepare-hagency.mjs && vite --config vite.hagency.config.js",
     "build:hagency": "node scripts/prepare-hagency.mjs && vite build --config vite.hagency.config.js && node scripts/finalize-hagency.mjs",
-    "preview:hagency": "vite preview --config vite.hagency.config.js --outDir dist-hagency"
+    "preview:hagency": "vite preview --config vite.hagency.config.js --outDir dist-hagency",
+    "test": "vitest run --exclude tests/firestore.rules.test.js",
+    "test:watch": "vitest --exclude tests/firestore.rules.test.js",
+    "test:rules": "npx --yes firebase-tools@15.29.0 emulators:exec --only firestore \"vitest run tests/firestore.rules.test.js\""
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
@@ -36,12 +39,15 @@
     "vite-plugin-pwa": "^1.2.0"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "3.0.4",
     "@vitejs/plugin-react": "^4.3.0",
     "autoprefixer": "^10.4.19",
+    "fake-indexeddb": "6.2.5",
     "postcss": "^8.4.38",
     "puppeteer": "^24.41.0",
     "sharp": "^0.34.5",
     "tailwindcss": "^3.4.4",
-    "vite": "^5.2.12"
+    "vite": "^5.2.12",
+    "vitest": "2.1.9"
   }
 }

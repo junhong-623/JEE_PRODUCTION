@@ -42,7 +42,7 @@ export default function BottomNav({ active, onChange }) {
   const { t } = useLang()
 
   return (
-    <nav style={{
+    <nav aria-label={t('mainNavigation')} style={{
       position: 'fixed',
       bottom: 0, left: 14, right: 14,
       marginBottom: 'env(safe-area-inset-bottom, 12px)',
@@ -63,6 +63,7 @@ export default function BottomNav({ active, onChange }) {
           return (
             <button
               key="add"
+              aria-label={t('addTransaction')}
               onClick={() => onChange('add')}
               style={{
                 width: 44, height: 44,
@@ -94,6 +95,8 @@ export default function BottomNav({ active, onChange }) {
         return (
           <button
             key={tab.key}
+            aria-label={t(tab.labelKey)}
+            aria-current={isActive ? 'page' : undefined}
             onClick={() => onChange(tab.key)}
             style={{
               flex: 1,

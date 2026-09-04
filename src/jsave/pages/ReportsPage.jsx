@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { useLang } from '../contexts/LangContext'
 import { useJSave } from '../hooks/useJSave'
 import { Donut, BarChart as JSBarChart } from '../components/JSaveCharts'
+import { localDateDaysAgo, toLocalDateString } from '../utils/date'
 
 function fmt(amount, currency = 'MYR') {
   return new Intl.NumberFormat('en-MY', { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount)
@@ -9,9 +10,7 @@ function fmt(amount, currency = 'MYR') {
 function fmtFull(amount, currency = 'MYR') {
   return new Intl.NumberFormat('en-MY', { style: 'currency', currency, minimumFractionDigits: 2 }).format(amount)
 }
-function subtractDays(n) {
-  const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().split('T')[0]
-}
+function subtractDays(n) { return localDateDaysAgo(n) }
 function startOfYear() { return `${new Date().getFullYear()}-01-01` }
 
 const RANGES = ['last30', 'last3m', 'last6m', 'thisYear']
@@ -135,7 +134,7 @@ function InsightsView({ filtered, cur, t, lang }) {
   const weekData = useMemo(() => {
     const days = Array.from({ length: 7 }, (_, i) => {
       const d = new Date(); d.setDate(d.getDate() - (6 - i))
-      return { date: d.toISOString().split('T')[0], label: d.toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en', { weekday: 'narrow' }) }
+      return { date: toLocalDateString(d), label: d.toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en', { weekday: 'narrow' }) }
     })
     const dayMap = {}
     filtered.filter(tx => tx.type === 'expense' || tx.type === 'split').forEach(tx => {

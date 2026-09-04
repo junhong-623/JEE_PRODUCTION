@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import en from '../i18n/en'
 import zh from '../i18n/zh'
 
@@ -10,12 +10,16 @@ export function LangProvider({ children, initialLang }) {
     () => initialLang || localStorage.getItem('jsave-lang') || 'en'
   )
 
-  const setLanguage = (l) => setLang(l)
+  const setLanguage = useCallback((nextLanguage) => setLang(nextLanguage), [])
   const t = (key) => translations[lang]?.[key] ?? translations.en[key] ?? key
 
   useEffect(() => {
     localStorage.setItem('jsave-lang', lang)
   }, [lang])
+
+  useEffect(() => {
+    if (initialLang && translations[initialLang]) setLang(initialLang)
+  }, [initialLang])
 
   return (
     <LangContext.Provider value={{ lang, setLanguage, t }}>

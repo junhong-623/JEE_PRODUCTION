@@ -1,8 +1,33 @@
 export const RELEASE_NOTES = [
   {
+    version: '3.1.0',
+    date: '2026-09-05',
+    isLatest: true,
+    items: [
+      'Account-isolated offline storage with ownership-safe migration from the legacy shared cache',
+      'Reliable sync reconciliation keeps queued writes and deletes visible until uploaded',
+      'Recurring expenses and auto salary now use deterministic IDs to prevent multi-device duplicates',
+      'Local calendar dates no longer shift to the previous day in UTC+ time zones',
+      'CSV transaction export and daily budget feedback on the dashboard',
+      'Shared, honest marketing page with unsupported product and pricing claims removed',
+      'Lazy-loaded app screens plus a complete precache manifest for offline navigation',
+      'Browser back/forward support, reduced-motion support and improved navigation labels',
+    ],
+    itemsZh: [
+      '离线数据按账号隔离，并从旧共用缓存中安全迁移可确认归属的数据',
+      '远端快照合并时保留待同步的新增与删除操作，直到成功上传',
+      '周期支出与自动薪资采用确定性 ID，防止多设备重复新增',
+      '本地日期不再因 UTC 转换而在东八区显示为前一天',
+      '新增交易 CSV 导出，以及首页每日预算反馈',
+      '两个落地页共用同一实现，并移除尚未实现的功能与付费宣传',
+      '页面按需加载，同时生成完整离线预缓存清单',
+      '支持浏览器前进后退、减少动画偏好，并改善导航辅助标签',
+    ],
+  },
+  {
     version: '3.0.0',
     date: '2026-05-29',
-    isLatest: true,
+    isLatest: false,
     items: [
       'Full UI redesign — new design system with DM Serif Display / DM Sans / JetBrains Mono typography',
       'Emerald (#10b981) accent throughout, dark-mode-only with 25+ keyframe animations',

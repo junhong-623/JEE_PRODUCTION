@@ -1,26 +1,38 @@
-import { useState, useEffect } from 'react'
+import { lazy, Suspense, useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { useTheme } from '../contexts/ThemeContext'
 import { LangProvider } from './contexts/LangContext'
 import { JSaveProvider } from './contexts/JSaveContext'
 import { useLang } from './contexts/LangContext'
-import IntroPage from './pages/IntroPage'
-import LoginPage from './pages/LoginPage'
-import DashboardPage from './pages/DashboardPage'
-import CalendarPage from './pages/CalendarPage'
-import ItemsPage from './pages/ItemsPage'
-import ReportsPage from './pages/ReportsPage'
-import SettingsPage from './pages/SettingsPage'
-import GoalsPage from './pages/GoalsPage'
-import AdminPage from './pages/AdminPage'
 import BottomNav from './components/BottomNav'
 import OfflineBanner from './components/OfflineBanner'
-import TransactionForm from './components/TransactionForm'
 import { installState, isStandalone, setupPwaInstall, doInstall } from './installPrompt'
 import { db } from '../lib/firebase'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { toLocalDateString } from './utils/date'
 import './design-system.css'
 import './App.css'
+
+const IntroPage = lazy(() => import('./pages/IntroPage'))
+const LoginPage = lazy(() => import('./pages/LoginPage'))
+const DashboardPage = lazy(() => import('./pages/DashboardPage'))
+const CalendarPage = lazy(() => import('./pages/CalendarPage'))
+const ReportsPage = lazy(() => import('./pages/ReportsPage'))
+const SettingsPage = lazy(() => import('./pages/SettingsPage'))
+const GoalsPage = lazy(() => import('./pages/GoalsPage'))
+const AdminPage = lazy(() => import('./pages/AdminPage'))
+const TransactionForm = lazy(() => import('./components/TransactionForm'))
+
+function PageFallback() {
+  const { t } = useLang()
+  return <div className="jsave-center-msg">{t('loading')}</div>
+}
+
+const APP_PAGES = new Set(['dashboard', 'calendar', 'reports', 'goals', 'settings'])
+
+function pageFromLocation() {
+  const value = window.location.hash.slice(1)
+  return APP_PAGES.has(value) ? value : 'dashboard'
+}
 
 function InstallDialog({ onClose }) {
   const { t, lang } = useLang()
@@ -29,7 +41,7 @@ function InstallDialog({ onClose }) {
 
   return (
     <div className="jsave-modal-overlay centered" onClick={onClose}>
-      <div className="jsave-modal jsave-install-dialog" onClick={e => e.stopPropagation()}>
+      <div className="jsave-modal jsave-install-dialog" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
         {!guide ? (
           <>
             <div className="jsave-install-dialog-icon">📲</div>
@@ -102,7 +114,7 @@ function PaymentResultModal({ onClose, amount }) {
 
   return (
     <div className="jsave-modal-overlay centered" onClick={onClose}>
-      <div className="jsave-modal jsave-install-dialog" onClick={e => e.stopPropagation()}>
+      <div className="jsave-modal jsave-install-dialog" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
         <div className="jsave-install-dialog-icon" style={{ fontSize: 48 }}>{icon}</div>
         <h2 className="jsave-modal-title" style={{ justifyContent: 'center', marginBottom: 8 }}>{title}</h2>
         <p className="jsave-install-dialog-desc">{desc}</p>
@@ -116,9 +128,8 @@ function PaymentResultModal({ onClose, amount }) {
 
 function JSaveShell() {
   const { user, loading, admin } = useAuth()
-  const { dark } = useTheme()
   const { lang } = useLang()
-  const [page, setPage] = useState('dashboard')
+  const [page, setPage] = useState(pageFromLocation)
   const [showLogin, setShowLogin] = useState(false)
   const [showInstallDialog, setShowInstallDialog] = useState(false)
   const [showTransactionForm, setShowTransactionForm] = useState(false)
@@ -133,7 +144,7 @@ function JSaveShell() {
     if (paymentResult === '1' && pendingCoffeeAmt > 0 && user?.uid) {
       const donationData = {
         amount: pendingCoffeeAmt,
-        date: new Date().toISOString().split('T')[0],
+        date: toLocalDateString(),
         createdAt: serverTimestamp(),
       }
       addDoc(collection(db, 'users', user.uid, 'jsave_donations'), donationData).catch(console.error)
@@ -157,9 +168,25 @@ function JSaveShell() {
     }
   }, [])
 
+  useEffect(() => {
+    const syncPage = () => setPage(pageFromLocation())
+    window.addEventListener('popstate', syncPage)
+    window.addEventListener('hashchange', syncPage)
+    return () => {
+      window.removeEventListener('popstate', syncPage)
+      window.removeEventListener('hashchange', syncPage)
+    }
+  }, [])
+
+  const navigatePage = nextPage => {
+    if (!APP_PAGES.has(nextPage)) return
+    window.history.pushState({}, '', `${window.location.pathname}${window.location.search}#${nextPage}`)
+    setPage(nextPage)
+  }
+
   if (loading) {
     return (
-      <div className={`jsave-root${dark ? '' : ' jsave-light'} jsave-center-msg`}>
+      <div className="jsave-root jsave-center-msg">
         Loading…
       </div>
     )
@@ -168,18 +195,23 @@ function JSaveShell() {
   if (!user) {
     if (showLogin) {
       return (
-        <div className={`jsave-root${dark ? '' : ' jsave-light'}`}>
-          <LoginPage onBack={() => setShowLogin(false)} />
+        <div className="jsave-root">
+          <Suspense fallback={<PageFallback />}>
+            <LoginPage onBack={() => setShowLogin(false)} />
+          </Suspense>
         </div>
       )
     }
-    return <IntroPage onLogin={() => setShowLogin(true)} />
+    return (
+      <Suspense fallback={<PageFallback />}>
+        <IntroPage onLogin={() => setShowLogin(true)} />
+      </Suspense>
+    )
   }
 
   const pages = {
-    dashboard: <DashboardPage onOpenSettings={() => setPage('settings')} onOpenAdd={() => setShowTransactionForm(true)} onNavigate={p => setPage(p)} />,
+    dashboard: <DashboardPage onOpenSettings={() => navigatePage('settings')} onNavigate={navigatePage} />,
     calendar:  <CalendarPage />,
-    items:     <ItemsPage />,
     reports:   <ReportsPage />,
     goals:     <GoalsPage />,
     settings:  <SettingsPage onOpenAdmin={admin ? () => setShowAdmin(true) : null} />,
@@ -196,22 +228,30 @@ function JSaveShell() {
   }
 
   return (
-    <div className={`jsave-root${dark ? '' : ' jsave-light'} jsave-shell`}>
+    <div className="jsave-root jsave-shell">
       {showInstallDialog && user && <InstallDialog onClose={closeInstallDialog} />}
       {paymentResult && user && <PaymentResultModal onClose={closePaymentResult} amount={pendingCoffeeAmt} />}
-      {showAdmin && admin && <AdminPage zh={lang === 'zh'} onClose={() => setShowAdmin(false)} />}
+      {showAdmin && admin && (
+        <Suspense fallback={<PageFallback />}>
+          <AdminPage zh={lang === 'zh'} onClose={() => setShowAdmin(false)} />
+        </Suspense>
+      )}
       <OfflineBanner />
-      <div key={page} className="jsave-page-anim">
-        {pages[page] ?? pages['dashboard']}
-      </div>
+      <Suspense fallback={<PageFallback />}>
+        <div key={page} className="jsave-page-anim">
+          {pages[page] ?? pages['dashboard']}
+        </div>
+      </Suspense>
       {showTransactionForm && (
-        <TransactionForm initial={null} onClose={() => setShowTransactionForm(false)} />
+        <Suspense fallback={null}>
+          <TransactionForm initial={null} onClose={() => setShowTransactionForm(false)} />
+        </Suspense>
       )}
       <BottomNav
         active={page}
         onChange={p => {
           if (p === 'add') { setShowTransactionForm(true) }
-          else setPage(p)
+          else navigatePage(p)
         }}
       />
     </div>
@@ -219,15 +259,18 @@ function JSaveShell() {
 }
 
 export default function JSaveApp() {
-  const [lang, setLang] = useState(
-    () => localStorage.getItem('jsave-lang') || 'en'
-  )
-
   return (
-    <LangProvider initialLang={lang}>
-      <JSaveProvider onLanguageChange={setLang}>
-        <JSaveShell />
-      </JSaveProvider>
+    <LangProvider>
+      <JSaveDataProvider />
     </LangProvider>
+  )
+}
+
+function JSaveDataProvider() {
+  const { setLanguage } = useLang()
+  return (
+    <JSaveProvider onLanguageChange={setLanguage}>
+      <JSaveShell />
+    </JSaveProvider>
   )
 }
