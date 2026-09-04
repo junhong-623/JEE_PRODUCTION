@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom'
-import { GROWTH_STEPS, MILLION_HONORS, SERVICES } from './content'
+import { GROWTH_STEPS, SERVICES } from './content'
 import { HonorGrid, RankingGrid, SectionHeader, Seo, TalentCard, TextLink, UpdateGrid } from './components'
 import { useHAgencyData } from './HAgencyData'
 import { useHAgencySite } from './SiteContext'
 import Reveal from './Reveal'
+import HomeHero from './HomeHero'
 
 export default function HomePage() {
   const { lang, path, t } = useHAgencySite()
@@ -15,47 +16,13 @@ export default function HomePage() {
     <>
       <Seo description={zh ? 'ℋ Agency 希望公会专注中文主播的定位、内容、直播运营与长期成长。浏览旗下主播，或申请加入希望公会。' : 'ℋ Agency helps Chinese-speaking live talent build distinct creator brands through positioning, content and professional operations.'} />
 
-      <section className="relative min-h-[820px] overflow-hidden bg-[#120c10] pt-28 text-white lg:min-h-screen">
-        <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(circle at 15% 15%, rgba(230,188,199,.21), transparent 33%), radial-gradient(circle at 88% 78%, rgba(178,68,106,.19), transparent 31%)' }} />
-        <div className="pointer-events-none absolute inset-0 opacity-[0.035]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.8) 1px, transparent 1px)', backgroundSize: '74px 74px' }} />
-        <div className="relative mx-auto grid min-h-[720px] max-w-7xl items-center gap-16 px-6 pb-20 pt-12 lg:grid-cols-[0.9fr_1.1fr] lg:gap-10 lg:pb-16 lg:pt-10">
-          <div className="relative z-20">
-            <p className="font-mono text-[10px] uppercase tracking-[0.34em] text-[#e5b6c3]">{t.heroKicker}</p>
-            <h1 className="mt-7 max-w-3xl font-display text-5xl leading-[1.04] tracking-[-0.03em] sm:text-7xl lg:text-[5.25rem]">
-              {t.heroTitle1}<span className="block italic text-[#e6bcc7]">{t.heroTitle2}</span>
-            </h1>
-            <p className="mt-7 max-w-xl text-base leading-8 text-white/55">{t.heroCopy}</p>
-            <div className="mt-9 flex flex-wrap gap-3">
-              <Link to={path('/talents')} className="rounded-full bg-[#e6bcc7] px-6 py-3.5 text-sm font-semibold text-[#24171c] transition hover:bg-white">{t.explore}</Link>
-              <Link to={path('/join')} className="rounded-full border border-white/20 px-6 py-3.5 text-sm font-semibold text-white transition hover:border-[#e6bcc7] hover:text-[#e6bcc7]">{t.apply}</Link>
-            </div>
-            <div className="mt-12 grid max-w-xl grid-cols-3 border-y border-white/10 py-5">
-              {[[`${Math.max(talents.length, 3)}+`, t.signed], ['04', t.system], ['CN', t.market]].map(([number, label]) => (
-                <div key={label} className="border-l border-white/10 px-4 first:border-l-0 first:pl-0"><p className="font-display text-2xl text-[#efced6]">{number}</p><p className="mt-1 text-[9px] uppercase tracking-[0.16em] text-white/35">{label}</p></div>
-              ))}
-            </div>
-          </div>
-
-          <div className="relative mx-auto h-[520px] w-full max-w-[620px] sm:h-[640px] lg:h-[680px]">
-            <div className="absolute left-[2%] top-[15%] h-[67%] w-[42%] rotate-[-5deg] overflow-hidden border border-white/15 bg-[#21151b] shadow-2xl transition duration-500 hover:z-30 hover:rotate-[-2deg] sm:left-[3%]">
-              <img src={heroTalents[0]?.photoUrl || MILLION_HONORS[0].image} alt={heroTalents[0]?.nameZh || '盼夏'} className="h-full w-full object-cover" />
-            </div>
-            <div className="absolute right-[2%] top-[4%] z-10 h-[76%] w-[47%] rotate-[4deg] overflow-hidden border border-white/15 bg-[#21151b] shadow-2xl transition duration-500 hover:z-30 hover:rotate-[1deg]">
-              <img src={heroTalents[1]?.photoUrl || MILLION_HONORS[1].image} alt={heroTalents[1]?.nameZh || '小暖'} className="h-full w-full object-cover" />
-            </div>
-            <div className="absolute bottom-[1%] left-[28%] z-20 h-[67%] w-[45%] rotate-[-1deg] overflow-hidden border border-white/20 bg-[#21151b] shadow-[0_35px_90px_rgba(0,0,0,.5)] transition duration-500 hover:rotate-0">
-              <img src={heroTalents[2]?.photoUrl || MILLION_HONORS[2].image} alt={heroTalents[2]?.nameZh || '贝贝'} className="h-full w-full object-cover" />
-            </div>
-            <p className="absolute bottom-0 right-0 z-30 hidden font-mono text-[9px] uppercase tracking-[0.24em] text-white/30 sm:block">Talent · Honor · Growth</p>
-          </div>
-        </div>
-      </section>
+      <HomeHero talents={heroTalents} talentCount={talents.length} />
 
       <section className="bg-[#f8f3f2] py-24 sm:py-32">
         <div className="mx-auto max-w-7xl px-6">
           <SectionHeader title={t.talentTitle} sub={t.talentSub} intro={t.talentIntro} action={<TextLink to={path('/talents')}>{t.viewAll}</TextLink>} />
           <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {featuredTalents.map((talent, index) => <TalentCard key={talent.id} talent={talent} index={index} />)}
+            {featuredTalents.map((talent, index) => <TalentCard key={talent.id} talent={talent} index={index} variant="editorial" />)}
           </div>
         </div>
       </section>
@@ -83,9 +50,9 @@ export default function HomePage() {
           </div>
           <ol className="border-t border-[#dfcdd2]">
             {GROWTH_STEPS[lang].map(([title, copy], index) => (
-              <li key={title} className="grid gap-3 border-b border-[#dfcdd2] py-6 sm:grid-cols-[64px_165px_1fr] sm:items-start">
+              <Reveal key={title} delay={index * 70} as="li" className="grid gap-3 border-b border-[#dfcdd2] py-6 sm:grid-cols-[64px_165px_1fr] sm:items-start">
                 <span className="font-mono text-[10px] text-[#b66b81]">0{index + 1}</span><h3 className="font-semibold">{title}</h3><p className="text-sm leading-7 text-gray-500">{copy}</p>
-              </li>
+              </Reveal>
             ))}
           </ol>
         </div>

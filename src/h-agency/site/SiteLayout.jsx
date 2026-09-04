@@ -31,13 +31,27 @@ export default function SiteLayout({ children }) {
       <style>{`
         @keyframes ha-page-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         .ha-page { animation: ha-page-in .42s ease-out both; }
-        .ha-reveal { opacity: 0; transform: translateY(28px); transition: opacity .75s cubic-bezier(.2,.75,.2,1), transform .9s cubic-bezier(.2,.75,.2,1); transition-delay: var(--ha-reveal-delay, 0ms); }
-        .ha-reveal-left { transform: translateX(-32px); }
-        .ha-reveal-right { transform: translateX(32px); }
-        .ha-reveal-scale { transform: scale(.965); }
-        .ha-reveal.is-visible { opacity: 1; transform: translate3d(0,0,0) scale(1); }
-        .ha-reveal img { transition: transform 1.2s cubic-bezier(.2,.75,.2,1), filter 1s ease; }
-        .ha-reveal-scale:not(.is-visible) img { transform: scale(1.045); filter: saturate(.86); }
+        .ha-reveal { opacity: 0; filter: blur(3px); transform: translate3d(0,42px,0) scale(.992); transition: opacity .9s cubic-bezier(.16,1,.3,1), filter .9s cubic-bezier(.16,1,.3,1), transform 1.05s cubic-bezier(.16,1,.3,1); transition-delay: var(--ha-reveal-delay, 0ms); }
+        .ha-reveal-left { transform: translate3d(-42px,0,0); }
+        .ha-reveal-right { transform: translate3d(42px,0,0); }
+        .ha-reveal-scale { transform: translate3d(0,18px,0) scale(.975); }
+        .ha-reveal.is-visible { opacity: 1; filter: blur(0); transform: translate3d(0,0,0) scale(1); }
+        .ha-reveal img { transition: transform 1.2s cubic-bezier(.16,1,.3,1), filter 1s ease; }
+        .ha-reveal-scale:not(.is-visible) img { transform: scale(1.025); filter: saturate(.92); }
+        .ha-hero-copy { transform: translate3d(0, calc(var(--hero-progress) * -38px), 0); opacity: calc(1 - var(--hero-progress) * .25); will-change: transform, opacity; }
+        .ha-hero-stage { transform: translate3d(0, calc(var(--hero-progress) * -18px), 0); will-change: transform; }
+        .ha-hero-portrait { position: absolute; display: block; overflow: hidden; border-radius: 30px; background: #f7f3f2; box-shadow: 0 35px 90px rgba(0,0,0,.28); will-change: transform; }
+        .ha-hero-portrait-1 { left: 0; top: 21%; z-index: 1; width: 39%; height: 66%; transform: translate3d(calc(var(--hero-progress) * -64px), calc(var(--hero-progress) * -28px), 0) rotate(calc(-2deg + var(--hero-progress) * -1deg)); }
+        .ha-hero-portrait-2 { left: 29.5%; top: 7%; z-index: 3; width: 41%; height: 79%; transform: translate3d(0, calc(var(--hero-progress) * 18px), 0) scale(calc(1 + var(--hero-progress) * .025)); }
+        .ha-hero-portrait-3 { right: 0; top: 20%; z-index: 2; width: 39%; height: 67%; transform: translate3d(calc(var(--hero-progress) * 64px), calc(var(--hero-progress) * -20px), 0) rotate(calc(2deg + var(--hero-progress) * 1deg)); }
+        .ha-scroll-cue { opacity: calc(1 - var(--hero-progress) * 3); }
+        @media (max-width: 1023px) {
+          .ha-hero-copy, .ha-hero-stage { transform: none; opacity: 1; }
+          .ha-hero-portrait { border-radius: 20px; }
+          .ha-hero-portrait-1 { left: 0; top: 14%; width: 39%; height: 70%; transform: rotate(-2deg); }
+          .ha-hero-portrait-2 { left: 29.5%; top: 4%; width: 41%; height: 82%; transform: none; }
+          .ha-hero-portrait-3 { right: 0; top: 15%; width: 39%; height: 70%; transform: rotate(2deg); }
+        }
         @media (prefers-reduced-motion: reduce) { .ha-shell *, .ha-shell *::before, .ha-shell *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }
       `}</style>
       <header className={`fixed inset-x-0 top-0 z-50 border-b transition duration-300 ${solid ? 'border-white/10 bg-[#120c10]/95 shadow-[0_10px_35px_rgba(20,10,14,.18)] backdrop-blur-md' : 'border-transparent bg-transparent'}`}>

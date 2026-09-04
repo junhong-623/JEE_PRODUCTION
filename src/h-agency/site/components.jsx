@@ -72,10 +72,26 @@ export function TextLink({ to, children, dark = false }) {
   )
 }
 
-export function TalentCard({ talent, index = 0 }) {
+export function TalentCard({ talent, index = 0, variant = 'default' }) {
   const { lang, path } = useHAgencySite()
   const name = lang === 'zh' ? talent.nameZh : (talent.nameEn || talent.nameZh)
   const badge = lang === 'zh' ? (talent.badgeZh || '签约主播') : (talent.badgeEn || talent.badgeZh || 'Signed Talent')
+  if (variant === 'editorial') {
+    return (
+      <Reveal delay={index * 110} className="h-full">
+        <Link to={path(`/talents/${talent.slug || talent.id}`)} className="group flex h-full flex-col overflow-hidden rounded-[30px] border border-[#eadfe1] bg-white shadow-[0_22px_60px_rgba(67,36,46,.055)] transition duration-700 hover:-translate-y-1 hover:shadow-[0_30px_80px_rgba(67,36,46,.11)]">
+          <div className="relative aspect-[4/5] overflow-hidden bg-[#f7f3f2]">
+            <img src={talent.homeImageUrl || talent.photoUrl || '/hagency/logo.jpg'} alt={name} className="h-full w-full object-cover transition duration-1000 ease-out group-hover:scale-[1.025]" loading="lazy" />
+            <span className="absolute left-5 top-5 rounded-full bg-white/75 px-3 py-1.5 font-mono text-[9px] uppercase tracking-[.2em] text-[#9f6072] backdrop-blur-xl">Featured · 0{index + 1}</span>
+          </div>
+          <div className="flex flex-1 items-end justify-between gap-5 px-6 py-6">
+            <div><p className="font-display text-3xl text-[#24171c]">{name}</p><p className="mt-1 text-[10px] uppercase tracking-[.2em] text-[#9e828a]">{badge}</p></div>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#24171c] text-sm text-white transition duration-500 group-hover:rotate-45 group-hover:bg-[#a94f6a]">↗</span>
+          </div>
+        </Link>
+      </Reveal>
+    )
+  }
   return (
     <Reveal delay={Math.min(index, 3) * 90} direction="scale" className="h-full">
       <Link to={path(`/talents/${talent.slug || talent.id}`)} className="group relative block h-full overflow-hidden bg-[#20161a]">

@@ -55,6 +55,11 @@ export const FALLBACK_TALENTS = MILLION_HONORS.map((talent, index) => ({
   badgeZh: '百万主播',
   badgeEn: 'Million Creator',
   photoUrl: talent.image,
+  homeImageUrl: [
+    '/hagency/talents/home/panxia-portrait-v1.webp',
+    '/hagency/talents/home/xiaonuan-portrait-v1.webp',
+    '/hagency/talents/home/beibei-portrait-v1.webp',
+  ][index],
   platform: talent.platform,
   handle: talent.handle,
   homeFeatured: true,

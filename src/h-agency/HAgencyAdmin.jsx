@@ -21,7 +21,7 @@ const STATUS_LABEL = {
 const emptyStreamer = {
   nameZh: '', nameEn: '', slug: '', introZh: '', introEn: '', platform: '', handle: '',
   income: '', hours: '', fansGrowth: '', badgeZh: '优秀主播', badgeEn: 'Top Streamer', order: 0,
-  photoUrl: '', honorImageUrl: '', rankingImageUrl: '', tiktokUrl: '', bigoUrl: '', instaUrl: '', visible: true,
+  photoUrl: '', homeImageUrl: '', honorImageUrl: '', rankingImageUrl: '', tiktokUrl: '', bigoUrl: '', instaUrl: '', visible: true,
   homeFeatured: false, homePosition: '', honorFeatured: false, honorPosition: '', rankingFeatured: false, rankingPosition: '',
 }
 
@@ -134,7 +134,7 @@ export default function HAgencyAdmin() {
       income: s.income || '', hours: s.hours || '', fansGrowth: s.fansGrowth || '',
       badgeZh: s.badgeZh || '优秀主播', badgeEn: s.badgeEn || 'Top Streamer',
       order: s.order || 0,
-      photoUrl: s.photoUrl || '', honorImageUrl: s.honorImageUrl || '', rankingImageUrl: s.rankingImageUrl || '', tiktokUrl: s.tiktokUrl || '',
+      photoUrl: s.photoUrl || '', homeImageUrl: s.homeImageUrl || '', honorImageUrl: s.honorImageUrl || '', rankingImageUrl: s.rankingImageUrl || '', tiktokUrl: s.tiktokUrl || '',
       bigoUrl: s.bigoUrl || '', instaUrl: s.instaUrl || '',
       visible: s.visible !== false,
       homeFeatured: Boolean(s.homeFeatured),
@@ -290,7 +290,7 @@ export default function HAgencyAdmin() {
           order: Number(row.order) || currentBoard.length + 1,
           slug: row.slug || '', introZh: row.introZh || '', introEn: row.introEn || '',
           platform: row.platform || '', handle: row.handle || '',
-          photoUrl: row.photoUrl || '', honorImageUrl: row.honorImageUrl || '', rankingImageUrl: row.rankingImageUrl || '', tiktokUrl: row.tiktokUrl || '',
+          photoUrl: row.photoUrl || '', homeImageUrl: row.homeImageUrl || '', honorImageUrl: row.honorImageUrl || '', rankingImageUrl: row.rankingImageUrl || '', tiktokUrl: row.tiktokUrl || '',
           bigoUrl: row.bigoUrl || '', instaUrl: row.instaUrl || '',
           visible: parseBoolean(row.visible, true),
           homeFeatured: parseBoolean(row.homeFeatured, false),
@@ -381,16 +381,16 @@ export default function HAgencyAdmin() {
   }
 
   const SAMPLE_STREAMERS = [
-    { nameZh: '盼夏', nameEn: 'Panxia', slug: 'panxia', introZh: 'ℋ Agency 希望公会旗下百万主播。', introEn: 'Million Creator represented by ℋ Agency.', platform: 'BIGO LIVE', handle: 'panxia825', badgeZh: '百万主播 · 再攀高峰', badgeEn: 'Million Creator · Reaching New Heights', order: 1, photoUrl: 'https://agency.jeeprod.com/hagency/talents/panxia.jpg', honorImageUrl: 'https://agency.jeeprod.com/hagency/talents/panxia.jpg', rankingImageUrl: '', tiktokUrl: '', bigoUrl: '', instaUrl: '', visible: true, homeFeatured: true, homePosition: 1, honorFeatured: true, honorPosition: 1, rankingFeatured: false, rankingPosition: '' },
-    { nameZh: '小暖', nameEn: 'Xiaonuan', slug: 'xiaonuan', introZh: 'ℋ Agency 希望公会旗下百万主播。', introEn: 'Million Creator represented by ℋ Agency.', platform: '抖音', handle: '07nuannuan15', badgeZh: '百万主播 · 高光时刻', badgeEn: 'Million Creator · Spotlight Moment', order: 2, photoUrl: 'https://agency.jeeprod.com/hagency/talents/xiaonuan.jpg', honorImageUrl: 'https://agency.jeeprod.com/hagency/talents/xiaonuan.jpg', rankingImageUrl: '', tiktokUrl: '', bigoUrl: '', instaUrl: '', visible: true, homeFeatured: true, homePosition: 2, honorFeatured: true, honorPosition: 2, rankingFeatured: false, rankingPosition: '' },
-    { nameZh: '贝贝', nameEn: 'Beibei', slug: 'beibei', introZh: 'ℋ Agency 希望公会旗下百万主播，也是本期主播高光榜亚军。', introEn: 'Million Creator and current talent highlight runner-up.', platform: '抖音', handle: 'bellbell__00', badgeZh: '百万主播 · 荣耀加冕', badgeEn: 'Million Creator · Crowned in Honor', order: 3, photoUrl: 'https://agency.jeeprod.com/hagency/talents/beibei-million.jpg', honorImageUrl: 'https://agency.jeeprod.com/hagency/talents/beibei-million.jpg', rankingImageUrl: 'https://agency.jeeprod.com/hagency/talents/bellbell-runner-up.jpg', tiktokUrl: '', bigoUrl: '', instaUrl: '', visible: true, homeFeatured: true, homePosition: 3, honorFeatured: true, honorPosition: 3, rankingFeatured: true, rankingPosition: 2 },
+    { nameZh: '盼夏', nameEn: 'Panxia', slug: 'panxia', introZh: 'ℋ Agency 希望公会旗下百万主播。', introEn: 'Million Creator represented by ℋ Agency.', platform: 'BIGO LIVE', handle: 'panxia825', badgeZh: '百万主播 · 再攀高峰', badgeEn: 'Million Creator · Reaching New Heights', order: 1, photoUrl: 'https://agency.jeeprod.com/hagency/talents/panxia.jpg', homeImageUrl: 'https://agency.jeeprod.com/hagency/talents/home/panxia-portrait-v1.webp', honorImageUrl: 'https://agency.jeeprod.com/hagency/talents/panxia.jpg', rankingImageUrl: '', tiktokUrl: '', bigoUrl: '', instaUrl: '', visible: true, homeFeatured: true, homePosition: 1, honorFeatured: true, honorPosition: 1, rankingFeatured: false, rankingPosition: '' },
+    { nameZh: '小暖', nameEn: 'Xiaonuan', slug: 'xiaonuan', introZh: 'ℋ Agency 希望公会旗下百万主播。', introEn: 'Million Creator represented by ℋ Agency.', platform: '抖音', handle: '07nuannuan15', badgeZh: '百万主播 · 高光时刻', badgeEn: 'Million Creator · Spotlight Moment', order: 2, photoUrl: 'https://agency.jeeprod.com/hagency/talents/xiaonuan.jpg', homeImageUrl: 'https://agency.jeeprod.com/hagency/talents/home/xiaonuan-portrait-v1.webp', honorImageUrl: 'https://agency.jeeprod.com/hagency/talents/xiaonuan.jpg', rankingImageUrl: '', tiktokUrl: '', bigoUrl: '', instaUrl: '', visible: true, homeFeatured: true, homePosition: 2, honorFeatured: true, honorPosition: 2, rankingFeatured: false, rankingPosition: '' },
+    { nameZh: '贝贝', nameEn: 'Beibei', slug: 'beibei', introZh: 'ℋ Agency 希望公会旗下百万主播，也是本期主播高光榜亚军。', introEn: 'Million Creator and current talent highlight runner-up.', platform: '抖音', handle: 'bellbell__00', badgeZh: '百万主播 · 荣耀加冕', badgeEn: 'Million Creator · Crowned in Honor', order: 3, photoUrl: 'https://agency.jeeprod.com/hagency/talents/beibei-million.jpg', homeImageUrl: 'https://agency.jeeprod.com/hagency/talents/home/beibei-portrait-v1.webp', honorImageUrl: 'https://agency.jeeprod.com/hagency/talents/beibei-million.jpg', rankingImageUrl: 'https://agency.jeeprod.com/hagency/talents/bellbell-runner-up.jpg', tiktokUrl: '', bigoUrl: '', instaUrl: '', visible: true, homeFeatured: true, homePosition: 3, honorFeatured: true, honorPosition: 3, rankingFeatured: true, rankingPosition: 2 },
     { nameZh: '调皮的丝丝', nameEn: 'Isure', slug: 'isure', introZh: '本期主播高光榜冠军。', introEn: 'Current talent highlight champion.', platform: '抖音', handle: 'isure_0506', badgeZh: '冠军', badgeEn: 'Champion', order: 4, photoUrl: 'https://agency.jeeprod.com/hagency/talents/isure-champion.jpg', honorImageUrl: '', rankingImageUrl: 'https://agency.jeeprod.com/hagency/talents/isure-champion.jpg', tiktokUrl: '', bigoUrl: '', instaUrl: '', visible: true, homeFeatured: false, homePosition: '', honorFeatured: false, honorPosition: '', rankingFeatured: true, rankingPosition: 1 },
     { nameZh: '游采秉', nameEn: 'Dyorewszr2gt', slug: 'dyorewszr2gt', introZh: '本期主播高光榜季军。', introEn: 'Current talent highlight third place.', platform: '抖音', handle: 'dyorewszr2gt', badgeZh: '季军', badgeEn: 'Third Place', order: 5, photoUrl: 'https://agency.jeeprod.com/hagency/talents/dyorewszr2gt-third.jpg', honorImageUrl: '', rankingImageUrl: 'https://agency.jeeprod.com/hagency/talents/dyorewszr2gt-third.jpg', tiktokUrl: '', bigoUrl: '', instaUrl: '', visible: true, homeFeatured: false, homePosition: '', honorFeatured: false, honorPosition: '', rankingFeatured: true, rankingPosition: 3 },
   ]
 
   const downloadSample = (format) => {
     let content, mime, ext
-    const headers = ['nameZh','nameEn','slug','introZh','introEn','platform','handle','income','hours','fansGrowth','badgeZh','badgeEn','order','photoUrl','honorImageUrl','rankingImageUrl','tiktokUrl','bigoUrl','instaUrl','visible','homeFeatured','homePosition','honorFeatured','honorPosition','rankingFeatured','rankingPosition']
+    const headers = ['nameZh','nameEn','slug','introZh','introEn','platform','handle','income','hours','fansGrowth','badgeZh','badgeEn','order','photoUrl','homeImageUrl','honorImageUrl','rankingImageUrl','tiktokUrl','bigoUrl','instaUrl','visible','homeFeatured','homePosition','honorFeatured','honorPosition','rankingFeatured','rankingPosition']
     if (format === 'csv') {
       const rows = SAMPLE_STREAMERS.map(r => headers.map(h => `"${String(r[h] ?? '').replace(/"/g, '""')}"`).join(','))
       content = [headers.join(','), ...rows].join('\n')
@@ -597,7 +597,8 @@ export default function HAgencyAdmin() {
                   <label className="block"><span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-gray-400">Profile Introduction (EN)</span><textarea rows={3} value={streamerForm.introEn} onChange={e => setStreamerForm(f => ({ ...f, introEn: e.target.value }))} className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" /></label>
                 </div>
 
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  <label className="block"><span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-gray-400">首页人物图 URL（选填）</span><input value={streamerForm.homeImageUrl} onChange={e => setStreamerForm(f => ({ ...f, homeImageUrl: e.target.value }))} placeholder="留空时使用头像照片" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" /></label>
                   <label className="block"><span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-gray-400">荣誉海报 URL（选填）</span><input value={streamerForm.honorImageUrl} onChange={e => setStreamerForm(f => ({ ...f, honorImageUrl: e.target.value }))} placeholder="留空时使用头像照片" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" /></label>
                   <label className="block"><span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-gray-400">榜单海报 URL（选填）</span><input value={streamerForm.rankingImageUrl} onChange={e => setStreamerForm(f => ({ ...f, rankingImageUrl: e.target.value }))} placeholder="留空时使用头像照片" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" /></label>
                 </div>
