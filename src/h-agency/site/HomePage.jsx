@@ -7,7 +7,7 @@ import Reveal from './Reveal'
 
 export default function HomePage() {
   const { lang, path, t } = useHAgencySite()
-  const { talents, featuredTalents, posts } = useHAgencyData()
+  const { talents, featuredTalents, honorTalents, rankingTalents, posts } = useHAgencyData()
   const zh = lang === 'zh'
   const heroTalents = featuredTalents.length ? featuredTalents : talents.slice(0, 3)
 
@@ -63,14 +63,14 @@ export default function HomePage() {
       <section className="bg-[#1a1116] py-24 sm:py-32">
         <div className="mx-auto max-w-7xl px-6">
           <SectionHeader dark title={t.honorsTitle} sub={t.honorsSub} intro={t.honorsIntro} action={<TextLink dark to={path('/highlights')}>{t.viewAll}</TextLink>} />
-          <HonorGrid compact />
+          <HonorGrid compact talents={honorTalents} />
         </div>
       </section>
 
       <section className="bg-white py-24 sm:py-32">
         <div className="mx-auto max-w-7xl px-6">
           <SectionHeader title={t.rankingTitle} sub={t.rankingSub} intro={t.rankingIntro} action={<TextLink to={path('/highlights')}>{t.viewAll}</TextLink>} />
-          <RankingGrid compact />
+          <RankingGrid compact talents={rankingTalents} />
         </div>
       </section>
 

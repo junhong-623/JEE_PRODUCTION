@@ -94,21 +94,21 @@ export function TalentCard({ talent, index = 0 }) {
   )
 }
 
-export function HonorGrid({ compact = false }) {
+export function HonorGrid({ compact = false, talents = MILLION_HONORS }) {
   const { lang, path } = useHAgencySite()
   return (
     <div className={`grid gap-5 sm:grid-cols-2 lg:grid-cols-3 ${compact ? 'mt-10' : 'mt-12'}`}>
-      {MILLION_HONORS.map((talent, index) => (
+      {talents.map((talent, index) => (
         <Reveal key={talent.id} delay={index * 90} direction="scale" className={index === 2 ? 'sm:col-span-2 lg:col-span-1' : ''}>
           <article className="group">
           <Link to={path(`/talents/${talent.slug}`)} className="relative block aspect-[3/4] overflow-hidden border border-white/10 bg-[#261a20]">
-            <img src={talent.image} alt={`${lang === 'zh' ? talent.nameZh : talent.nameEn} · ${lang === 'zh' ? talent.accoladeZh : talent.accoladeEn}`} className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.018]" loading="lazy" />
+            <img src={talent.honorImageUrl || talent.image || talent.photoUrl || '/hagency/logo.jpg'} alt={`${lang === 'zh' ? talent.nameZh : talent.nameEn} · ${lang === 'zh' ? (talent.accoladeZh || talent.badgeZh || '') : (talent.accoladeEn || talent.badgeEn || '')}`} className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.018]" loading="lazy" />
             <span className="absolute left-4 top-4 rounded-full border border-white/20 bg-black/25 px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.2em] text-white/75 backdrop-blur-sm">0{index + 1}</span>
           </Link>
           <div className="flex items-start justify-between gap-4 border-x border-b border-white/10 px-5 py-5">
             <div>
               <h3 className="font-display text-2xl text-[#f1d7de]">{lang === 'zh' ? talent.nameZh : talent.nameEn}</h3>
-              <p className="mt-1 text-xs text-white/45">{lang === 'zh' ? talent.accoladeZh : talent.accoladeEn}</p>
+              <p className="mt-1 text-xs text-white/45">{lang === 'zh' ? (talent.accoladeZh || talent.badgeZh) : (talent.accoladeEn || talent.badgeEn || talent.badgeZh)}</p>
             </div>
             <div className="text-right font-mono text-[9px] uppercase tracking-[0.16em] text-white/35"><p>{talent.platform}</p><p className="mt-1 normal-case tracking-normal">@{talent.handle}</p></div>
           </div>
@@ -119,15 +119,15 @@ export function HonorGrid({ compact = false }) {
   )
 }
 
-export function RankingGrid({ compact = false }) {
+export function RankingGrid({ compact = false, talents = CURRENT_RANKING }) {
   const { lang } = useHAgencySite()
   if (compact) {
     return (
       <div className="mt-10 grid gap-px overflow-hidden border border-[#eadde0] bg-[#eadde0] md:grid-cols-3">
-        {CURRENT_RANKING.map((talent, index) => (
+        {talents.map((talent, index) => (
           <Reveal key={talent.id} delay={index * 80} className="bg-white">
             <article className="group grid grid-cols-[96px_1fr] items-center bg-white p-3 sm:grid-cols-[112px_1fr]">
-            <div className="aspect-[3/4] overflow-hidden"><img src={talent.image} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.02]" loading="lazy" /></div>
+            <div className="aspect-[3/4] overflow-hidden"><img src={talent.rankingImageUrl || talent.image || talent.photoUrl || '/hagency/logo.jpg'} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.02]" loading="lazy" /></div>
             <div className="px-5"><p className="font-mono text-[9px] uppercase tracking-[0.2em] text-[#b66b81]">0{talent.rank} · {lang === 'zh' ? talent.rankZh : talent.rankEn}</p><h3 className="mt-2 font-display text-2xl text-[#24171c]">{lang === 'zh' ? talent.nameZh : talent.nameEn}</h3><p className="mt-2 font-mono text-[9px] text-gray-400">@{talent.handle}</p></div>
             </article>
           </Reveal>
@@ -137,13 +137,13 @@ export function RankingGrid({ compact = false }) {
   }
   return (
     <div className="mt-16 grid items-end gap-5 lg:grid-cols-3 lg:pt-10">
-      {CURRENT_RANKING.map((talent, index) => {
+      {talents.map((talent, index) => {
         const placement = index === 0 ? 'lg:order-2 lg:-translate-y-10' : index === 1 ? 'lg:order-1' : 'lg:order-3'
         return (
           <Reveal key={talent.id} delay={index * 90} direction="scale" className={placement}>
             <article className="group relative bg-white shadow-[0_24px_70px_rgba(64,33,43,0.08)]">
             <div className="relative aspect-[3/4] overflow-hidden">
-              <img src={talent.image} alt={`${lang === 'zh' ? talent.rankZh : talent.rankEn} · ${lang === 'zh' ? talent.nameZh : talent.nameEn}`} className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.018]" loading="lazy" />
+              <img src={talent.rankingImageUrl || talent.image || talent.photoUrl || '/hagency/logo.jpg'} alt={`${lang === 'zh' ? talent.rankZh : talent.rankEn} · ${lang === 'zh' ? talent.nameZh : talent.nameEn}`} className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.018]" loading="lazy" />
               <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#190f14]/65 to-transparent" />
               <span className={`absolute left-5 top-5 flex h-12 w-12 items-center justify-center rounded-full border font-display text-xl backdrop-blur-sm ${index === 0 ? 'border-[#e1bd89] bg-[#c89650]/85 text-white' : 'border-white/50 bg-white/75 text-[#6f4552]'}`}>0{talent.rank}</span>
             </div>
