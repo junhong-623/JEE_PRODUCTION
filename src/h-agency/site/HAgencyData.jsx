@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { collection, getDocs, orderBy, query } from 'firebase/firestore'
 import { db } from '../../lib/firebase'
-import { FALLBACK_TALENTS } from './content'
+import { CURRENT_RANKING, FALLBACK_TALENTS, MILLION_HONORS } from './content'
 
 const HAgencyDataContext = createContext(null)
 
@@ -30,15 +30,57 @@ export function HAgencyDataProvider({ children }) {
   }, [])
 
   const talents = useMemo(() => {
-    const knownNames = new Set(FALLBACK_TALENTS.flatMap(t => [t.nameZh, t.nameEn].filter(Boolean).map(name => name.toLowerCase())))
-    const additional = leaderboard.filter(talent => {
-      const names = [talent.nameZh, talent.nameEn].filter(Boolean).map(name => name.toLowerCase())
-      return !names.some(name => knownNames.has(name))
-    })
-    return [...FALLBACK_TALENTS, ...additional].map(talent => ({ ...talent, slug: talentSlug(talent) }))
+    const source = leaderboard.length ? leaderboard : FALLBACK_TALENTS
+    return source
+      .filter(talent => talent.visible !== false)
+      .map(talent => ({
+        ...talent,
+        slug: talentSlug(talent),
+        platform: talent.platform || (talent.bigoUrl ? 'BIGO LIVE' : talent.tiktokUrl ? '抖音 / TikTok' : ''),
+        socialUrl: talent.socialUrl || talent.bigoUrl || talent.tiktokUrl || talent.instaUrl || '',
+      }))
   }, [leaderboard])
 
-  const value = useMemo(() => ({ talents, posts, loading }), [talents, posts, loading])
+  const featuredTalents = useMemo(() => {
+    const selected = talents
+      .filter(talent => talent.homeFeatured)
+      .sort((a, b) => (Number(a.homePosition) || 99) - (Number(b.homePosition) || 99))
+      .slice(0, 3)
+    const selectedIds = new Set(selected.map(talent => talent.id))
+    const remaining = talents.filter(talent => !selectedIds.has(talent.id))
+    return [...selected, ...remaining].slice(0, 3)
+  }, [talents])
+
+  const honorTalents = useMemo(() => {
+    const selected = talents
+      .filter(talent => talent.honorFeatured)
+      .sort((a, b) => (Number(a.honorPosition) || 99) - (Number(b.honorPosition) || 99))
+      .slice(0, 3)
+    if (!selected.length) return MILLION_HONORS
+    const selectedSlugs = new Set(selected.map(talent => talent.slug))
+    return [...selected, ...MILLION_HONORS.filter(talent => !selectedSlugs.has(talent.slug))].slice(0, 3)
+  }, [talents])
+
+  const rankingTalents = useMemo(() => {
+    const selected = talents
+      .filter(talent => talent.rankingFeatured)
+      .sort((a, b) => (Number(a.rankingPosition) || 99) - (Number(b.rankingPosition) || 99))
+      .slice(0, 3)
+      .map((talent, index) => ({
+        ...talent,
+        rank: Number(talent.rankingPosition) || index + 1,
+        rankZh: ['冠军', '亚军', '季军'][Number(talent.rankingPosition) - 1] || talent.badgeZh || '主播高光',
+        rankEn: ['Champion', 'Runner-up', 'Third Place'][Number(talent.rankingPosition) - 1] || talent.badgeEn || 'Talent Highlight',
+      }))
+    if (!selected.length) return CURRENT_RANKING
+    const selectedSlugs = new Set(selected.map(talent => talent.slug))
+    return [...selected, ...CURRENT_RANKING.filter(talent => !selectedSlugs.has(talent.slug))].slice(0, 3)
+  }, [talents])
+
+  const value = useMemo(
+    () => ({ talents, featuredTalents, honorTalents, rankingTalents, posts, loading }),
+    [talents, featuredTalents, honorTalents, rankingTalents, posts, loading],
+  )
   return <HAgencyDataContext.Provider value={value}>{children}</HAgencyDataContext.Provider>
 }
 

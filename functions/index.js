@@ -2,11 +2,12 @@ const { onCall, HttpsError } = require('firebase-functions/v2/https')
 const { onSchedule } = require('firebase-functions/v2/scheduler')
 const { defineSecret } = require('firebase-functions/params')
 const { v2: cloudinary } = require('cloudinary')
-const admin = require('firebase-admin')
+const { initializeApp } = require('firebase-admin/app')
+const { FieldValue, Timestamp, getFirestore } = require('firebase-admin/firestore')
 const webpush = require('web-push')
 const crypto = require('crypto')
 
-admin.initializeApp()
+initializeApp()
 
 const VAPID_PRIVATE = defineSecret('VAPID_PRIVATE_KEY')
 const VAPID_PUBLIC = 'BMGKdp8QNMH0CXUHEcJc3PVSw6MXe45_ZafygoAZZF_fiFsG5Ufq3oCQrzVknLw7oG_VtQJYPxj8f9lddT_ce0A'
@@ -49,6 +50,8 @@ exports.submitHAgencyApplication = onCall(async (req) => {
   const specialization = cleanHAgencyText(input.specialization, 30, true)
   const introduction = cleanHAgencyText(input.introduction, 1200, true)
   const social = cleanHAgencyText(input.social, 400)
+  const photoUrl = cleanHAgencyText(input.photoUrl, 600, true)
+  const photoPublicId = cleanHAgencyText(input.photoPublicId, 240)
   const locale = input.locale === 'en' ? 'en' : 'zh'
   const age = Number(input.age)
 
@@ -64,11 +67,20 @@ exports.submitHAgencyApplication = onCall(async (req) => {
   if (!HAGENCY_EXPERIENCE.has(experience) || !HAGENCY_SPECIALIZATION.has(specialization)) {
     throw new HttpsError('invalid-argument', 'Invalid recruitment selection.')
   }
+  let parsedPhotoUrl
+  try {
+    parsedPhotoUrl = new URL(photoUrl)
+  } catch {
+    throw new HttpsError('invalid-argument', 'Please upload a valid portrait photo.')
+  }
+  if (parsedPhotoUrl.protocol !== 'https:' || parsedPhotoUrl.hostname !== 'res.cloudinary.com' || !parsedPhotoUrl.pathname.startsWith('/db2ixn8zh/image/upload/')) {
+    throw new HttpsError('invalid-argument', 'Please upload a valid portrait photo.')
+  }
 
   const forwarded = req.rawRequest?.get('x-forwarded-for') || ''
   const ip = forwarded.split(',')[0].trim() || req.rawRequest?.ip || 'unknown'
   const ipHash = crypto.createHash('sha256').update(`hagency:${ip}`).digest('hex')
-  const db = admin.firestore()
+  const db = getFirestore()
   const rateRef = db.collection('hagency_rate_limits').doc(ipHash)
   const now = Date.now()
   const windowMs = 24 * 60 * 60 * 1000
@@ -82,8 +94,8 @@ exports.submitHAgencyApplication = onCall(async (req) => {
     if (count >= 3) throw new HttpsError('resource-exhausted', 'Too many applications. Please try again later.')
     transaction.set(rateRef, {
       count: count + 1,
-      windowStartedAt: withinWindow ? record.windowStartedAt : admin.firestore.Timestamp.fromMillis(now),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      windowStartedAt: withinWindow ? record.windowStartedAt : Timestamp.fromMillis(now),
+      updatedAt: FieldValue.serverTimestamp(),
     })
   })
 
@@ -101,11 +113,13 @@ exports.submitHAgencyApplication = onCall(async (req) => {
     specialization,
     introduction,
     social,
+    photoUrl,
+    photoPublicId,
     locale,
     status: 'pending',
     source: 'website',
-    submittedAt: admin.firestore.FieldValue.serverTimestamp(),
-    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    submittedAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
     notificationStatus: 'client-best-effort',
     userAgent: String(req.rawRequest?.get('user-agent') || '').slice(0, 300),
   })
@@ -119,7 +133,12 @@ exports.submitHAgencyApplication = onCall(async (req) => {
  * Deletes an image from Cloudinary. Admin-only.
  */
 exports.deleteCloudinaryImage = onCall(
-  { secrets: [CLOUDINARY_KEY, CLOUDINARY_SECRET] },
+  {
+    secrets: [CLOUDINARY_KEY, CLOUDINARY_SECRET],
+    // Cloud Run must accept browser preflight requests. The callable still
+    // enforces Firebase Authentication and the admin UID allowlist below.
+    invoker: 'public',
+  },
   async (req) => {
     if (!req.auth) {
       throw new HttpsError('unauthenticated', 'You must be signed in.')
@@ -157,7 +176,7 @@ async function sendJSaveReminders(hour) {
     VAPID_PRIVATE.value().trim()
   )
 
-  const db = admin.firestore()
+  const db = getFirestore()
   // Malaysia time = UTC+8
   const now = new Date()
   const myt = new Date(now.getTime() + 8 * 60 * 60 * 1000)
@@ -235,7 +254,7 @@ exports.createToyyibPayBill = onCall(async (req) => {
     throw new HttpsError('invalid-argument', 'Invalid amount.')
   }
 
-  const db = admin.firestore()
+  const db = getFirestore()
   const cfgRef = db.collection('jsave_config').doc('toyyibpay_live')
   const cfgSnap = await cfgRef.get()
 
@@ -296,7 +315,7 @@ exports.jsaveAdminBroadcast = onCall(
       VAPID_PRIVATE.value().trim()
     )
 
-    const db = admin.firestore()
+    const db = getFirestore()
     const subsSnap = await db.collection('jsavePushSubs').get()
 
     // filter to specific uids if provided, otherwise send to all

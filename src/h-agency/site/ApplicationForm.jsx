@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { httpsCallable } from 'firebase/functions'
 import emailjs from '@emailjs/browser'
 import { functions } from '../../lib/firebase'
@@ -6,10 +6,30 @@ import { useHAgencySite } from './SiteContext'
 
 const initialForm = { name: '', age: '', phone: '', wechat: '', email: '', experience: '', specialization: '', introduction: '', social: '', company: '' }
 const fieldClass = 'w-full border-0 border-b border-[#ddc9cf] bg-transparent px-0 py-3 text-sm text-[#24171c] outline-none transition placeholder:text-gray-300 focus:border-[#b65f79]'
+const CLOUDINARY_CLOUD = 'db2ixn8zh'
+const CLOUDINARY_PRESET = 'H-Agency'
+const MAX_PHOTO_BYTES = 5 * 1024 * 1024
+const ACCEPTED_PHOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 const emailConfig = {
   key: import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
   service: import.meta.env.VITE_EMAILJS_SERVICE_ID,
   template: import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+}
+
+async function uploadApplicationPhoto(file) {
+  const data = new FormData()
+  data.append('file', file)
+  data.append('upload_preset', CLOUDINARY_PRESET)
+  data.append('folder', 'hagency/applications')
+
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, {
+    method: 'POST',
+    body: data,
+  })
+  if (!response.ok) throw new Error('photo-upload-failed')
+  const uploaded = await response.json()
+  if (!uploaded.secure_url || !uploaded.public_id) throw new Error('photo-upload-failed')
+  return { photoUrl: uploaded.secure_url, photoPublicId: uploaded.public_id }
 }
 
 function Field({ label, children }) {
@@ -19,23 +39,57 @@ function Field({ label, children }) {
 export default function ApplicationForm() {
   const { lang } = useHAgencySite()
   const [form, setForm] = useState(initialForm)
+  const [photoFile, setPhotoFile] = useState(null)
+  const [photoPreview, setPhotoPreview] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState(null)
+  const photoInputRef = useRef(null)
   const zh = lang === 'zh'
   const set = (key, value) => setForm(current => ({ ...current, [key]: value }))
 
+  useEffect(() => () => {
+    if (photoPreview) URL.revokeObjectURL(photoPreview)
+  }, [photoPreview])
+
+  const selectPhoto = event => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    if (!ACCEPTED_PHOTO_TYPES.has(file.type)) {
+      setResult({ ok: false, message: zh ? '照片仅支持 JPG、PNG 或 WebP 格式。' : 'Please upload a JPG, PNG or WebP photo.' })
+      event.target.value = ''
+      return
+    }
+    if (file.size > MAX_PHOTO_BYTES) {
+      setResult({ ok: false, message: zh ? '照片不能超过 5MB。' : 'The photo must be 5MB or smaller.' })
+      event.target.value = ''
+      return
+    }
+    setPhotoFile(file)
+    setPhotoPreview(URL.createObjectURL(file))
+    setResult(null)
+  }
+
+  const removePhoto = () => {
+    setPhotoFile(null)
+    setPhotoPreview('')
+    if (photoInputRef.current) photoInputRef.current.value = ''
+  }
+
   const submit = async event => {
     event.preventDefault()
-    if (!form.name || !form.age || !form.phone || !form.experience || !form.specialization || !form.introduction) {
+    if (!form.name || !form.age || !form.phone || !form.experience || !form.specialization || !form.introduction || !photoFile) {
       setResult({ ok: false, message: zh ? '请填写所有必填项目。' : 'Please complete all required fields.' })
       return
     }
     setSubmitting(true)
     setResult(null)
     try {
+      const photo = await uploadApplicationPhoto(photoFile)
       const call = httpsCallable(functions, 'submitHAgencyApplication')
-      const response = await call({ ...form, locale: lang })
+      const response = await call({ ...form, ...photo, locale: lang })
       const reference = response.data?.applicationNumber || ''
+      const applicationId = response.data?.applicationId || ''
+      const adminUrl = `https://agency.jeeprod.com/admin${applicationId ? `?application=${encodeURIComponent(applicationId)}` : ''}`
       if (emailConfig.key && emailConfig.service && emailConfig.template) {
         emailjs.init(emailConfig.key)
         emailjs.send(emailConfig.service, emailConfig.template, {
@@ -52,13 +106,24 @@ export default function ApplicationForm() {
           applicant_specialization: form.specialization,
           applicant_introduction: form.introduction,
           applicant_social: form.social || '未填写',
+          applicant_photo_url: photo.photoUrl,
+          application_number: reference,
+          application_id: applicationId,
+          admin_url: adminUrl,
           submitted_at: new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Kuala_Lumpur' }),
         }).catch(() => {})
       }
       setResult({ ok: true, message: `${zh ? '申请已提交，我们将在 24 小时内联系你。' : 'Application submitted. Our team will contact you within 24 hours.'}${reference ? ` ${zh ? '申请编号' : 'Reference'}：${reference}` : ''}` })
       setForm(initialForm)
-    } catch {
-      setResult({ ok: false, message: zh ? '提交失败，请稍后再试或通过 Instagram 联系我们。' : 'Submission failed. Please try again or contact us on Instagram.' })
+      removePhoto()
+    } catch (error) {
+      const photoFailed = error?.message === 'photo-upload-failed'
+      setResult({
+        ok: false,
+        message: photoFailed
+          ? (zh ? '照片上传失败，请检查网络或更换照片后再试。' : 'Photo upload failed. Check your connection or try another photo.')
+          : (zh ? '提交失败，请稍后再试或通过 Instagram 联系我们。' : 'Submission failed. Please try again or contact us on Instagram.'),
+      })
     } finally {
       setSubmitting(false)
     }
@@ -81,8 +146,28 @@ export default function ApplicationForm() {
       </div>
       <div className="mt-5"><Field label={`${zh ? '个人简介' : 'About yourself'} *`}><textarea rows="5" value={form.introduction} onChange={event => set('introduction', event.target.value)} placeholder={zh ? '介绍你的特长、优势和对直播的想法…' : 'Tell us about your strengths and goals…'} className={fieldClass} /></Field></div>
       <div className="mt-5"><Field label={zh ? '社交媒体账号' : 'Social media'}><input value={form.social} onChange={event => set('social', event.target.value)} placeholder={zh ? '抖音、TikTok、BIGO 或 Instagram（选填）' : 'Douyin, TikTok, BIGO or Instagram (optional)'} className={fieldClass} /></Field></div>
+      <div className="mt-7">
+        <Field label={`${zh ? '本人清晰照片' : 'Clear portrait photo'} *`}>
+          <input ref={photoInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={selectPhoto} className="sr-only" />
+          {photoPreview ? (
+            <div className="mt-3 flex items-center gap-4 border border-[#ead9de] bg-[#fffafb] p-3">
+              <img src={photoPreview} alt={zh ? '申请照片预览' : 'Application photo preview'} className="h-24 w-20 shrink-0 object-cover" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-[#24171c]">{photoFile?.name}</p>
+                <p className="mt-1 text-xs leading-5 text-gray-400">{zh ? '申请通过后，这张照片会自动带入主播档案；公开前仍可在后台更换。' : 'If approved, this photo will be carried into the talent profile and can still be replaced before publishing.'}</p>
+                <button type="button" onClick={removePhoto} className="mt-2 text-xs font-medium text-[#a94f6a]">{zh ? '移除并重选' : 'Remove and choose another'}</button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" onClick={() => photoInputRef.current?.click()} className="mt-3 flex w-full items-center gap-4 border border-dashed border-[#d9b8c2] bg-[#fffafb] px-5 py-6 text-left transition hover:border-[#a94f6a] hover:bg-[#fdf4f6]">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#f3e1e6] text-xl" aria-hidden="true">＋</span>
+              <span><strong className="block text-sm font-medium text-[#6e3f4c]">{zh ? '上传正面或半身照' : 'Upload a portrait'}</strong><small className="mt-1 block text-[11px] leading-5 text-gray-400">{zh ? 'JPG、PNG、WebP，最大 5MB；请勿上传带大量文字的海报。' : 'JPG, PNG or WebP, up to 5MB. Please avoid poster artwork with large text.'}</small></span>
+            </button>
+          )}
+        </Field>
+      </div>
       <button type="submit" disabled={submitting} className="mt-8 w-full rounded-full bg-[#24171c] py-4 text-sm font-semibold text-white transition hover:bg-[#a94f6a] disabled:opacity-60">{submitting ? (zh ? '提交中…' : 'Submitting…') : (zh ? '提交申请' : 'Submit application')}</button>
-      <p className="pt-4 text-center text-[11px] leading-5 text-gray-400">{zh ? '提交即表示你同意我们为招募联系你。申请资料不会被公开。' : 'By submitting, you agree to be contacted about recruitment. Application details are not published.'}</p>
+      <p className="pt-4 text-center text-[11px] leading-5 text-gray-400">{zh ? '提交即表示你同意我们为招募联系你。申请资料与照片仅供内部审核，未经确认不会公开。' : 'By submitting, you agree to be contacted about recruitment. Your details and photo are for internal review and will not be published without confirmation.'}</p>
     </form>
   )
 }

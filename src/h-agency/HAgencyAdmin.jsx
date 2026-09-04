@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, serverTimestamp } from 'firebase/firestore'
-import { db } from '../lib/firebase'
+import { httpsCallable } from 'firebase/functions'
+import { db, functions } from '../lib/firebase'
+import { logout } from '../lib/auth'
+import { useAuth } from '../contexts/AuthContext'
 
 const CLOUDINARY_CLOUD = 'db2ixn8zh'
 const CLOUDINARY_PRESET = 'H-Agency'
 
-const PIPELINE = ['pending', 'contacted', 'interview', 'trial', 'offer', 'contracted', 'onboarding', 'active', 'rejected']
+const PIPELINE = ['pending', 'contacted', 'interview', 'trial', 'offer', 'approved', 'contracted', 'onboarding', 'active', 'rejected']
 const STATUS_COLOR = {
   pending: 'text-amber-600', contacted: 'text-sky-600', interview: 'text-violet-600', trial: 'text-fuchsia-600',
   offer: 'text-pink-600', contracted: 'text-emerald-600', onboarding: 'text-teal-600', active: 'text-emerald-700',
@@ -16,7 +19,49 @@ const STATUS_LABEL = {
   contracted: '已签约', onboarding: '培训中', active: '活跃主播', approved: '已通过', rejected: '已拒绝',
 }
 
-const emptyStreamer = { nameZh: '', nameEn: '', income: '', hours: '', fansGrowth: '', badgeZh: '优秀主播', badgeEn: 'Top Streamer', order: 0, photoUrl: '', tiktokUrl: '', bigoUrl: '', instaUrl: '' }
+const emptyTrial = { applicationId: '', platform: '', url: '', scheduledAt: '', notes: '' }
+
+function toDateTimeLocal(value) {
+  if (!value) return ''
+  const date = value?.toDate ? value.toDate() : new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60 * 1000)
+  return local.toISOString().slice(0, 16)
+}
+
+function formatDateTime(value) {
+  if (!value) return ''
+  const date = value?.toDate ? value.toDate() : new Date(value)
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleString('zh-CN')
+}
+
+function applicationPhotoPublicId(submission) {
+  if (submission?.photoPublicId) return submission.photoPublicId
+  if (!submission?.photoUrl) return ''
+  try {
+    const url = new URL(submission.photoUrl)
+    const prefix = '/db2ixn8zh/image/upload/'
+    if (url.hostname !== 'res.cloudinary.com' || !url.pathname.startsWith(prefix)) return ''
+    const assetPath = decodeURIComponent(url.pathname.slice(prefix.length)).replace(/^v\d+\//, '')
+    return assetPath.replace(/\.[^/.]+$/, '')
+  } catch {
+    return ''
+  }
+}
+
+const emptyStreamer = {
+  nameZh: '', nameEn: '', slug: '', introZh: '', introEn: '', platform: '', handle: '',
+  income: '', hours: '', fansGrowth: '', badgeZh: '优秀主播', badgeEn: 'Top Streamer', order: 0,
+  photoUrl: '', homeImageUrl: '', honorImageUrl: '', rankingImageUrl: '', tiktokUrl: '', bigoUrl: '', instaUrl: '', visible: true,
+  homeFeatured: false, homePosition: '', honorFeatured: false, honorPosition: '', rankingFeatured: false, rankingPosition: '',
+}
+
+const parseBoolean = (value, fallback = false) => {
+  if (typeof value === 'boolean') return value
+  if (value === 1 || value === '1' || String(value).toLowerCase() === 'true' || String(value).toLowerCase() === 'yes') return true
+  if (value === 0 || value === '0' || String(value).toLowerCase() === 'false' || String(value).toLowerCase() === 'no') return false
+  return fallback
+}
 
 async function uploadToCloudinary(file, folder) {
   const form = new FormData()
@@ -30,12 +75,26 @@ async function uploadToCloudinary(file, folder) {
 
 export default function HAgencyAdmin() {
   const publicHome = window.location.pathname.startsWith('/h-agency') ? '/h-agency' : '/'
+  const loginHome = window.location.pathname.startsWith('/h-agency') ? '/' : '/admin/login'
+  const { user } = useAuth()
   const [tab, setTab] = useState('submissions')
   const [submissions, setSubmissions] = useState([])
   const [leaderboard, setLeaderboard] = useState([])
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(false)
   const [notice, setNotice] = useState(null)
+  const [darkTheme, setDarkTheme] = useState(() => window.localStorage.getItem('hagency-admin-theme') !== 'light')
+  const targetApplicationId = new URLSearchParams(window.location.search).get('application') || ''
+  const focusedApplicationRef = useRef(false)
+
+  const handleLogout = async () => {
+    try {
+      await logout()
+      window.location.replace(loginHome)
+    } catch {
+      setNotice({ ok: false, msg: '退出失败，请稍后再试。' })
+    }
+  }
 
   // Leaderboard form
   const [editingStreamer, setEditingStreamer] = useState(null)
@@ -62,8 +121,26 @@ export default function HAgencyAdmin() {
   const fileInputRef = useRef(null)
 
   const [statusFilter, setStatusFilter] = useState('all')
+  const [trialEditor, setTrialEditor] = useState(null)
+  const [savingTrial, setSavingTrial] = useState(false)
+  const [deletingSubmission, setDeletingSubmission] = useState(null)
+  const [deletePhotoWithApplication, setDeletePhotoWithApplication] = useState(true)
+  const [deletingApplication, setDeletingApplication] = useState(false)
 
   useEffect(() => { loadAll() }, [])
+  useEffect(() => {
+    window.localStorage.setItem('hagency-admin-theme', darkTheme ? 'dark' : 'light')
+    const previousBackground = document.body.style.backgroundColor
+    document.body.style.backgroundColor = darkTheme ? '#141014' : '#f9fafb'
+    return () => { document.body.style.backgroundColor = previousBackground }
+  }, [darkTheme])
+  useEffect(() => {
+    if (loading || !targetApplicationId || focusedApplicationRef.current || !submissions.some(item => item.id === targetApplicationId)) return
+    focusedApplicationRef.current = true
+    setTab('submissions')
+    setStatusFilter('all')
+    window.setTimeout(() => document.getElementById(`application-${targetApplicationId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100)
+  }, [loading, submissions, targetApplicationId])
   useEffect(() => {
     if (!notice) return
     const t = setTimeout(() => setNotice(null), notice.duration || 3500)
@@ -90,11 +167,101 @@ export default function HAgencyAdmin() {
   // ── Submissions ──────────────────────────────────────────
   const updateStatus = async (id, status) => {
     try {
-      await updateDoc(doc(db, 'hagency_submissions', id), { status })
+      await updateDoc(doc(db, 'hagency_submissions', id), { status, updatedAt: serverTimestamp() })
       setSubmissions(s => s.map(x => x.id === id ? { ...x, status } : x))
       setNotice({ ok: true, msg: '状态已更新' })
     } catch (e) {
       setNotice({ ok: false, msg: e.message })
+    }
+  }
+
+  const openTrialEditor = (submission) => {
+    setTrialEditor({
+      ...emptyTrial,
+      applicationId: submission.id,
+      platform: submission.trialPlatform || '',
+      url: submission.trialUrl || '',
+      scheduledAt: toDateTimeLocal(submission.trialScheduledAt),
+      notes: submission.trialNotes || '',
+    })
+  }
+
+  const handleStatusChange = (submission, status) => {
+    if (status === 'trial') {
+      openTrialEditor(submission)
+      return
+    }
+    updateStatus(submission.id, status)
+  }
+
+  const saveTrial = async () => {
+    const platform = trialEditor?.platform.trim() || ''
+    const trialUrl = trialEditor?.url.trim() || ''
+    if (!platform || !trialUrl) {
+      setNotice({ ok: false, msg: '请填写试播平台和试播链接。' })
+      return
+    }
+    try {
+      const parsed = new URL(trialUrl)
+      if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('invalid-url')
+    } catch {
+      setNotice({ ok: false, msg: '请输入完整的试播链接，例如 https://www.tiktok.com/@username' })
+      return
+    }
+
+    setSavingTrial(true)
+    try {
+      const data = {
+        status: 'trial',
+        trialPlatform: platform,
+        trialUrl,
+        trialScheduledAt: trialEditor.scheduledAt ? new Date(trialEditor.scheduledAt).toISOString() : null,
+        trialNotes: trialEditor.notes.trim(),
+        trialUpdatedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }
+      await updateDoc(doc(db, 'hagency_submissions', trialEditor.applicationId), data)
+      setSubmissions(items => items.map(item => item.id === trialEditor.applicationId ? { ...item, ...data } : item))
+      setTrialEditor(null)
+      setNotice({ ok: true, msg: '试播资料已保存，状态已更新为“试播中”。' })
+    } catch (error) {
+      setNotice({ ok: false, msg: '试播资料保存失败：' + error.message })
+    } finally {
+      setSavingTrial(false)
+    }
+  }
+
+  const openDeleteSubmission = (submission) => {
+    const publicId = applicationPhotoPublicId(submission)
+    setDeletingSubmission({ ...submission, resolvedPhotoPublicId: publicId })
+    setDeletePhotoWithApplication(Boolean(publicId && !submission.talentId))
+  }
+
+  const confirmDeleteSubmission = async () => {
+    if (!deletingSubmission || deletingApplication) return
+    const shouldDeletePhoto = deletePhotoWithApplication && deletingSubmission.resolvedPhotoPublicId && !deletingSubmission.talentId
+    setDeletingApplication(true)
+    let photoDeleted = false
+    try {
+      if (shouldDeletePhoto) {
+        const destroyPhoto = httpsCallable(functions, 'deleteCloudinaryImage')
+        await destroyPhoto({ publicId: deletingSubmission.resolvedPhotoPublicId })
+        photoDeleted = true
+      }
+      await deleteDoc(doc(db, 'hagency_submissions', deletingSubmission.id))
+      setSubmissions(items => items.filter(item => item.id !== deletingSubmission.id))
+      if (targetApplicationId === deletingSubmission.id) {
+        window.history.replaceState({}, '', window.location.pathname)
+      }
+      setDeletingSubmission(null)
+      setNotice({ ok: true, msg: shouldDeletePhoto ? '申请记录和 Cloudinary 照片已删除。' : '申请记录已删除。' })
+    } catch (error) {
+      const detail = photoDeleted
+        ? 'Cloudinary 照片已经删除，但 Firestore 记录未能删除。请再次点击删除申请完成清理。'
+        : '申请记录尚未删除，照片也未被移除，可以安全重试。'
+      setNotice({ ok: false, msg: `删除失败：${error.message || '请稍后再试。'}\n${detail}`, duration: 6500 })
+    } finally {
+      setDeletingApplication(false)
     }
   }
 
@@ -104,11 +271,20 @@ export default function HAgencyAdmin() {
     setEditingStreamer(s.id)
     setStreamerForm({
       nameZh: s.nameZh || '', nameEn: s.nameEn || '',
+      slug: s.slug || '', introZh: s.introZh || '', introEn: s.introEn || '',
+      platform: s.platform || '', handle: s.handle || '',
       income: s.income || '', hours: s.hours || '', fansGrowth: s.fansGrowth || '',
       badgeZh: s.badgeZh || '优秀主播', badgeEn: s.badgeEn || 'Top Streamer',
       order: s.order || 0,
-      photoUrl: s.photoUrl || '', tiktokUrl: s.tiktokUrl || '',
+      photoUrl: s.photoUrl || '', homeImageUrl: s.homeImageUrl || '', honorImageUrl: s.honorImageUrl || '', rankingImageUrl: s.rankingImageUrl || '', tiktokUrl: s.tiktokUrl || '',
       bigoUrl: s.bigoUrl || '', instaUrl: s.instaUrl || '',
+      visible: s.visible !== false,
+      homeFeatured: Boolean(s.homeFeatured),
+      homePosition: s.homePosition || '',
+      honorFeatured: Boolean(s.honorFeatured),
+      honorPosition: s.honorPosition || '',
+      rankingFeatured: Boolean(s.rankingFeatured),
+      rankingPosition: s.rankingPosition || '',
       sourceApplicationId: s.sourceApplicationId || null,
     })
     setAvatarFile(null)
@@ -125,12 +301,13 @@ export default function HAgencyAdmin() {
       nameZh: sub.name,
       badgeZh: sub.specialization || '签约主播',
       order: leaderboard.length + 1,
+      photoUrl: sub.photoUrl || '',
       tiktokUrl: /tiktok|douyin/i.test(sub.social || '') ? sub.social : '',
       bigoUrl: /bigo/i.test(sub.social || '') ? sub.social : '',
       instaUrl: /instagram\.com|(^|\s)@/i.test(sub.social || '') ? sub.social : '',
     })
     setAvatarFile(null)
-    setAvatarPreview(null)
+    setAvatarPreview(sub.photoUrl || null)
     setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
   }
 
@@ -147,7 +324,27 @@ export default function HAgencyAdmin() {
         hours: Number(streamerForm.hours) || 0,
         fansGrowth: Number(streamerForm.fansGrowth) || 0,
         order: Number(streamerForm.order) || 0,
+        visible: streamerForm.visible !== false,
+        homeFeatured: Boolean(streamerForm.homeFeatured),
+        homePosition: streamerForm.homeFeatured ? Math.min(3, Math.max(1, Number(streamerForm.homePosition) || 1)) : null,
+        honorFeatured: Boolean(streamerForm.honorFeatured),
+        honorPosition: streamerForm.honorFeatured ? Math.min(3, Math.max(1, Number(streamerForm.honorPosition) || 1)) : null,
+        rankingFeatured: Boolean(streamerForm.rankingFeatured),
+        rankingPosition: streamerForm.rankingFeatured ? Math.min(3, Math.max(1, Number(streamerForm.rankingPosition) || 1)) : null,
         sourceApplicationId: promotingSubmissionId || streamerForm.sourceApplicationId || null,
+      }
+      const placementRules = [
+        ['homeFeatured', 'homePosition'],
+        ['honorFeatured', 'honorPosition'],
+        ['rankingFeatured', 'rankingPosition'],
+      ]
+      for (const [featuredKey, positionKey] of placementRules) {
+        if (!data[featuredKey]) continue
+        const conflict = leaderboard.find(item => item.id !== editingStreamer && item[featuredKey] && Number(item[positionKey]) === data[positionKey])
+        if (conflict) {
+          await updateDoc(doc(db, 'hagency_leaderboard', conflict.id), { [featuredKey]: false, [positionKey]: null })
+          setLeaderboard(items => items.map(item => item.id === conflict.id ? { ...item, [featuredKey]: false, [positionKey]: null } : item))
+        }
       }
       if (editingStreamer === 'new') {
         const ref = await addDoc(collection(db, 'hagency_leaderboard'), data)
@@ -234,8 +431,17 @@ export default function HAgencyAdmin() {
           fansGrowth: Number(row.fansGrowth) || 0,
           badgeZh: row.badgeZh || '优秀主播', badgeEn: row.badgeEn || 'Top Streamer',
           order: Number(row.order) || currentBoard.length + 1,
-          photoUrl: row.photoUrl || '', tiktokUrl: row.tiktokUrl || '',
+          slug: row.slug || '', introZh: row.introZh || '', introEn: row.introEn || '',
+          platform: row.platform || '', handle: row.handle || '',
+          photoUrl: row.photoUrl || '', homeImageUrl: row.homeImageUrl || '', honorImageUrl: row.honorImageUrl || '', rankingImageUrl: row.rankingImageUrl || '', tiktokUrl: row.tiktokUrl || '',
           bigoUrl: row.bigoUrl || '', instaUrl: row.instaUrl || '',
+          visible: parseBoolean(row.visible, true),
+          homeFeatured: parseBoolean(row.homeFeatured, false),
+          homePosition: parseBoolean(row.homeFeatured, false) ? Math.min(3, Math.max(1, Number(row.homePosition) || 1)) : null,
+          honorFeatured: parseBoolean(row.honorFeatured, false),
+          honorPosition: parseBoolean(row.honorFeatured, false) ? Math.min(3, Math.max(1, Number(row.honorPosition) || 1)) : null,
+          rankingFeatured: parseBoolean(row.rankingFeatured, false),
+          rankingPosition: parseBoolean(row.rankingFeatured, false) ? Math.min(3, Math.max(1, Number(row.rankingPosition) || 1)) : null,
         }
 
         if (!data.nameZh) {
@@ -318,13 +524,16 @@ export default function HAgencyAdmin() {
   }
 
   const SAMPLE_STREAMERS = [
-    { nameZh: '小花', nameEn: 'XiaoHua', income: 8000, hours: 120, fansGrowth: 5000, badgeZh: '优秀主播', badgeEn: 'Top Streamer', order: 1, photoUrl: '', tiktokUrl: 'https://tiktok.com/@example', bigoUrl: '', instaUrl: '' },
-    { nameZh: '大明', nameEn: 'DaMing',  income: 5500, hours:  90, fansGrowth: 3200, badgeZh: '人气主播', badgeEn: 'Rising Star',  order: 2, photoUrl: '', tiktokUrl: '', bigoUrl: 'https://bigo.tv/example', instaUrl: 'https://instagram.com/example' },
+    { nameZh: '盼夏', nameEn: 'Panxia', slug: 'panxia', introZh: 'ℋ Agency 希望公会旗下百万主播。', introEn: 'Million Creator represented by ℋ Agency.', platform: 'BIGO LIVE', handle: 'panxia825', badgeZh: '百万主播 · 再攀高峰', badgeEn: 'Million Creator · Reaching New Heights', order: 1, photoUrl: 'https://agency.jeeprod.com/hagency/talents/panxia.jpg', homeImageUrl: 'https://agency.jeeprod.com/hagency/talents/home/panxia-portrait-v1.webp', honorImageUrl: 'https://agency.jeeprod.com/hagency/talents/panxia.jpg', rankingImageUrl: '', tiktokUrl: '', bigoUrl: '', instaUrl: '', visible: true, homeFeatured: true, homePosition: 1, honorFeatured: true, honorPosition: 1, rankingFeatured: false, rankingPosition: '' },
+    { nameZh: '小暖', nameEn: 'Xiaonuan', slug: 'xiaonuan', introZh: 'ℋ Agency 希望公会旗下百万主播。', introEn: 'Million Creator represented by ℋ Agency.', platform: '抖音', handle: '07nuannuan15', badgeZh: '百万主播 · 高光时刻', badgeEn: 'Million Creator · Spotlight Moment', order: 2, photoUrl: 'https://agency.jeeprod.com/hagency/talents/xiaonuan.jpg', homeImageUrl: 'https://agency.jeeprod.com/hagency/talents/home/xiaonuan-portrait-v1.webp', honorImageUrl: 'https://agency.jeeprod.com/hagency/talents/xiaonuan.jpg', rankingImageUrl: '', tiktokUrl: '', bigoUrl: '', instaUrl: '', visible: true, homeFeatured: true, homePosition: 2, honorFeatured: true, honorPosition: 2, rankingFeatured: false, rankingPosition: '' },
+    { nameZh: '贝贝', nameEn: 'Beibei', slug: 'beibei', introZh: 'ℋ Agency 希望公会旗下百万主播，也是本期主播高光榜亚军。', introEn: 'Million Creator and current talent highlight runner-up.', platform: '抖音', handle: 'bellbell__00', badgeZh: '百万主播 · 荣耀加冕', badgeEn: 'Million Creator · Crowned in Honor', order: 3, photoUrl: 'https://agency.jeeprod.com/hagency/talents/beibei-million.jpg', homeImageUrl: 'https://agency.jeeprod.com/hagency/talents/home/beibei-portrait-v1.webp', honorImageUrl: 'https://agency.jeeprod.com/hagency/talents/beibei-million.jpg', rankingImageUrl: 'https://agency.jeeprod.com/hagency/talents/bellbell-runner-up.jpg', tiktokUrl: '', bigoUrl: '', instaUrl: '', visible: true, homeFeatured: true, homePosition: 3, honorFeatured: true, honorPosition: 3, rankingFeatured: true, rankingPosition: 2 },
+    { nameZh: '调皮的丝丝', nameEn: 'Isure', slug: 'isure', introZh: '本期主播高光榜冠军。', introEn: 'Current talent highlight champion.', platform: '抖音', handle: 'isure_0506', badgeZh: '冠军', badgeEn: 'Champion', order: 4, photoUrl: 'https://agency.jeeprod.com/hagency/talents/isure-champion.jpg', honorImageUrl: '', rankingImageUrl: 'https://agency.jeeprod.com/hagency/talents/isure-champion.jpg', tiktokUrl: '', bigoUrl: '', instaUrl: '', visible: true, homeFeatured: false, homePosition: '', honorFeatured: false, honorPosition: '', rankingFeatured: true, rankingPosition: 1 },
+    { nameZh: '游采秉', nameEn: 'Dyorewszr2gt', slug: 'dyorewszr2gt', introZh: '本期主播高光榜季军。', introEn: 'Current talent highlight third place.', platform: '抖音', handle: 'dyorewszr2gt', badgeZh: '季军', badgeEn: 'Third Place', order: 5, photoUrl: 'https://agency.jeeprod.com/hagency/talents/dyorewszr2gt-third.jpg', honorImageUrl: '', rankingImageUrl: 'https://agency.jeeprod.com/hagency/talents/dyorewszr2gt-third.jpg', tiktokUrl: '', bigoUrl: '', instaUrl: '', visible: true, homeFeatured: false, homePosition: '', honorFeatured: false, honorPosition: '', rankingFeatured: true, rankingPosition: 3 },
   ]
 
   const downloadSample = (format) => {
     let content, mime, ext
-    const headers = ['nameZh','nameEn','income','hours','fansGrowth','badgeZh','badgeEn','order','photoUrl','tiktokUrl','bigoUrl','instaUrl']
+    const headers = ['nameZh','nameEn','slug','introZh','introEn','platform','handle','income','hours','fansGrowth','badgeZh','badgeEn','order','photoUrl','homeImageUrl','honorImageUrl','rankingImageUrl','tiktokUrl','bigoUrl','instaUrl','visible','homeFeatured','homePosition','honorFeatured','honorPosition','rankingFeatured','rankingPosition']
     if (format === 'csv') {
       const rows = SAMPLE_STREAMERS.map(r => headers.map(h => `"${String(r[h] ?? '').replace(/"/g, '""')}"`).join(','))
       content = [headers.join(','), ...rows].join('\n')
@@ -351,26 +560,112 @@ export default function HAgencyAdmin() {
     signed: submissions.filter(s => ['contracted', 'onboarding', 'active', 'approved'].includes(s.status)).length,
     active: submissions.filter(s => s.status === 'active').length,
   }
+  const trialSubmission = trialEditor ? submissions.find(item => item.id === trialEditor.applicationId) : null
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className={`${darkTheme ? 'dark bg-[#141014] text-[#eee6e9]' : 'bg-gray-50 text-gray-900'} min-h-screen transition-colors duration-300`} style={{ colorScheme: darkTheme ? 'dark' : 'light' }}>
       {notice && (
-        <div className={`fixed right-6 top-6 z-50 max-w-sm rounded-2xl border px-4 py-3 shadow-lg text-sm ${notice.ok ? 'border-emerald-300/45 bg-emerald-50 text-emerald-900 dark:border-emerald-500/25 dark:bg-emerald-950/70 dark:text-emerald-100' : 'border-red-300/45 bg-red-50 text-red-900 dark:border-red-500/25 dark:bg-red-950/70 dark:text-red-100'}`}>
+        <div className={`fixed right-6 top-6 z-[80] max-w-sm rounded-2xl border px-4 py-3 shadow-lg text-sm ${notice.ok ? 'border-emerald-300/45 bg-emerald-50 text-emerald-900 dark:border-emerald-500/25 dark:bg-emerald-950/70 dark:text-emerald-100' : 'border-red-300/45 bg-red-50 text-red-900 dark:border-red-500/25 dark:bg-red-950/70 dark:text-red-100'}`}>
           {notice.msg.split('\n').map((line, i) => (
             <p key={i} className={i > 0 ? 'mt-1 text-xs opacity-80' : ''}>{line}</p>
           ))}
         </div>
       )}
 
-      <div className="sticky top-0 z-40 border-b border-gray-200 bg-white/95 backdrop-blur dark:border-gray-800 dark:bg-gray-900/95">
+      {trialEditor && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[#160d12]/65 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="trial-editor-title">
+          <form onSubmit={event => { event.preventDefault(); saveTrial() }} className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-pink-100 bg-white p-6 shadow-[0_30px_100px_rgba(34,12,22,.35)] dark:border-gray-800 dark:bg-gray-900 sm:p-8">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-fuchsia-500">TRIAL SESSION</p>
+                <h2 id="trial-editor-title" className="mt-2 font-display text-3xl text-gray-900 dark:text-gray-100">填写试播资料</h2>
+                {trialSubmission && <p className="mt-2 text-xs text-gray-400">{trialSubmission.name}{trialSubmission.applicationNumber ? ` · ${trialSubmission.applicationNumber}` : ''}</p>}
+              </div>
+              <button type="button" onClick={() => setTrialEditor(null)} aria-label="关闭" className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-lg text-gray-400 hover:border-gray-400 hover:text-gray-700 dark:border-gray-700">×</button>
+            </div>
+
+            <div className="mt-7 space-y-5">
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-300">试播平台 <span className="text-pink-500">*</span></span>
+                <input list="hagency-trial-platforms" value={trialEditor.platform} onChange={event => setTrialEditor(current => ({ ...current, platform: event.target.value }))} placeholder="例如：TikTok、BIGO LIVE、抖音" required className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-fuchsia-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
+                <datalist id="hagency-trial-platforms"><option value="抖音" /><option value="TikTok" /><option value="BIGO LIVE" /><option value="小红书" /><option value="Instagram Live" /></datalist>
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-300">试播链接 <span className="text-pink-500">*</span></span>
+                <input type="url" value={trialEditor.url} onChange={event => setTrialEditor(current => ({ ...current, url: event.target.value }))} placeholder="https://..." required className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-fuchsia-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
+                <p className="mt-1.5 text-[11px] leading-5 text-gray-400">可填写直播间、主播主页或预约直播链接。</p>
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-300">试播时间（选填）</span>
+                <input type="datetime-local" value={trialEditor.scheduledAt} onChange={event => setTrialEditor(current => ({ ...current, scheduledAt: event.target.value }))} className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-fuchsia-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-300">内部备注（选填）</span>
+                <textarea rows={3} value={trialEditor.notes} onChange={event => setTrialEditor(current => ({ ...current, notes: event.target.value }))} placeholder="例如：重点观察互动能力、镜头表现、开播稳定性……" className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm leading-6 outline-none focus:border-fuchsia-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
+              </label>
+            </div>
+
+            <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button type="button" onClick={() => setTrialEditor(null)} disabled={savingTrial} className="rounded-full border border-gray-200 px-6 py-3 text-sm text-gray-500 hover:border-gray-400 dark:border-gray-700">取消</button>
+              <button type="submit" disabled={savingTrial} className="rounded-full bg-[#a94f6a] px-7 py-3 text-sm font-semibold text-white hover:bg-[#8f3e56] disabled:opacity-60">{savingTrial ? '保存中…' : '保存并进入试播中'}</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {deletingSubmission && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[#160d12]/70 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="delete-application-title">
+          <div className="w-full max-w-md rounded-3xl border border-red-100 bg-white p-6 shadow-[0_30px_100px_rgba(34,12,22,.4)] dark:border-red-900/40 dark:bg-gray-900 sm:p-8">
+            <div className="flex items-start gap-4">
+              {deletingSubmission.photoUrl ? <img src={deletingSubmission.photoUrl} alt="" className="h-20 w-16 shrink-0 rounded-xl object-cover" /> : <div className="flex h-20 w-16 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-xl dark:bg-gray-800">🗑</div>}
+              <div className="min-w-0 flex-1">
+                <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-red-500">IRREVERSIBLE ACTION</p>
+                <h2 id="delete-application-title" className="mt-2 font-display text-3xl text-gray-900 dark:text-gray-100">删除这份申请？</h2>
+                <p className="mt-2 truncate text-sm text-gray-500 dark:text-gray-400">{deletingSubmission.name}{deletingSubmission.applicationNumber ? ` · ${deletingSubmission.applicationNumber}` : ''}</p>
+              </div>
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-red-100 bg-red-50/70 p-4 text-xs leading-6 text-red-800 dark:border-red-900/35 dark:bg-red-950/20 dark:text-red-200">
+              Firestore 中的申请资料、状态与内部备注都会永久删除，无法恢复。
+            </div>
+
+            <div className="mt-5">
+              {deletingSubmission.talentId ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs leading-6 text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
+                  这份申请已经关联主播档案。为避免公开头像失效，Cloudinary 照片会自动保留，只删除申请记录。
+                </div>
+              ) : deletingSubmission.resolvedPhotoPublicId ? (
+                <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-gray-200 p-4 dark:border-gray-700">
+                  <input type="checkbox" checked={deletePhotoWithApplication} onChange={event => setDeletePhotoWithApplication(event.target.checked)} className="mt-0.5 h-4 w-4 accent-red-500" />
+                  <span><strong className="block text-sm font-medium text-gray-700 dark:text-gray-200">同时删除 Cloudinary 照片</strong><small className="mt-1 block text-[11px] leading-5 text-gray-400">建议保持勾选，可以释放储存空间；照片删除后同样无法恢复。</small></span>
+                </label>
+              ) : (
+                <div className="rounded-2xl border border-gray-200 p-4 text-xs leading-6 text-gray-500 dark:border-gray-700 dark:text-gray-400">
+                  这份申请没有可识别的 Cloudinary 照片，只会删除 Firestore 申请记录。
+                </div>
+              )}
+            </div>
+
+            <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button type="button" onClick={() => setDeletingSubmission(null)} disabled={deletingApplication} className="rounded-full border border-gray-200 px-6 py-3 text-sm text-gray-500 hover:border-gray-400 dark:border-gray-700 dark:text-gray-300">取消</button>
+              <button type="button" onClick={confirmDeleteSubmission} disabled={deletingApplication} className="rounded-full bg-red-600 px-7 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60">{deletingApplication ? '删除中…' : deletePhotoWithApplication && deletingSubmission.resolvedPhotoPublicId && !deletingSubmission.talentId ? '删除申请与照片' : '删除申请'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="sticky top-0 z-40 border-b border-gray-200 bg-white/95 backdrop-blur dark:border-white/10 dark:bg-[#1b161c]/95">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             <span className="font-display text-2xl text-pink-500" style={{ fontStyle: 'italic' }}>ℋ Agency</span>
             <span className="font-mono text-xs uppercase tracking-[0.25em] text-gray-400">Admin</span>
           </div>
-          <a href={publicHome} className="rounded-full border border-pink-200 px-3 py-1.5 font-mono text-xs text-pink-500 transition-colors hover:bg-pink-50 dark:border-pink-800 dark:hover:bg-pink-950/30">
-            查看公开页面 →
-          </a>
+          <div className="flex items-center gap-2">
+            {user?.email && <span className="hidden max-w-44 truncate text-[11px] text-gray-400 md:block">{user.email}</span>}
+            <button onClick={() => setDarkTheme(value => !value)} className="rounded-full border border-gray-200 px-3 py-1.5 font-mono text-xs text-gray-500 transition-colors hover:border-pink-300 hover:text-pink-500 dark:border-white/15 dark:text-[#aa9ca2] dark:hover:border-[#a94f6a] dark:hover:text-[#e4b5c3]" title={darkTheme ? '切换到浅色后台' : '切换到低亮后台'}>{darkTheme ? '☀ 浅色' : '◐ 低亮'}</button>
+            <a href={publicHome} className="rounded-full border border-pink-200 px-3 py-1.5 font-mono text-xs text-pink-500 transition-colors hover:bg-pink-50 dark:border-pink-800 dark:hover:bg-pink-950/30">公开页面 →</a>
+            <button onClick={handleLogout} className="rounded-full border border-gray-200 px-3 py-1.5 font-mono text-xs text-gray-500 transition-colors hover:border-gray-400 hover:text-gray-700 dark:border-gray-700 dark:hover:text-gray-300">退出</button>
+          </div>
         </div>
         <div className="mx-auto flex max-w-5xl gap-1 px-6 pb-3">
           {[['submissions', `招募流程 (${pipelineStats.pending} 新)`], ['leaderboard', '主播资料'], ['posts', '内容动态']].map(([k, label]) => (
@@ -402,7 +697,7 @@ export default function HAgencyAdmin() {
               ))}
             </div>
             <div className="ha-no-scrollbar mb-4 flex gap-2 overflow-x-auto pb-2">
-              {['all', ...PIPELINE, 'approved'].map(s => (
+              {['all', ...PIPELINE].map(s => (
                 <button key={s} onClick={() => setStatusFilter(s)} className={`rounded-full border px-3 py-1 font-mono text-xs transition-colors ${statusFilter === s ? 'border-pink-500 bg-pink-500 text-white' : 'border-gray-200 text-gray-500 hover:border-pink-300 dark:border-gray-700'}`}>
                   {s === 'all' ? '全部' : STATUS_LABEL[s]}
                 </button>
@@ -411,13 +706,23 @@ export default function HAgencyAdmin() {
             <div className="space-y-3">
               {filteredSubs.length === 0 && <EmptyCard text="暂无申请记录" />}
               {filteredSubs.map(s => (
-                <div key={s.id} className="rounded-2xl border border-gray-100 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
+                <div id={`application-${s.id}`} key={s.id} className={`rounded-2xl border bg-white p-5 transition-shadow dark:bg-gray-900 ${targetApplicationId === s.id ? 'border-pink-300 shadow-[0_0_0_4px_rgba(236,72,153,0.10)] dark:border-pink-700' : 'border-gray-100 dark:border-gray-800'}`}>
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex min-w-0 flex-1 gap-4">
+                      {s.photoUrl ? (
+                        <a href={s.photoUrl} target="_blank" rel="noopener noreferrer" className="group relative h-24 w-20 shrink-0 overflow-hidden rounded-xl bg-pink-50">
+                          <img src={s.photoUrl} alt={`${s.name} 的申请照片`} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                          <span className="absolute inset-x-0 bottom-0 bg-black/55 py-1 text-center text-[9px] text-white opacity-0 transition group-hover:opacity-100">查看原图</span>
+                        </a>
+                      ) : (
+                        <div className="flex h-24 w-20 shrink-0 items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50 text-[10px] text-gray-400 dark:border-gray-700 dark:bg-gray-800">旧申请<br />无照片</div>
+                      )}
+                      <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-3">
                         <span className="font-semibold text-gray-900 dark:text-gray-100">{s.name}</span>
                         <span className={`font-mono text-xs ${STATUS_COLOR[s.status] || 'text-gray-400'}`}>{STATUS_LABEL[s.status] || s.status}</span>
                       </div>
+                      {s.applicationNumber && <p className="mt-1 font-mono text-[10px] tracking-[0.12em] text-[#a94f6a]">{s.applicationNumber}</p>}
                       <div className="mt-1 flex flex-wrap gap-3 text-xs text-gray-500 dark:text-gray-400">
                         <span>📱 {s.phone}</span>
                         {s.wechat && <span>💬 {s.wechat}</span>}
@@ -427,11 +732,24 @@ export default function HAgencyAdmin() {
                       </div>
                       <p className="mt-2 text-sm leading-5 text-gray-600 dark:text-gray-300">{s.introduction}</p>
                       {s.social && <p className="mt-1 text-xs text-gray-400">社媒: {s.social}</p>}
+                      {(s.trialPlatform || s.trialUrl || s.status === 'trial') && (
+                        <div className="mt-3 rounded-xl border border-fuchsia-100 bg-fuchsia-50/60 p-3 dark:border-fuchsia-900/30 dark:bg-fuchsia-950/20">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-fuchsia-500">试播资料</p>
+                            <button type="button" onClick={() => openTrialEditor(s)} className="text-[10px] font-medium text-fuchsia-600 hover:text-fuchsia-800 dark:text-fuchsia-400">{s.trialPlatform && s.trialUrl ? '编辑资料' : '补充资料'}</button>
+                          </div>
+                          {s.trialPlatform && <p className="mt-2 text-xs text-gray-600 dark:text-gray-300">平台：{s.trialPlatform}</p>}
+                          {s.trialUrl && <a href={s.trialUrl} target="_blank" rel="noopener noreferrer" className="mt-1 block break-all text-xs text-fuchsia-600 underline decoration-fuchsia-200 underline-offset-2 dark:text-fuchsia-400">打开试播链接 ↗</a>}
+                          {formatDateTime(s.trialScheduledAt) && <p className="mt-1 text-[11px] text-gray-400">时间：{formatDateTime(s.trialScheduledAt)}</p>}
+                          {s.trialNotes && <p className="mt-2 text-xs leading-5 text-gray-500 dark:text-gray-400">备注：{s.trialNotes}</p>}
+                        </div>
+                      )}
+                      </div>
                     </div>
-                    <div className="flex shrink-0 flex-col items-end gap-2">
-                      <label className="text-right">
+                    <div className="flex shrink-0 flex-row items-end justify-between gap-2 sm:flex-col sm:items-end">
+                      <label className="text-left sm:text-right">
                         <span className="mb-1 block font-mono text-[9px] uppercase tracking-[0.16em] text-gray-400">当前阶段</span>
-                        <select value={s.status || 'pending'} onChange={e => updateStatus(s.id, e.target.value)} className="rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600 outline-none focus:border-pink-400 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                        <select value={s.status || 'pending'} onChange={e => handleStatusChange(s, e.target.value)} className="rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600 outline-none focus:border-pink-400 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
                           {PIPELINE.map(status => <option key={status} value={status}>{STATUS_LABEL[status]}</option>)}
                         </select>
                       </label>
@@ -439,6 +757,7 @@ export default function HAgencyAdmin() {
                         <button onClick={() => promoteSubmission(s)} className="rounded-xl bg-pink-50 px-3 py-1.5 text-xs font-medium text-pink-600 hover:bg-pink-100 dark:bg-pink-950/40 dark:text-pink-400">建立主播档案 →</button>
                       )}
                       {s.talentId && <span className="text-[10px] text-emerald-600">✓ 已关联主播档案</span>}
+                      <button type="button" onClick={() => openDeleteSubmission(s)} className="rounded-xl border border-red-100 px-3 py-1.5 text-xs text-red-400 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:border-red-900/40 dark:hover:bg-red-950/30">删除申请</button>
                     </div>
                   </div>
                   {s.submittedAt?.toDate && (
@@ -453,9 +772,9 @@ export default function HAgencyAdmin() {
         {/* ── Leaderboard ── */}
         {tab === 'leaderboard' && (
           <div>
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="font-display text-2xl text-gray-900 dark:text-gray-100">排行榜管理</h3>
-              <div className="flex items-center gap-2">
+            <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div><h3 className="font-display text-2xl text-gray-900 dark:text-gray-100">主播资料与首页展示</h3><p className="mt-1 text-xs text-gray-400">管理主播资料、公开状态，以及首页三个推荐位置。</p></div>
+              <div className="flex flex-wrap items-center gap-2">
                 <button onClick={() => downloadSample('csv')} className="rounded-full border border-gray-200 px-4 py-2 text-sm text-gray-500 hover:border-pink-300 hover:text-pink-500 dark:border-gray-700">
                   📄 样本 CSV
                 </button>
@@ -510,7 +829,7 @@ export default function HAgencyAdmin() {
 
                 {/* Basic info */}
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {[['nameZh', '主播名称（中文）'], ['nameEn', 'Streamer Name (EN)'], ['badgeZh', '称号（中文）'], ['badgeEn', 'Badge (EN)']].map(([k, label]) => (
+                  {[['nameZh', '主播名称（中文）'], ['nameEn', 'Streamer Name (EN)'], ['slug', '网址名称（如 panxia）'], ['platform', '主要平台'], ['handle', '平台 ID'], ['badgeZh', '称号（中文）'], ['badgeEn', 'Badge (EN)']].map(([k, label]) => (
                     <label key={k} className="block">
                       <span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-gray-400">{label}</span>
                       <input value={streamerForm[k]} onChange={e => setStreamerForm(f => ({ ...f, [k]: e.target.value }))} className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
@@ -521,6 +840,31 @@ export default function HAgencyAdmin() {
                       <span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-gray-400">{label}</span>
                       <input type="number" value={streamerForm[k]} onChange={e => setStreamerForm(f => ({ ...f, [k]: e.target.value }))} className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
                     </label>
+                  ))}
+                </div>
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <label className="block"><span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-gray-400">个人简介（中文）</span><textarea rows={3} value={streamerForm.introZh} onChange={e => setStreamerForm(f => ({ ...f, introZh: e.target.value }))} className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" /></label>
+                  <label className="block"><span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-gray-400">Profile Introduction (EN)</span><textarea rows={3} value={streamerForm.introEn} onChange={e => setStreamerForm(f => ({ ...f, introEn: e.target.value }))} className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" /></label>
+                </div>
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  <label className="block"><span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-gray-400">首页人物图 URL（选填）</span><input value={streamerForm.homeImageUrl} onChange={e => setStreamerForm(f => ({ ...f, homeImageUrl: e.target.value }))} placeholder="留空时使用头像照片" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" /></label>
+                  <label className="block"><span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-gray-400">荣誉海报 URL（选填）</span><input value={streamerForm.honorImageUrl} onChange={e => setStreamerForm(f => ({ ...f, honorImageUrl: e.target.value }))} placeholder="留空时使用头像照片" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" /></label>
+                  <label className="block"><span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-gray-400">榜单海报 URL（选填）</span><input value={streamerForm.rankingImageUrl} onChange={e => setStreamerForm(f => ({ ...f, rankingImageUrl: e.target.value }))} placeholder="留空时使用头像照片" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" /></label>
+                </div>
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <label className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800"><span><span className="block text-sm font-medium text-gray-700 dark:text-gray-200">公开主播资料</span><span className="mt-0.5 block text-[11px] text-gray-400">关闭后不会显示在公开网站</span></span><input type="checkbox" checked={streamerForm.visible !== false} onChange={e => setStreamerForm(f => ({ ...f, visible: e.target.checked }))} className="h-4 w-4 accent-pink-500" /></label>
+                  {[
+                    ['homeFeatured', 'homePosition', '首页精选主播', '首页主视觉与精选卡片'],
+                    ['honorFeatured', 'honorPosition', '百万主播 / 荣誉', '荣誉加冕展示区'],
+                    ['rankingFeatured', 'rankingPosition', '本期榜单 / 高光', '冠军、亚军、季军'],
+                  ].map(([featuredKey, positionKey, title, help]) => (
+                    <div key={featuredKey} className="rounded-xl border border-pink-200 bg-white px-4 py-3 dark:border-pink-900/40 dark:bg-gray-800">
+                      <label className="flex items-center justify-between gap-3"><span><span className="block text-sm font-medium text-gray-700 dark:text-gray-200">{title}</span><span className="mt-0.5 block text-[11px] text-gray-400">{help}</span></span><input type="checkbox" checked={Boolean(streamerForm[featuredKey])} onChange={e => setStreamerForm(f => ({ ...f, [featuredKey]: e.target.checked, [positionKey]: e.target.checked ? (f[positionKey] || 1) : '' }))} className="h-4 w-4 accent-pink-500" /></label>
+                      {streamerForm[featuredKey] && <label className="mt-3 block"><span className="mb-1 block font-mono text-[9px] uppercase tracking-[0.18em] text-pink-500">展示位置</span><select value={streamerForm[positionKey] || 1} onChange={e => setStreamerForm(f => ({ ...f, [positionKey]: Number(e.target.value) }))} className="w-full rounded-lg border border-pink-200 bg-pink-50 px-3 py-2 text-sm text-gray-700 outline-none"><option value={1}>位置 1 · 左侧 / 冠军</option><option value={2}>位置 2 · 中间 / 亚军</option><option value={3}>位置 3 · 右侧 / 季军</option></select></label>}
+                    </div>
                   ))}
                 </div>
 
@@ -568,7 +912,11 @@ export default function HAgencyAdmin() {
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-gray-900 dark:text-gray-100">{s.nameZh}{s.nameEn && ` / ${s.nameEn}`}</p>
                     <p className="text-xs text-gray-400">¥{(s.income || 0).toLocaleString()} · {s.hours || 0}h · +{(s.fansGrowth || 0).toLocaleString()} fans</p>
-                    <div className="mt-0.5 flex gap-2">
+                    <div className="mt-1 flex flex-wrap gap-2">
+                      {s.visible === false && <span className="rounded-full bg-gray-100 px-2 py-0.5 font-mono text-[9px] text-gray-500">未公开</span>}
+                      {s.homeFeatured && <span className="rounded-full bg-pink-100 px-2 py-0.5 font-mono text-[9px] text-pink-600">精选 #{s.homePosition || '?'}</span>}
+                      {s.honorFeatured && <span className="rounded-full bg-amber-50 px-2 py-0.5 font-mono text-[9px] text-amber-600">荣誉 #{s.honorPosition || '?'}</span>}
+                      {s.rankingFeatured && <span className="rounded-full bg-violet-50 px-2 py-0.5 font-mono text-[9px] text-violet-600">榜单 #{s.rankingPosition || '?'}</span>}
                       {s.tiktokUrl && <span className="rounded-full bg-black/5 px-2 py-0.5 font-mono text-[9px] text-gray-500">TikTok</span>}
                       {s.bigoUrl && <span className="rounded-full bg-purple-50 px-2 py-0.5 font-mono text-[9px] text-purple-400">BIGO</span>}
                       {s.instaUrl && <span className="rounded-full bg-orange-50 px-2 py-0.5 font-mono text-[9px] text-orange-400">Instagram</span>}
