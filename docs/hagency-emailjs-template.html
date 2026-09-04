@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ℋ Agency 新主播申请</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f1f2;color:#2b2024;font-family:'Segoe UI','PingFang SC','Microsoft YaHei',Arial,sans-serif;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">新申请 {{application_number}} · {{applicant_name}}</div>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f5f1f2;">
+    <tr>
+      <td align="center" style="padding:28px 12px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:640px;background:#ffffff;border:1px solid #eadde1;">
+          <tr>
+            <td style="padding:34px 36px;background:#25191e;color:#ffffff;">
+              <div style="font-family:Georgia,serif;font-size:28px;font-style:italic;color:#f2d7df;">ℋ Agency</div>
+              <div style="margin-top:5px;font-size:11px;letter-spacing:4px;color:#c99aa8;">希望公会 · 新主播申请</div>
+              <div style="margin-top:28px;font-size:12px;color:#d8bdc5;">申请编号</div>
+              <div style="margin-top:5px;font-family:Consolas,monospace;font-size:21px;letter-spacing:1px;color:#ffffff;">{{application_number}}</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px 36px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td width="118" valign="top" style="padding-right:24px;">
+                    <img src="{{applicant_photo_url}}" width="118" alt="{{applicant_name}} 的申请照片" style="display:block;width:118px;height:148px;object-fit:cover;border:0;background:#f4e8eb;">
+                  </td>
+                  <td valign="top">
+                    <div style="font-size:25px;font-weight:700;color:#25191e;">{{applicant_name}}</div>
+                    <div style="margin-top:9px;font-size:13px;line-height:1.8;color:#76656b;">{{applicant_age}} 岁 · {{applicant_specialization}}<br>{{applicant_experience}}</div>
+                    <div style="margin-top:16px;font-size:13px;line-height:1.8;color:#3f3338;">电话：{{applicant_phone}}<br>微信：{{applicant_wechat}}<br>邮箱：{{applicant_email}}</div>
+                  </td>
+                </tr>
+              </table>
+
+              <div style="margin-top:30px;padding-top:24px;border-top:1px solid #eee4e7;">
+                <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#a3576d;">个人简介</div>
+                <div style="margin-top:10px;font-size:14px;line-height:1.85;white-space:pre-wrap;color:#4b3d42;">{{applicant_introduction}}</div>
+              </div>
+
+              <div style="margin-top:22px;padding:18px 20px;background:#fbf6f7;border-left:3px solid #bd7489;">
+                <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#a3576d;">社交媒体</div>
+                <div style="margin-top:7px;font-size:13px;line-height:1.7;word-break:break-all;color:#4b3d42;">{{applicant_social}}</div>
+              </div>
+
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin-top:30px;">
+                <tr>
+                  <td bgcolor="#a94f6a" style="border-radius:999px;">
+                    <a href="{{admin_url}}" target="_blank" style="display:inline-block;padding:14px 25px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;">进入后台处理申请 →</a>
+                  </td>
+                </tr>
+              </table>
+
+              <div style="margin-top:22px;font-size:11px;line-height:1.7;color:#a3959a;">提交时间：{{submitted_at}}<br>系统记录 ID：{{application_id}}</div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 36px;background:#fbf8f9;border-top:1px solid #eee4e7;font-size:11px;line-height:1.7;color:#9c8d92;">
+              此邮件由 ℋ Agency 希望公会招募系统自动发送。申请资料仅限内部审核使用。
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

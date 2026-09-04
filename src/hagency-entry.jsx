@@ -21,8 +21,8 @@ function HAgencyRoutes() {
 
   return (
     <Routes>
-      <Route path="/admin/login" element={admin ? <Navigate to="/admin" replace /> : <HAgencyLogin />} />
-      <Route path="/admin" element={admin ? <HAgencyAdmin /> : <Navigate to="/admin/login" replace />} />
+      <Route path="/admin/login" element={admin ? <Navigate to={`/admin${window.location.search}`} replace /> : <HAgencyLogin />} />
+      <Route path="/admin" element={admin ? <HAgencyAdmin /> : <Navigate to={`/admin/login${window.location.search}`} replace />} />
       <Route path="/h-agency/admin" element={<Navigate to={admin ? '/admin' : '/admin/login'} replace />} />
       <Route path="/h-agency/admin/login" element={<Navigate to={admin ? '/admin' : '/admin/login'} replace />} />
       <Route path="/*" element={<HAgencyPublic />} />

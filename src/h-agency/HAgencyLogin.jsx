@@ -27,7 +27,7 @@ export default function HAgencyLogin() {
   const [message, setMessage] = useState(null)
 
   if (authLoading) return <LoadingScreen />
-  if (admin) return <Navigate to="/admin" replace />
+  if (admin) return <Navigate to={`/admin${window.location.search}`} replace />
 
   const handleEmailLogin = async event => {
     event.preventDefault()

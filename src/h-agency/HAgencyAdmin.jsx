@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext'
 const CLOUDINARY_CLOUD = 'db2ixn8zh'
 const CLOUDINARY_PRESET = 'H-Agency'
 
-const PIPELINE = ['pending', 'contacted', 'interview', 'trial', 'offer', 'contracted', 'onboarding', 'active', 'rejected']
+const PIPELINE = ['pending', 'contacted', 'interview', 'trial', 'offer', 'approved', 'contracted', 'onboarding', 'active', 'rejected']
 const STATUS_COLOR = {
   pending: 'text-amber-600', contacted: 'text-sky-600', interview: 'text-violet-600', trial: 'text-fuchsia-600',
   offer: 'text-pink-600', contracted: 'text-emerald-600', onboarding: 'text-teal-600', active: 'text-emerald-700',
@@ -52,6 +52,8 @@ export default function HAgencyAdmin() {
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(false)
   const [notice, setNotice] = useState(null)
+  const targetApplicationId = new URLSearchParams(window.location.search).get('application') || ''
+  const focusedApplicationRef = useRef(false)
 
   const handleLogout = async () => {
     try {
@@ -90,6 +92,13 @@ export default function HAgencyAdmin() {
 
   useEffect(() => { loadAll() }, [])
   useEffect(() => {
+    if (loading || !targetApplicationId || focusedApplicationRef.current || !submissions.some(item => item.id === targetApplicationId)) return
+    focusedApplicationRef.current = true
+    setTab('submissions')
+    setStatusFilter('all')
+    window.setTimeout(() => document.getElementById(`application-${targetApplicationId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100)
+  }, [loading, submissions, targetApplicationId])
+  useEffect(() => {
     if (!notice) return
     const t = setTimeout(() => setNotice(null), notice.duration || 3500)
     return () => clearTimeout(t)
@@ -115,7 +124,7 @@ export default function HAgencyAdmin() {
   // ── Submissions ──────────────────────────────────────────
   const updateStatus = async (id, status) => {
     try {
-      await updateDoc(doc(db, 'hagency_submissions', id), { status })
+      await updateDoc(doc(db, 'hagency_submissions', id), { status, updatedAt: serverTimestamp() })
       setSubmissions(s => s.map(x => x.id === id ? { ...x, status } : x))
       setNotice({ ok: true, msg: '状态已更新' })
     } catch (e) {
@@ -159,12 +168,13 @@ export default function HAgencyAdmin() {
       nameZh: sub.name,
       badgeZh: sub.specialization || '签约主播',
       order: leaderboard.length + 1,
+      photoUrl: sub.photoUrl || '',
       tiktokUrl: /tiktok|douyin/i.test(sub.social || '') ? sub.social : '',
       bigoUrl: /bigo/i.test(sub.social || '') ? sub.social : '',
       instaUrl: /instagram\.com|(^|\s)@/i.test(sub.social || '') ? sub.social : '',
     })
     setAvatarFile(null)
-    setAvatarPreview(null)
+    setAvatarPreview(sub.photoUrl || null)
     setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100)
   }
 
@@ -470,7 +480,7 @@ export default function HAgencyAdmin() {
               ))}
             </div>
             <div className="ha-no-scrollbar mb-4 flex gap-2 overflow-x-auto pb-2">
-              {['all', ...PIPELINE, 'approved'].map(s => (
+              {['all', ...PIPELINE].map(s => (
                 <button key={s} onClick={() => setStatusFilter(s)} className={`rounded-full border px-3 py-1 font-mono text-xs transition-colors ${statusFilter === s ? 'border-pink-500 bg-pink-500 text-white' : 'border-gray-200 text-gray-500 hover:border-pink-300 dark:border-gray-700'}`}>
                   {s === 'all' ? '全部' : STATUS_LABEL[s]}
                 </button>
@@ -479,13 +489,23 @@ export default function HAgencyAdmin() {
             <div className="space-y-3">
               {filteredSubs.length === 0 && <EmptyCard text="暂无申请记录" />}
               {filteredSubs.map(s => (
-                <div key={s.id} className="rounded-2xl border border-gray-100 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
+                <div id={`application-${s.id}`} key={s.id} className={`rounded-2xl border bg-white p-5 transition-shadow dark:bg-gray-900 ${targetApplicationId === s.id ? 'border-pink-300 shadow-[0_0_0_4px_rgba(236,72,153,0.10)] dark:border-pink-700' : 'border-gray-100 dark:border-gray-800'}`}>
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex min-w-0 flex-1 gap-4">
+                      {s.photoUrl ? (
+                        <a href={s.photoUrl} target="_blank" rel="noopener noreferrer" className="group relative h-24 w-20 shrink-0 overflow-hidden rounded-xl bg-pink-50">
+                          <img src={s.photoUrl} alt={`${s.name} 的申请照片`} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                          <span className="absolute inset-x-0 bottom-0 bg-black/55 py-1 text-center text-[9px] text-white opacity-0 transition group-hover:opacity-100">查看原图</span>
+                        </a>
+                      ) : (
+                        <div className="flex h-24 w-20 shrink-0 items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50 text-[10px] text-gray-400 dark:border-gray-700 dark:bg-gray-800">旧申请<br />无照片</div>
+                      )}
+                      <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-3">
                         <span className="font-semibold text-gray-900 dark:text-gray-100">{s.name}</span>
                         <span className={`font-mono text-xs ${STATUS_COLOR[s.status] || 'text-gray-400'}`}>{STATUS_LABEL[s.status] || s.status}</span>
                       </div>
+                      {s.applicationNumber && <p className="mt-1 font-mono text-[10px] tracking-[0.12em] text-[#a94f6a]">{s.applicationNumber}</p>}
                       <div className="mt-1 flex flex-wrap gap-3 text-xs text-gray-500 dark:text-gray-400">
                         <span>📱 {s.phone}</span>
                         {s.wechat && <span>💬 {s.wechat}</span>}
@@ -495,9 +515,10 @@ export default function HAgencyAdmin() {
                       </div>
                       <p className="mt-2 text-sm leading-5 text-gray-600 dark:text-gray-300">{s.introduction}</p>
                       {s.social && <p className="mt-1 text-xs text-gray-400">社媒: {s.social}</p>}
+                      </div>
                     </div>
-                    <div className="flex shrink-0 flex-col items-end gap-2">
-                      <label className="text-right">
+                    <div className="flex shrink-0 flex-row items-end justify-between gap-2 sm:flex-col sm:items-end">
+                      <label className="text-left sm:text-right">
                         <span className="mb-1 block font-mono text-[9px] uppercase tracking-[0.16em] text-gray-400">当前阶段</span>
                         <select value={s.status || 'pending'} onChange={e => updateStatus(s.id, e.target.value)} className="rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600 outline-none focus:border-pink-400 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
                           {PIPELINE.map(status => <option key={status} value={status}>{STATUS_LABEL[status]}</option>)}
