@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, serverTimestamp } from 'firebase/firestore'
-import { db } from '../lib/firebase'
+import { httpsCallable } from 'firebase/functions'
+import { db, functions } from '../lib/firebase'
 import { logout } from '../lib/auth'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -32,6 +33,20 @@ function formatDateTime(value) {
   if (!value) return ''
   const date = value?.toDate ? value.toDate() : new Date(value)
   return Number.isNaN(date.getTime()) ? '' : date.toLocaleString('zh-CN')
+}
+
+function applicationPhotoPublicId(submission) {
+  if (submission?.photoPublicId) return submission.photoPublicId
+  if (!submission?.photoUrl) return ''
+  try {
+    const url = new URL(submission.photoUrl)
+    const prefix = '/db2ixn8zh/image/upload/'
+    if (url.hostname !== 'res.cloudinary.com' || !url.pathname.startsWith(prefix)) return ''
+    const assetPath = decodeURIComponent(url.pathname.slice(prefix.length)).replace(/^v\d+\//, '')
+    return assetPath.replace(/\.[^/.]+$/, '')
+  } catch {
+    return ''
+  }
 }
 
 const emptyStreamer = {
@@ -108,6 +123,9 @@ export default function HAgencyAdmin() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [trialEditor, setTrialEditor] = useState(null)
   const [savingTrial, setSavingTrial] = useState(false)
+  const [deletingSubmission, setDeletingSubmission] = useState(null)
+  const [deletePhotoWithApplication, setDeletePhotoWithApplication] = useState(true)
+  const [deletingApplication, setDeletingApplication] = useState(false)
 
   useEffect(() => { loadAll() }, [])
   useEffect(() => {
@@ -210,6 +228,40 @@ export default function HAgencyAdmin() {
       setNotice({ ok: false, msg: '试播资料保存失败：' + error.message })
     } finally {
       setSavingTrial(false)
+    }
+  }
+
+  const openDeleteSubmission = (submission) => {
+    const publicId = applicationPhotoPublicId(submission)
+    setDeletingSubmission({ ...submission, resolvedPhotoPublicId: publicId })
+    setDeletePhotoWithApplication(Boolean(publicId && !submission.talentId))
+  }
+
+  const confirmDeleteSubmission = async () => {
+    if (!deletingSubmission || deletingApplication) return
+    const shouldDeletePhoto = deletePhotoWithApplication && deletingSubmission.resolvedPhotoPublicId && !deletingSubmission.talentId
+    setDeletingApplication(true)
+    let photoDeleted = false
+    try {
+      if (shouldDeletePhoto) {
+        const destroyPhoto = httpsCallable(functions, 'deleteCloudinaryImage')
+        await destroyPhoto({ publicId: deletingSubmission.resolvedPhotoPublicId })
+        photoDeleted = true
+      }
+      await deleteDoc(doc(db, 'hagency_submissions', deletingSubmission.id))
+      setSubmissions(items => items.filter(item => item.id !== deletingSubmission.id))
+      if (targetApplicationId === deletingSubmission.id) {
+        window.history.replaceState({}, '', window.location.pathname)
+      }
+      setDeletingSubmission(null)
+      setNotice({ ok: true, msg: shouldDeletePhoto ? '申请记录和 Cloudinary 照片已删除。' : '申请记录已删除。' })
+    } catch (error) {
+      const detail = photoDeleted
+        ? 'Cloudinary 照片已经删除，但 Firestore 记录未能删除。请再次点击删除申请完成清理。'
+        : '申请记录尚未删除，照片也未被移除，可以安全重试。'
+      setNotice({ ok: false, msg: `删除失败：${error.message || '请稍后再试。'}\n${detail}`, duration: 6500 })
+    } finally {
+      setDeletingApplication(false)
     }
   }
 
@@ -561,6 +613,47 @@ export default function HAgencyAdmin() {
         </div>
       )}
 
+      {deletingSubmission && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[#160d12]/70 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="delete-application-title">
+          <div className="w-full max-w-md rounded-3xl border border-red-100 bg-white p-6 shadow-[0_30px_100px_rgba(34,12,22,.4)] dark:border-red-900/40 dark:bg-gray-900 sm:p-8">
+            <div className="flex items-start gap-4">
+              {deletingSubmission.photoUrl ? <img src={deletingSubmission.photoUrl} alt="" className="h-20 w-16 shrink-0 rounded-xl object-cover" /> : <div className="flex h-20 w-16 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-xl dark:bg-gray-800">🗑</div>}
+              <div className="min-w-0 flex-1">
+                <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-red-500">IRREVERSIBLE ACTION</p>
+                <h2 id="delete-application-title" className="mt-2 font-display text-3xl text-gray-900 dark:text-gray-100">删除这份申请？</h2>
+                <p className="mt-2 truncate text-sm text-gray-500 dark:text-gray-400">{deletingSubmission.name}{deletingSubmission.applicationNumber ? ` · ${deletingSubmission.applicationNumber}` : ''}</p>
+              </div>
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-red-100 bg-red-50/70 p-4 text-xs leading-6 text-red-800 dark:border-red-900/35 dark:bg-red-950/20 dark:text-red-200">
+              Firestore 中的申请资料、状态与内部备注都会永久删除，无法恢复。
+            </div>
+
+            <div className="mt-5">
+              {deletingSubmission.talentId ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs leading-6 text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
+                  这份申请已经关联主播档案。为避免公开头像失效，Cloudinary 照片会自动保留，只删除申请记录。
+                </div>
+              ) : deletingSubmission.resolvedPhotoPublicId ? (
+                <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-gray-200 p-4 dark:border-gray-700">
+                  <input type="checkbox" checked={deletePhotoWithApplication} onChange={event => setDeletePhotoWithApplication(event.target.checked)} className="mt-0.5 h-4 w-4 accent-red-500" />
+                  <span><strong className="block text-sm font-medium text-gray-700 dark:text-gray-200">同时删除 Cloudinary 照片</strong><small className="mt-1 block text-[11px] leading-5 text-gray-400">建议保持勾选，可以释放储存空间；照片删除后同样无法恢复。</small></span>
+                </label>
+              ) : (
+                <div className="rounded-2xl border border-gray-200 p-4 text-xs leading-6 text-gray-500 dark:border-gray-700 dark:text-gray-400">
+                  这份申请没有可识别的 Cloudinary 照片，只会删除 Firestore 申请记录。
+                </div>
+              )}
+            </div>
+
+            <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button type="button" onClick={() => setDeletingSubmission(null)} disabled={deletingApplication} className="rounded-full border border-gray-200 px-6 py-3 text-sm text-gray-500 hover:border-gray-400 dark:border-gray-700 dark:text-gray-300">取消</button>
+              <button type="button" onClick={confirmDeleteSubmission} disabled={deletingApplication} className="rounded-full bg-red-600 px-7 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60">{deletingApplication ? '删除中…' : deletePhotoWithApplication && deletingSubmission.resolvedPhotoPublicId && !deletingSubmission.talentId ? '删除申请与照片' : '删除申请'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="sticky top-0 z-40 border-b border-gray-200 bg-white/95 backdrop-blur dark:border-white/10 dark:bg-[#1b161c]/95">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
@@ -664,6 +757,7 @@ export default function HAgencyAdmin() {
                         <button onClick={() => promoteSubmission(s)} className="rounded-xl bg-pink-50 px-3 py-1.5 text-xs font-medium text-pink-600 hover:bg-pink-100 dark:bg-pink-950/40 dark:text-pink-400">建立主播档案 →</button>
                       )}
                       {s.talentId && <span className="text-[10px] text-emerald-600">✓ 已关联主播档案</span>}
+                      <button type="button" onClick={() => openDeleteSubmission(s)} className="rounded-xl border border-red-100 px-3 py-1.5 text-xs text-red-400 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:border-red-900/40 dark:hover:bg-red-950/30">删除申请</button>
                     </div>
                   </div>
                   {s.submittedAt?.toDate && (
