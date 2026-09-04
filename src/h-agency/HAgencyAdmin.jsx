@@ -18,6 +18,22 @@ const STATUS_LABEL = {
   contracted: '已签约', onboarding: '培训中', active: '活跃主播', approved: '已通过', rejected: '已拒绝',
 }
 
+const emptyTrial = { applicationId: '', platform: '', url: '', scheduledAt: '', notes: '' }
+
+function toDateTimeLocal(value) {
+  if (!value) return ''
+  const date = value?.toDate ? value.toDate() : new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60 * 1000)
+  return local.toISOString().slice(0, 16)
+}
+
+function formatDateTime(value) {
+  if (!value) return ''
+  const date = value?.toDate ? value.toDate() : new Date(value)
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleString('zh-CN')
+}
+
 const emptyStreamer = {
   nameZh: '', nameEn: '', slug: '', introZh: '', introEn: '', platform: '', handle: '',
   income: '', hours: '', fansGrowth: '', badgeZh: '优秀主播', badgeEn: 'Top Streamer', order: 0,
@@ -89,6 +105,8 @@ export default function HAgencyAdmin() {
   const fileInputRef = useRef(null)
 
   const [statusFilter, setStatusFilter] = useState('all')
+  const [trialEditor, setTrialEditor] = useState(null)
+  const [savingTrial, setSavingTrial] = useState(false)
 
   useEffect(() => { loadAll() }, [])
   useEffect(() => {
@@ -129,6 +147,62 @@ export default function HAgencyAdmin() {
       setNotice({ ok: true, msg: '状态已更新' })
     } catch (e) {
       setNotice({ ok: false, msg: e.message })
+    }
+  }
+
+  const openTrialEditor = (submission) => {
+    setTrialEditor({
+      ...emptyTrial,
+      applicationId: submission.id,
+      platform: submission.trialPlatform || '',
+      url: submission.trialUrl || '',
+      scheduledAt: toDateTimeLocal(submission.trialScheduledAt),
+      notes: submission.trialNotes || '',
+    })
+  }
+
+  const handleStatusChange = (submission, status) => {
+    if (status === 'trial') {
+      openTrialEditor(submission)
+      return
+    }
+    updateStatus(submission.id, status)
+  }
+
+  const saveTrial = async () => {
+    const platform = trialEditor?.platform.trim() || ''
+    const trialUrl = trialEditor?.url.trim() || ''
+    if (!platform || !trialUrl) {
+      setNotice({ ok: false, msg: '请填写试播平台和试播链接。' })
+      return
+    }
+    try {
+      const parsed = new URL(trialUrl)
+      if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('invalid-url')
+    } catch {
+      setNotice({ ok: false, msg: '请输入完整的试播链接，例如 https://www.tiktok.com/@username' })
+      return
+    }
+
+    setSavingTrial(true)
+    try {
+      const data = {
+        status: 'trial',
+        trialPlatform: platform,
+        trialUrl,
+        trialScheduledAt: trialEditor.scheduledAt ? new Date(trialEditor.scheduledAt).toISOString() : null,
+        trialNotes: trialEditor.notes.trim(),
+        trialUpdatedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }
+      await updateDoc(doc(db, 'hagency_submissions', trialEditor.applicationId), data)
+      setSubmissions(items => items.map(item => item.id === trialEditor.applicationId ? { ...item, ...data } : item))
+      setTrialEditor(null)
+      setNotice({ ok: true, msg: '试播资料已保存，状态已更新为“试播中”。' })
+    } catch (error) {
+      setNotice({ ok: false, msg: '试播资料保存失败：' + error.message })
+    } finally {
+      setSavingTrial(false)
     }
   }
 
@@ -427,14 +501,56 @@ export default function HAgencyAdmin() {
     signed: submissions.filter(s => ['contracted', 'onboarding', 'active', 'approved'].includes(s.status)).length,
     active: submissions.filter(s => s.status === 'active').length,
   }
+  const trialSubmission = trialEditor ? submissions.find(item => item.id === trialEditor.applicationId) : null
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {notice && (
-        <div className={`fixed right-6 top-6 z-50 max-w-sm rounded-2xl border px-4 py-3 shadow-lg text-sm ${notice.ok ? 'border-emerald-300/45 bg-emerald-50 text-emerald-900 dark:border-emerald-500/25 dark:bg-emerald-950/70 dark:text-emerald-100' : 'border-red-300/45 bg-red-50 text-red-900 dark:border-red-500/25 dark:bg-red-950/70 dark:text-red-100'}`}>
+        <div className={`fixed right-6 top-6 z-[80] max-w-sm rounded-2xl border px-4 py-3 shadow-lg text-sm ${notice.ok ? 'border-emerald-300/45 bg-emerald-50 text-emerald-900 dark:border-emerald-500/25 dark:bg-emerald-950/70 dark:text-emerald-100' : 'border-red-300/45 bg-red-50 text-red-900 dark:border-red-500/25 dark:bg-red-950/70 dark:text-red-100'}`}>
           {notice.msg.split('\n').map((line, i) => (
             <p key={i} className={i > 0 ? 'mt-1 text-xs opacity-80' : ''}>{line}</p>
           ))}
+        </div>
+      )}
+
+      {trialEditor && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[#160d12]/65 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="trial-editor-title">
+          <form onSubmit={event => { event.preventDefault(); saveTrial() }} className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-pink-100 bg-white p-6 shadow-[0_30px_100px_rgba(34,12,22,.35)] dark:border-gray-800 dark:bg-gray-900 sm:p-8">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-fuchsia-500">TRIAL SESSION</p>
+                <h2 id="trial-editor-title" className="mt-2 font-display text-3xl text-gray-900 dark:text-gray-100">填写试播资料</h2>
+                {trialSubmission && <p className="mt-2 text-xs text-gray-400">{trialSubmission.name}{trialSubmission.applicationNumber ? ` · ${trialSubmission.applicationNumber}` : ''}</p>}
+              </div>
+              <button type="button" onClick={() => setTrialEditor(null)} aria-label="关闭" className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-lg text-gray-400 hover:border-gray-400 hover:text-gray-700 dark:border-gray-700">×</button>
+            </div>
+
+            <div className="mt-7 space-y-5">
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-300">试播平台 <span className="text-pink-500">*</span></span>
+                <input list="hagency-trial-platforms" value={trialEditor.platform} onChange={event => setTrialEditor(current => ({ ...current, platform: event.target.value }))} placeholder="例如：TikTok、BIGO LIVE、抖音" required className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-fuchsia-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
+                <datalist id="hagency-trial-platforms"><option value="抖音" /><option value="TikTok" /><option value="BIGO LIVE" /><option value="小红书" /><option value="Instagram Live" /></datalist>
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-300">试播链接 <span className="text-pink-500">*</span></span>
+                <input type="url" value={trialEditor.url} onChange={event => setTrialEditor(current => ({ ...current, url: event.target.value }))} placeholder="https://..." required className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-fuchsia-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
+                <p className="mt-1.5 text-[11px] leading-5 text-gray-400">可填写直播间、主播主页或预约直播链接。</p>
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-300">试播时间（选填）</span>
+                <input type="datetime-local" value={trialEditor.scheduledAt} onChange={event => setTrialEditor(current => ({ ...current, scheduledAt: event.target.value }))} className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-fuchsia-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-medium text-gray-600 dark:text-gray-300">内部备注（选填）</span>
+                <textarea rows={3} value={trialEditor.notes} onChange={event => setTrialEditor(current => ({ ...current, notes: event.target.value }))} placeholder="例如：重点观察互动能力、镜头表现、开播稳定性……" className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm leading-6 outline-none focus:border-fuchsia-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
+              </label>
+            </div>
+
+            <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button type="button" onClick={() => setTrialEditor(null)} disabled={savingTrial} className="rounded-full border border-gray-200 px-6 py-3 text-sm text-gray-500 hover:border-gray-400 dark:border-gray-700">取消</button>
+              <button type="submit" disabled={savingTrial} className="rounded-full bg-[#a94f6a] px-7 py-3 text-sm font-semibold text-white hover:bg-[#8f3e56] disabled:opacity-60">{savingTrial ? '保存中…' : '保存并进入试播中'}</button>
+            </div>
+          </form>
         </div>
       )}
 
@@ -515,12 +631,24 @@ export default function HAgencyAdmin() {
                       </div>
                       <p className="mt-2 text-sm leading-5 text-gray-600 dark:text-gray-300">{s.introduction}</p>
                       {s.social && <p className="mt-1 text-xs text-gray-400">社媒: {s.social}</p>}
+                      {(s.trialPlatform || s.trialUrl || s.status === 'trial') && (
+                        <div className="mt-3 rounded-xl border border-fuchsia-100 bg-fuchsia-50/60 p-3 dark:border-fuchsia-900/30 dark:bg-fuchsia-950/20">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-fuchsia-500">试播资料</p>
+                            <button type="button" onClick={() => openTrialEditor(s)} className="text-[10px] font-medium text-fuchsia-600 hover:text-fuchsia-800 dark:text-fuchsia-400">{s.trialPlatform && s.trialUrl ? '编辑资料' : '补充资料'}</button>
+                          </div>
+                          {s.trialPlatform && <p className="mt-2 text-xs text-gray-600 dark:text-gray-300">平台：{s.trialPlatform}</p>}
+                          {s.trialUrl && <a href={s.trialUrl} target="_blank" rel="noopener noreferrer" className="mt-1 block break-all text-xs text-fuchsia-600 underline decoration-fuchsia-200 underline-offset-2 dark:text-fuchsia-400">打开试播链接 ↗</a>}
+                          {formatDateTime(s.trialScheduledAt) && <p className="mt-1 text-[11px] text-gray-400">时间：{formatDateTime(s.trialScheduledAt)}</p>}
+                          {s.trialNotes && <p className="mt-2 text-xs leading-5 text-gray-500 dark:text-gray-400">备注：{s.trialNotes}</p>}
+                        </div>
+                      )}
                       </div>
                     </div>
                     <div className="flex shrink-0 flex-row items-end justify-between gap-2 sm:flex-col sm:items-end">
                       <label className="text-left sm:text-right">
                         <span className="mb-1 block font-mono text-[9px] uppercase tracking-[0.16em] text-gray-400">当前阶段</span>
-                        <select value={s.status || 'pending'} onChange={e => updateStatus(s.id, e.target.value)} className="rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600 outline-none focus:border-pink-400 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                        <select value={s.status || 'pending'} onChange={e => handleStatusChange(s, e.target.value)} className="rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600 outline-none focus:border-pink-400 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
                           {PIPELINE.map(status => <option key={status} value={status}>{STATUS_LABEL[status]}</option>)}
                         </select>
                       </label>
