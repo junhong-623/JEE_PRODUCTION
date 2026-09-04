@@ -68,6 +68,7 @@ export default function HAgencyAdmin() {
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(false)
   const [notice, setNotice] = useState(null)
+  const [darkTheme, setDarkTheme] = useState(() => window.localStorage.getItem('hagency-admin-theme') !== 'light')
   const targetApplicationId = new URLSearchParams(window.location.search).get('application') || ''
   const focusedApplicationRef = useRef(false)
 
@@ -109,6 +110,12 @@ export default function HAgencyAdmin() {
   const [savingTrial, setSavingTrial] = useState(false)
 
   useEffect(() => { loadAll() }, [])
+  useEffect(() => {
+    window.localStorage.setItem('hagency-admin-theme', darkTheme ? 'dark' : 'light')
+    const previousBackground = document.body.style.backgroundColor
+    document.body.style.backgroundColor = darkTheme ? '#141014' : '#f9fafb'
+    return () => { document.body.style.backgroundColor = previousBackground }
+  }, [darkTheme])
   useEffect(() => {
     if (loading || !targetApplicationId || focusedApplicationRef.current || !submissions.some(item => item.id === targetApplicationId)) return
     focusedApplicationRef.current = true
@@ -504,7 +511,7 @@ export default function HAgencyAdmin() {
   const trialSubmission = trialEditor ? submissions.find(item => item.id === trialEditor.applicationId) : null
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className={`${darkTheme ? 'dark bg-[#141014] text-[#eee6e9]' : 'bg-gray-50 text-gray-900'} min-h-screen transition-colors duration-300`} style={{ colorScheme: darkTheme ? 'dark' : 'light' }}>
       {notice && (
         <div className={`fixed right-6 top-6 z-[80] max-w-sm rounded-2xl border px-4 py-3 shadow-lg text-sm ${notice.ok ? 'border-emerald-300/45 bg-emerald-50 text-emerald-900 dark:border-emerald-500/25 dark:bg-emerald-950/70 dark:text-emerald-100' : 'border-red-300/45 bg-red-50 text-red-900 dark:border-red-500/25 dark:bg-red-950/70 dark:text-red-100'}`}>
           {notice.msg.split('\n').map((line, i) => (
@@ -554,7 +561,7 @@ export default function HAgencyAdmin() {
         </div>
       )}
 
-      <div className="sticky top-0 z-40 border-b border-gray-200 bg-white/95 backdrop-blur dark:border-gray-800 dark:bg-gray-900/95">
+      <div className="sticky top-0 z-40 border-b border-gray-200 bg-white/95 backdrop-blur dark:border-white/10 dark:bg-[#1b161c]/95">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             <span className="font-display text-2xl text-pink-500" style={{ fontStyle: 'italic' }}>ℋ Agency</span>
@@ -562,6 +569,7 @@ export default function HAgencyAdmin() {
           </div>
           <div className="flex items-center gap-2">
             {user?.email && <span className="hidden max-w-44 truncate text-[11px] text-gray-400 md:block">{user.email}</span>}
+            <button onClick={() => setDarkTheme(value => !value)} className="rounded-full border border-gray-200 px-3 py-1.5 font-mono text-xs text-gray-500 transition-colors hover:border-pink-300 hover:text-pink-500 dark:border-white/15 dark:text-[#aa9ca2] dark:hover:border-[#a94f6a] dark:hover:text-[#e4b5c3]" title={darkTheme ? '切换到浅色后台' : '切换到低亮后台'}>{darkTheme ? '☀ 浅色' : '◐ 低亮'}</button>
             <a href={publicHome} className="rounded-full border border-pink-200 px-3 py-1.5 font-mono text-xs text-pink-500 transition-colors hover:bg-pink-50 dark:border-pink-800 dark:hover:bg-pink-950/30">公开页面 →</a>
             <button onClick={handleLogout} className="rounded-full border border-gray-200 px-3 py-1.5 font-mono text-xs text-gray-500 transition-colors hover:border-gray-400 hover:text-gray-700 dark:border-gray-700 dark:hover:text-gray-300">退出</button>
           </div>
