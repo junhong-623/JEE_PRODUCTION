@@ -133,7 +133,12 @@ exports.submitHAgencyApplication = onCall(async (req) => {
  * Deletes an image from Cloudinary. Admin-only.
  */
 exports.deleteCloudinaryImage = onCall(
-  { secrets: [CLOUDINARY_KEY, CLOUDINARY_SECRET] },
+  {
+    secrets: [CLOUDINARY_KEY, CLOUDINARY_SECRET],
+    // Cloud Run must accept browser preflight requests. The callable still
+    // enforces Firebase Authentication and the admin UID allowlist below.
+    invoker: 'public',
+  },
   async (req) => {
     if (!req.auth) {
       throw new HttpsError('unauthenticated', 'You must be signed in.')
