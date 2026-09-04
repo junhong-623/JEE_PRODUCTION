@@ -13,8 +13,12 @@ function HAgencyRoutes() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#120c10] text-[#e8bdc8]">
-        <span className="font-mono text-[10px] uppercase tracking-[0.35em]">ℋ Agency</span>
+      <div className="flex min-h-screen items-center justify-center bg-[#120c10] px-6 text-[#e8bdc8]">
+        <div className="text-center">
+          <p className="font-display text-5xl italic leading-none tracking-[-0.03em] text-[#efd3da] sm:text-6xl">ℋ Agency</p>
+          <p className="mt-4 font-mono text-[10px] tracking-[0.42em] text-[#b98595]">希望公会</p>
+          <span className="mx-auto mt-7 block h-px w-14 overflow-hidden bg-white/10"><span className="block h-full w-full animate-pulse bg-[#c47a90]" /></span>
+        </div>
       </div>
     )
   }
