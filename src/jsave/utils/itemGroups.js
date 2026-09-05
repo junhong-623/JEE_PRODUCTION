@@ -31,12 +31,15 @@ export function buildItemEntries(items, now = new Date()) {
 
   const groupEntries = groups.map(group => {
     const members = regularItems.filter(item => item.parentItemId === group.id)
+    const activeMembers = members.filter(member => itemStatus(member) === 'active')
     members.forEach(member => groupedIds.add(member.id))
     return {
       ...group,
       isGroup: true,
       members,
+      activeMembers,
       totalCost: members.reduce((sum, member) => sum + (Number(member.cost) || 0), 0),
+      activeTotalCost: activeMembers.reduce((sum, member) => sum + (Number(member.cost) || 0), 0),
       cpd: members.reduce((sum, member) => sum + itemCostPerDay(member, now), 0),
     }
   })
@@ -47,7 +50,9 @@ export function buildItemEntries(items, now = new Date()) {
       ...item,
       isGroup: false,
       members: [],
+      activeMembers: itemStatus(item) === 'active' ? [item] : [],
       totalCost: Number(item.cost) || 0,
+      activeTotalCost: itemStatus(item) === 'active' ? (Number(item.cost) || 0) : 0,
       cpd: itemCostPerDay(item, now),
     }))
 

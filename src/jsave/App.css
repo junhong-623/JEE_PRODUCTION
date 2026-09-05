@@ -588,13 +588,16 @@ input[type="number"].jsave-input::-webkit-outer-spin-button { -webkit-appearance
 .jsave-group-members-field { padding-top: 4px; }
 .jsave-group-members-field > .jsave-section-sub { margin: 3px 0 9px; }
 .jsave-group-member-list { margin-bottom: 10px; border-top: 1px solid rgba(241,245,249,.07); }
-.jsave-group-member-row { min-height: 48px; display: grid; grid-template-columns: 18px 32px minmax(0,1fr); align-items: center; gap: 9px; border-bottom: 1px solid rgba(241,245,249,.06); cursor: pointer; }
+.jsave-group-member-row { min-height: 52px; display: grid; grid-template-columns: 18px 32px minmax(0,1fr) auto; align-items: center; gap: 9px; border-bottom: 1px solid rgba(241,245,249,.06); }
 .jsave-group-member-row > input { width: 15px; height: 15px; accent-color: #10b981; }
-.jsave-group-member-row > span:last-child { min-width: 0; }
+.jsave-group-member-row > span { min-width: 0; }
 .jsave-group-member-row strong, .jsave-group-member-row small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .jsave-group-member-row strong { color: #f1f5f9; font-size: 12px; }
 .jsave-group-member-row small { margin-top: 2px; color: rgba(241,245,249,.4); font: 8px var(--font-mono); }
+.jsave-group-member-edit { padding: 6px 8px; border: 1px solid rgba(34,211,238,.24); border-radius: 8px; color: #22d3ee; background: rgba(34,211,238,.07); font: 600 10px var(--font-sans); cursor: pointer; }
 .jsave-item-group-badge { padding: 2px 5px; border: 1px solid rgba(34,211,238,.22); border-radius: 5px; color: #22d3ee; background: rgba(34,211,238,.07); font: 7px var(--font-mono); letter-spacing: .8px; text-transform: uppercase; }
+.jsave-item-group-summary { display: flex; flex-wrap: wrap; gap: 3px 8px; }
+.jsave-item-group-summary > span:not(:last-child)::after { content: '·'; margin-left: 8px; color: rgba(241,245,249,.22); }
 .jsave-item-add-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .jsave-item-add-actions button { padding: 12px 8px; border: 1px dashed rgba(16,185,129,.38); border-radius: 14px; color: #10b981; background: transparent; font: 600 12px var(--font-sans); cursor: pointer; }
 .jsave-item-add-actions button + button { border-color: rgba(34,211,238,.3); color: #22d3ee; }

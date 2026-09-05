@@ -1,8 +1,23 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.1.8',
+    version: '3.1.9',
     date: '2026-09-05',
     isLatest: true,
+    items: [
+      'Components can now be edited directly while managing an item group',
+      'Groups now distinguish lifetime cost from the cost of active components',
+      'Sold and retired components keep their historical cost without inflating active cost',
+    ],
+    itemsZh: [
+      '管理物品组合时，现在可以直接编辑其中的部件',
+      '组合现在会分别显示累计成本与仍在使用的部件成本',
+      '已出售或退役部件保留历史成本，但不会计入在用成本',
+    ],
+  },
+  {
+    version: '3.1.8',
+    date: '2026-09-05',
+    isLatest: false,
     items: [
       'Added item groups that combine existing or new components while preserving each purchase date',
       'Group totals and cost per day now sum each component using its own ownership period',

@@ -162,9 +162,14 @@ export default {
   itemGroupEmoji: '组合图标',
   itemGroupCover: '组合照片',
   itemGroupMembers: '组合部件',
-  itemGroupMembersHint: '选择现有物品；各自的价格和购买日期都会保留。',
+  itemGroupMembersHint: '选择现有物品；各自的价格、购买日期与状态都会保留。',
   itemGroupNoAvailable: '暂无可加入组合的物品。',
   itemGroupAddComponent: '添加新部件',
+  itemGroupEditComponent: '编辑部件',
+  itemGroupEditShort: '编辑',
+  itemGroupSelectComponent: '选择部件',
+  itemGroupTotalCost: '累计成本',
+  itemGroupActiveCost: '在用成本',
   itemGroupParts: '个部件',
 
   // Reports

@@ -13,7 +13,21 @@ describe('JSave item groups', () => {
     const [group] = buildItemEntries(items, now)
     expect(group.members).toHaveLength(2)
     expect(group.totalCost).toBe(1100)
+    expect(group.activeTotalCost).toBe(1100)
     expect(group.cpd).toBe(120)
+  })
+
+  it('keeps lifetime cost while excluding sold and retired components from active cost', () => {
+    const items = [
+      { id: 'pc', kind: 'group', name: 'Computer' },
+      { id: 'base', parentItemId: 'pc', cost: 1000, purchaseDate: '2026-01-01', status: 'active' },
+      { id: 'ram', parentItemId: 'pc', cost: 100, purchaseDate: '2026-01-06', status: 'sold', saleDate: '2026-01-10', salePrice: 60 },
+      { id: 'ssd', parentItemId: 'pc', cost: 200, purchaseDate: '2026-01-07', status: 'retired', retiredDate: '2026-01-09' },
+    ]
+    const [group] = buildItemEntries(items, now)
+    expect(group.totalCost).toBe(1300)
+    expect(group.activeTotalCost).toBe(1000)
+    expect(group.activeMembers.map(item => item.id)).toEqual(['base'])
   })
 
   it('shows orphaned items instead of hiding them', () => {

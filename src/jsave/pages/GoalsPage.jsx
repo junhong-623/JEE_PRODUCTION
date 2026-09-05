@@ -272,7 +272,7 @@ function GoalSettingsModal({ initial, onSave, onDelete, onClose, t }) {
 /* ──────────────────────────────────────────────────────────────────────
    Things view — Cost Per Day (uses existing items from JSaveContext)
    ────────────────────────────────────────────────────────────────────── */
-function ItemForm({ initial, cur, t, onSave, onDelete, onClose, groupMode = false, availableItems = [], initialMemberIds = [], onAddComponent }) {
+function ItemForm({ initial, cur, t, onSave, onDelete, onClose, groupMode = false, availableItems = [], initialMemberIds = [], onAddComponent, onEditComponent }) {
   const initStatus = itemStatus(initial ?? {})
   const initialEmoji = initial?.emoji ?? '📦'
   const [emoji,        setEmoji]       = useState(initialEmoji)
@@ -400,13 +400,15 @@ function ItemForm({ initial, cur, t, onSave, onDelete, onClose, groupMode = fals
               <p className="jsave-section-sub">{t('itemGroupMembersHint')}</p>
               {availableItems.length > 0 ? (
                 <div className="jsave-group-member-list">
-                  {availableItems.map(item => (
-                    <label key={item.id} className="jsave-group-member-row">
-                      <input type="checkbox" checked={memberIds.includes(item.id)} onChange={event => setMemberIds(previous => event.target.checked ? [...previous, item.id] : previous.filter(id => id !== item.id))} />
+                  {availableItems.map(item => {
+                    const status = itemStatus(item)
+                    return <div key={item.id} className="jsave-group-member-row">
+                      <input type="checkbox" aria-label={`${t('itemGroupSelectComponent')} ${item.name}`} checked={memberIds.includes(item.id)} onChange={event => setMemberIds(previous => event.target.checked ? [...previous, item.id] : previous.filter(id => id !== item.id))} />
                       <ItemThumbnail item={item} size={32} />
-                      <span><strong>{item.name}</strong><small>{cur} {fmtAmt(item.cost || 0)} · {item.purchaseDate}</small></span>
-                    </label>
-                  ))}
+                      <span><strong>{item.name}</strong><small>{cur} {fmtAmt(item.cost || 0)} · {item.purchaseDate}{status !== 'active' ? ` · ${t(status === 'sold' ? 'itemSold' : 'itemRetired')}` : ''}</small></span>
+                      {memberIds.includes(item.id) && <button type="button" className="jsave-group-member-edit" onClick={() => onEditComponent(item)} aria-label={`${t('itemGroupEditComponent')} ${item.name}`}>{t('itemGroupEditShort')}</button>}
+                    </div>
+                  })}
                 </div>
               ) : <p className="jsave-empty-msg" style={{ padding: '10px 0' }}>{t('itemGroupNoAvailable')}</p>}
               {initial?.id && <button type="button" className="jsave-btn-ghost jsave-btn-full" onClick={onAddComponent}>+ {t('itemGroupAddComponent')}</button>}
@@ -517,6 +519,12 @@ function ThingsView({ t, lang, showAdd, onShowAddChange }) {
     onShowAddChange(true)
   }
 
+  function editGroupComponent(item) {
+    setEditing(item)
+    setPendingParentId(item.parentItemId || null)
+    onShowAddChange(false)
+  }
+
   return (
     <>
       {/* Hero stats */}
@@ -608,7 +616,11 @@ function ThingsView({ t, lang, showAdd, onShowAddChange }) {
                   </div>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(241,245,249,0.45)' }}>
                     {item.isGroup
-                      ? `${cur} ${fmtAmt(item.totalCost)} · ${item.members.length} ${t('itemGroupParts')}`
+                      ? <span className="jsave-item-group-summary">
+                          <span>{t('itemGroupTotalCost')} {cur} {fmtAmt(item.totalCost)}</span>
+                          <span>{t('itemGroupActiveCost')} {cur} {fmtAmt(item.activeTotalCost)}</span>
+                          <span>{item.members.length} {t('itemGroupParts')}</span>
+                        </span>
                       : `RM ${fmtAmt(item.cost)} · ${days} ${lang === 'zh' ? '天' : 'd'}`}
                   </div>
                   {/* amortization bar */}
@@ -646,6 +658,7 @@ function ThingsView({ t, lang, showAdd, onShowAddChange }) {
           availableItems={availableGroupItems}
           initialMemberIds={groupMode ? (editing.members?.map(item => item.id) || []) : []}
           onAddComponent={addComponentToGroup}
+          onEditComponent={editGroupComponent}
         />
       )}
     </>

@@ -162,9 +162,14 @@ export default {
   itemGroupEmoji: 'Group icon',
   itemGroupCover: 'Group photo',
   itemGroupMembers: 'Components',
-  itemGroupMembersHint: 'Choose existing items. Their own prices and purchase dates stay unchanged.',
+  itemGroupMembersHint: 'Choose existing items. Their prices, purchase dates and statuses stay unchanged.',
   itemGroupNoAvailable: 'No ungrouped items available.',
   itemGroupAddComponent: 'Add a new component',
+  itemGroupEditComponent: 'Edit component',
+  itemGroupEditShort: 'Edit',
+  itemGroupSelectComponent: 'Select component',
+  itemGroupTotalCost: 'Lifetime cost',
+  itemGroupActiveCost: 'Active cost',
   itemGroupParts: 'parts',
 
   // Reports
