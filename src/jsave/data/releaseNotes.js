@@ -1,8 +1,23 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.1.11',
+    version: '3.2.0',
     date: '2026-09-05',
     isLatest: true,
+    items: [
+      'Added crawlable English and Chinese product pages with focused search descriptions',
+      'Added canonical URLs, structured app and FAQ data, a sitemap and clear crawler rules',
+      'Consolidated old Jee Production JSave links into the standalone JSave website',
+    ],
+    itemsZh: [
+      '新增可直接被搜索引擎读取的中英文产品页及清晰搜索摘要',
+      '加入规范网址、应用与常见问题结构化资料、网站地图及明确爬虫规则',
+      'Jee Production 旧 JSave 链接统一导向独立 JSave 网站，避免权重分散',
+    ],
+  },
+  {
+    version: '3.1.11',
+    date: '2026-09-05',
+    isLatest: false,
     items: [
       'Editing a component from a group now opens that exact item with its saved details',
       'New item, group and component forms now keep independent state when switching between them',

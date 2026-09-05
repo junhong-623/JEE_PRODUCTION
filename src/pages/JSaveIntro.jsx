@@ -193,7 +193,10 @@ function Reveal({ children, className = '', delay = 0, direction = 'up', as: Tag
 }
 
 export default function JSaveIntro({ onOpenApp, withHead = true }) {
-  const [lang, setLang] = useState(() => localStorage.getItem('jsave-lang') || 'en')
+  const [lang, setLang] = useState(() => {
+    const pathLanguage = window.location.pathname.match(/^\/(en|zh)(?:\/|$)/)?.[1]
+    return pathLanguage || localStorage.getItem('jsave-lang') || 'en'
+  })
   const [activeScreen, setActiveScreen] = useState(0)
   const [openFaq, setOpenFaq] = useState(0)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -212,7 +215,14 @@ export default function JSaveIntro({ onOpenApp, withHead = true }) {
   ]
 
   const handleOpenApp = event => { if (onOpenApp) { event.preventDefault(); onOpenApp() } }
-  const changeLanguage = () => { const next = zh ? 'en' : 'zh'; setLang(next); localStorage.setItem('jsave-lang', next) }
+  const changeLanguage = () => {
+    const next = zh ? 'en' : 'zh'
+    setLang(next)
+    localStorage.setItem('jsave-lang', next)
+    if (window.location.hostname === 'jsave.jeeprod.com') {
+      window.history.replaceState({}, '', `/${next}/${window.location.search}${window.location.hash}`)
+    }
+  }
 
   useEffect(() => {
     if (onOpenApp) return undefined
@@ -236,8 +246,8 @@ export default function JSaveIntro({ onOpenApp, withHead = true }) {
         <html lang={zh ? 'zh-CN' : 'en'} />
         <title>{metaTitle}</title><meta name="description" content={metaDescription} />
         <meta property="og:title" content={metaTitle} /><meta property="og:description" content={metaDescription} />
-        <meta property="og:url" content="https://www.jeeprod.com/jsave-intro" /><meta property="og:image" content="https://www.jeeprod.com/jsave/j-save-lifestyle.webp" />
-        <link rel="canonical" href="https://www.jeeprod.com/jsave-intro" />
+        <meta property="og:url" content="https://jsave.jeeprod.com/" /><meta property="og:image" content="https://jsave.jeeprod.com/j-save-lifestyle.webp" />
+        <link rel="canonical" href="https://jsave.jeeprod.com/" />
       </Helmet>}
 
       <nav className="ji-nav" aria-label={zh ? '主要导航' : 'Primary navigation'}>

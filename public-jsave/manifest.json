@@ -1,7 +1,10 @@
 {
   "name": "JSave",
   "short_name": "J省",
-  "description": "J-Save, J-Joy — J样省钱，J样享受！",
+  "description": "Offline expense tracker, AA bill splitter and savings companion for everyday life in Malaysia.",
+  "id": "/",
+  "lang": "en",
+  "categories": ["finance", "productivity"],
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

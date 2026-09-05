@@ -11,14 +11,80 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="theme-color" content="#10b981" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>JSave — J省</title>
-    <meta name="description" content="JSave: track savings, spending, and daily costs. J样省钱，J样享受！" />
+    <title>JSave — Offline Expense Tracker &amp; AA Bill Splitter for Malaysia</title>
+    <meta name="description" content="JSave is a focused personal finance PWA for Malaysia. Track expenses offline, split AA bills, plan budgets and savings goals, calculate cost per day, and export CSV." />
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+    <meta name="application-name" content="JSave" />
+    <link rel="canonical" href="https://jsave.jeeprod.com/" />
+    <link rel="alternate" hreflang="en" href="https://jsave.jeeprod.com/en/" />
+    <link rel="alternate" hreflang="zh" href="https://jsave.jeeprod.com/zh/" />
+    <link rel="alternate" hreflang="x-default" href="https://jsave.jeeprod.com/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="JSave" />
+    <meta property="og:title" content="JSave — Offline Expense Tracker &amp; AA Bill Splitter for Malaysia" />
+    <meta property="og:description" content="Track expenses offline, split AA bills, plan budgets and savings goals, calculate cost per day, and export your data anytime." />
+    <meta property="og:url" content="https://jsave.jeeprod.com/" />
+    <meta property="og:image" content="https://jsave.jeeprod.com/j-save-lifestyle.webp" />
+    <meta property="og:image:alt" content="JSave personal finance app for everyday life in Malaysia" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="JSave — Spend clearly. Save calmly." />
+    <meta name="twitter:description" content="An offline-friendly expense tracker, AA bill splitter and savings companion made in Kuala Lumpur." />
+    <meta name="twitter:image" content="https://jsave.jeeprod.com/j-save-lifestyle.webp" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://www.jeeprod.com/#organization",
+            "name": "Jee Production",
+            "url": "https://www.jeeprod.com/"
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://jsave.jeeprod.com/#app",
+            "name": "JSave",
+            "alternateName": "J省",
+            "url": "https://jsave.jeeprod.com/",
+            "image": "https://jsave.jeeprod.com/j-save-lifestyle.webp",
+            "applicationCategory": "FinanceApplication",
+            "applicationSubCategory": "Expense tracker and budget planner",
+            "operatingSystem": "Web, Android, iOS, Windows, macOS",
+            "description": "A personal finance PWA for Malaysia with offline expense tracking, AA bill splitting, budgets, savings goals, item cost-per-day and CSV export.",
+            "featureList": ["Offline expense tracking", "AA bill splitting", "Daily budget feedback", "Savings goals", "Item cost per day", "CSV export"],
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "MYR" },
+            "author": { "@id": "https://www.jeeprod.com/#organization" }
+          },
+          {
+            "@type": "FAQPage",
+            "@id": "https://jsave.jeeprod.com/#faq",
+            "mainEntity": [
+              { "@type": "Question", "name": "Can I use JSave without internet?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. You can add and review records offline, and queued changes sync after the connection returns." } },
+              { "@type": "Question", "name": "Does JSave connect to my bank?", "acceptedAnswer": { "@type": "Answer", "text": "No. JSave uses deliberate manual entry and never asks for bank login credentials." } },
+              { "@type": "Question", "name": "Can JSave split AA bills?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. JSave can split a shared bill equally or by custom amounts, track repayments, and count only your own share as personal spending." } },
+              { "@type": "Question", "name": "Can I export my JSave data?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Transactions can be exported as a spreadsheet-ready CSV from Settings." } }
+            ]
+          }
+        ]
+      }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <style>
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
       #root { min-height: 100vh; min-height: 100dvh; }
+      #jsave-seo-fallback { min-height: 100vh; padding: 72px max(24px, calc((100vw - 920px) / 2)); color: #e8f0ec; background: #050d1a; font: 16px/1.7 system-ui, sans-serif; }
+      #jsave-seo-fallback header, #jsave-seo-fallback section { max-width: 920px; margin: 0 auto 48px; }
+      #jsave-seo-fallback h1 { max-width: 800px; margin: 10px 0 18px; font-size: clamp(38px, 7vw, 72px); line-height: 1.02; letter-spacing: -.045em; }
+      #jsave-seo-fallback h2 { margin-bottom: 12px; font-size: clamp(25px, 4vw, 38px); line-height: 1.12; }
+      #jsave-seo-fallback h3 { margin-bottom: 5px; color: #69d7ad; font-size: 18px; }
+      #jsave-seo-fallback p { max-width: 760px; color: #a9b7b2; }
+      #jsave-seo-fallback ul { margin: 18px 0 0 20px; columns: 2; color: #c9d5d0; }
+      #jsave-seo-fallback a { color: #69d7ad; }
+      #jsave-seo-fallback .seo-eyebrow { color: #69d7ad; font-size: 12px; letter-spacing: .16em; text-transform: uppercase; }
+      #jsave-seo-fallback .seo-cta { display: inline-block; margin-top: 24px; padding: 11px 18px; border: 1px solid #69d7ad; border-radius: 999px; text-decoration: none; }
+      @media (max-width: 560px) { #jsave-seo-fallback { padding-top: 48px; } #jsave-seo-fallback ul { columns: 1; } }
     </style>
     <script>
       document.documentElement.style.background = '#050d1a'
@@ -26,7 +92,41 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <main id="jsave-seo-fallback">
+        <header>
+          <p class="seo-eyebrow">Personal finance · Made in Kuala Lumpur</p>
+          <h1>Offline expense tracking and AA bill splitting, without the noise.</h1>
+          <p>JSave is a focused personal finance web app for everyday life in Malaysia. Record spending in seconds, understand a practical daily budget, split shared bills accurately, and keep moving toward savings goals—without connecting a bank account.</p>
+          <a class="seo-cta" href="/">Open JSave for free</a>
+        </header>
+        <section>
+          <h2>A calmer way to understand your money</h2>
+          <p>JSave keeps the daily loop deliberately small: record, review and adjust. Your ledger remains available offline, queued changes sync when the connection returns, and every account keeps its own isolated cache.</p>
+          <ul>
+            <li>Fast income, expense and transfer records</li>
+            <li>Daily and monthly budget feedback</li>
+            <li>Equal or custom AA bill splitting</li>
+            <li>Repayment tracking without distorted spending</li>
+            <li>Multiple savings goals and quick deposits</li>
+            <li>True item cost per day and item groups</li>
+            <li>Calendar and category reports</li>
+            <li>Spreadsheet-ready CSV export</li>
+          </ul>
+        </section>
+        <section>
+          <h2>Built for real Malaysian routines</h2>
+          <p>Use MYR accounts for cash, banks and savings. Pay for a table, divide the bill equally or assign custom amounts, then record repayments while counting only your own share as personal spending. JSave is a progressive web app, so it can be installed from a modern browser on a phone or computer.</p>
+        </section>
+        <section>
+          <h2>Frequently asked questions</h2>
+          <h3>Can JSave work offline?</h3><p>Yes. Add and review records offline; queued changes synchronize after your connection returns.</p>
+          <h3>Does it need my bank password?</h3><p>No. JSave is manual-entry by design and never asks for bank login credentials.</p>
+          <h3>Can I take my data elsewhere?</h3><p>Yes. Export your transactions as a clean CSV file whenever you choose.</p>
+        </section>
+        <footer><p>JSave is designed and built by <a href="https://www.jeeprod.com/">Jee Production</a> in Kuala Lumpur, Malaysia.</p></footer>
+      </main>
+    </div>
     <script type="module" src="/src/jsave-entry.jsx"></script>
   </body>
 </html>

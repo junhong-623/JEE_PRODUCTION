@@ -32,13 +32,6 @@
     <priority>0.8</priority>
   </url>
 
-  <!-- JSave -->
-  <url>
-    <loc>https://www.jeeprod.com/jsave</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
   <!-- Tools -->
   <url>
     <loc>https://www.jeeprod.com/lucky-calc</loc>

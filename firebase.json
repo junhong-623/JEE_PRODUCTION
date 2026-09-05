@@ -26,6 +26,12 @@
         "**/.*",
         "**/node_modules/**"
       ],
+      "redirects": [
+        { "source": "/jsave", "destination": "https://jsave.jeeprod.com/", "type": 301 },
+        { "source": "/jsave/", "destination": "https://jsave.jeeprod.com/", "type": 301 },
+        { "source": "/jsave-intro", "destination": "https://jsave.jeeprod.com/", "type": 301 },
+        { "source": "/jsave-intro/", "destination": "https://jsave.jeeprod.com/", "type": 301 }
+      ],
       "rewrites": [
         {
           "source": "**",

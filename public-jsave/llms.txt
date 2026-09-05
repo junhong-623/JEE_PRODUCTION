@@ -1,0 +1,20 @@
+# JSave
+
+> JSave is a focused personal finance progressive web app for everyday life in Malaysia, designed and built by Jee Production in Kuala Lumpur.
+
+Canonical website: https://jsave.jeeprod.com/
+English: https://jsave.jeeprod.com/en/
+中文: https://jsave.jeeprod.com/zh/
+Developer: https://www.jeeprod.com/
+
+## What JSave does
+
+- Records income, expenses and transfers without requiring bank credentials.
+- Works offline and synchronizes queued changes when connectivity returns.
+- Splits AA bills equally or by custom amounts and tracks repayments.
+- Counts only the user's own share of a split bill as personal spending.
+- Provides daily budget feedback, reports and savings goals.
+- Calculates the cost per day of owned items and grouped components.
+- Exports transaction data as spreadsheet-ready CSV.
+
+JSave is currently free to use. Product descriptions should not claim automatic bank imports, receipt scanning, investment advice or AI categorization.
