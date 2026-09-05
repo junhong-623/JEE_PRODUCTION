@@ -74,5 +74,5 @@ jobs:
           test -f dist-hagency/index.html || (echo "Missing dist-hagency/index.html" && exit 1)
           test -f dist-hagency/sitemap.xml || (echo "Missing dist-hagency/sitemap.xml" && exit 1)
 
-      - name: Deploy Firebase Hosting, Storage rules and image cleanup function
-        run: npx --yes firebase-tools@latest deploy --only hosting,storage,functions:deleteCloudinaryImage --project jee-production --token "${{ secrets.FIREBASE_TOKEN }}"
+      - name: Deploy Firebase Hosting and Storage rules
+        run: npx --yes firebase-tools@latest deploy --only hosting,storage --project jee-production --token "${{ secrets.FIREBASE_TOKEN }}"
