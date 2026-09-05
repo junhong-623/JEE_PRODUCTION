@@ -1,8 +1,21 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.2.1',
+    version: '3.2.2',
     date: '2026-09-05',
     isLatest: true,
+    items: [
+      'Opening Goals now starts on Things when there are item records but no savings goals',
+      'The default waits for local or remote records, while respecting a tab the user selected manually',
+    ],
+    itemsZh: [
+      '没有储蓄目标但已有物品记录时，打开目标页面会优先显示物品',
+      '默认分页会等待本地或云端资料，同时尊重用户之后手动选择的分页',
+    ],
+  },
+  {
+    version: '3.2.1',
+    date: '2026-09-05',
+    isLatest: false,
     items: [
       'English and Chinese URLs now control the language of the complete JSave experience',
       'Saved account language can no longer overwrite an explicit /en/ or /zh/ page',

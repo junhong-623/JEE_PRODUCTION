@@ -1,5 +1,5 @@
 // GoalsPage.jsx — Savings Goals + Things (Cost Per Day) combined
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { useLang } from '../contexts/LangContext'
 import { useJSave } from '../hooks/useJSave'
 import { useAuth } from '../../contexts/AuthContext'
@@ -17,6 +17,10 @@ import { buildItemEntries, isItemGroup } from '../utils/itemGroups'
    ────────────────────────────────────────────────────────────────────── */
 const DEFAULT_EMOJIS = ['🎯','✈️','📱','🏠','🛡️','🎓','💍','🚗','🏖️','💎','🌏','☕','🎸','🎨','🐢']
 const ITEM_EMOJIS = ['📦','💻','📱','🎧','📷','⌚','👟','👜','🚲','🚗','🪑','☕','🎮','🎸','🏕️']
+
+export function preferredGoalsTab(goals = [], items = []) {
+  return goals.length === 0 && items.length > 0 ? 'things' : 'goals'
+}
 
 function coverErrorMessage(error, t) {
   if (error?.message === 'cover-too-large') return t('coverTooLargeError').replace('{size}', MAX_COVER_SOURCE_MB)
@@ -714,14 +718,19 @@ function HeroGoalCard({ goal, onClick, t, lang }) {
    ────────────────────────────────────────────────────────────────────── */
 export default function GoalsPage({ onOpenSettings }) {
   const { t, lang } = useLang()
-  const { goals, addGoal, updateGoal, deleteGoal } = useJSave()
+  const { goals, items, addGoal, updateGoal, deleteGoal } = useJSave()
   const { user } = useAuth()
 
-  const [tab, setTab]               = useState('goals')         // 'goals' | 'things'
+  const userSelectedTab = useRef(false)
+  const [tab, setTab]               = useState(() => preferredGoalsTab(goals, items))
   const [quickGoal, setQuickGoal]   = useState(null)            // goal for quick deposit
   const [settingsGoal, setSettingsGoal] = useState(null)        // goal for full settings
   const [showAddGoal, setShowAddGoal]   = useState(false)
   const [showAddItem, setShowAddItem]   = useState(false)
+
+  useEffect(() => {
+    if (!userSelectedTab.current) setTab(preferredGoalsTab(goals, items))
+  }, [goals, items])
 
   const sortedGoals = useMemo(() =>
     [...(goals || [])].sort((a, b) => {
@@ -789,7 +798,7 @@ export default function GoalsPage({ onOpenSettings }) {
       {/* ── Goals / Things ── */}
       <div className="jsave-goal-tabs" role="tablist" aria-label={t('goalsTitle')}>
         {[['goals', t('goalsTitle')], ['things', t('itemsTitle')]].map(([id, label]) => (
-          <button type="button" role="tab" aria-selected={tab === id} className={tab === id ? 'active' : ''} key={id} onClick={() => { setTab(id); if (id !== 'things') setShowAddItem(false) }}>
+          <button type="button" role="tab" aria-selected={tab === id} className={tab === id ? 'active' : ''} key={id} onClick={() => { userSelectedTab.current = true; setTab(id); if (id !== 'things') setShowAddItem(false) }}>
             {label}
           </button>
         ))}
