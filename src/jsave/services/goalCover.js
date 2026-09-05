@@ -38,12 +38,20 @@ export async function prepareGoalCover(file) {
   return canvasBlob(canvas)
 }
 
-export async function uploadGoalCover(uid, goalId, file) {
+async function uploadCover(uid, collection, recordId, file) {
   const blob = await prepareGoalCover(file)
-  const path = `users/${uid}/jsave/goals/${goalId}/cover.webp`
+  const path = `users/${uid}/jsave/${collection}/${recordId}/cover.webp`
   const coverRef = ref(storage, path)
   await uploadBytes(coverRef, blob, { contentType: 'image/webp', cacheControl: 'private,max-age=86400' })
   return { coverPath: path, coverUrl: await getDownloadURL(coverRef) }
+}
+
+export function uploadGoalCover(uid, goalId, file) {
+  return uploadCover(uid, 'goals', goalId, file)
+}
+
+export function uploadItemCover(uid, itemId, file) {
+  return uploadCover(uid, 'items', itemId, file)
 }
 
 export async function deleteGoalCover(path) {
@@ -54,3 +62,5 @@ export async function deleteGoalCover(path) {
     if (error?.code !== 'storage/object-not-found') throw error
   }
 }
+
+export const deleteItemCover = deleteGoalCover

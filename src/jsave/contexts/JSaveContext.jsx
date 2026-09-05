@@ -242,9 +242,10 @@ export function JSaveProvider({ children, onLanguageChange }) {
   }, [uid, online])
 
   const addItem = useCallback(async data => {
-    const item = { ...data, userId: uid, id: crypto.randomUUID(), createdAt: Date.now() }
+    const item = { ...data, userId: uid, id: data.id || crypto.randomUUID(), createdAt: Date.now() }
     setItems(previous => [...previous, item])
     await syncWrite(uid, 'items', item, online)
+    return item
   }, [uid, online])
 
   const updateItem = useCallback(async (id, data) => {

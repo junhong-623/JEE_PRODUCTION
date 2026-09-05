@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { allocateEqualShares, customSplitRemaining, isCustomSplitValid } from '../../src/jsave/utils/split'
+import { allocateEqualShares, customSplitRemaining, fillSplitRemainder, isCustomSplitValid } from '../../src/jsave/utils/split'
 
 describe('JSave bill splitting', () => {
   it('allocates rounding cents without losing part of the bill', () => {
@@ -11,6 +11,11 @@ describe('JSave bill splitting', () => {
   it('reports the unassigned amount for a custom split', () => {
     expect(customSplitRemaining(168, [50, 40, 40, 30])).toBe(8)
     expect(customSplitRemaining(168, [58, 40, 40, 30])).toBe(0)
+  })
+
+  it('fills the selected person with the exact remaining amount', () => {
+    expect(fillSplitRemainder(168, [50, 40, 40, 0], 3)).toEqual([50, 40, 40, 38])
+    expect(fillSplitRemainder(100, [33.33, 33.33, 0], 2)).toEqual([33.33, 33.33, 33.34])
   })
 
   it('accepts only a complete non-negative custom split', () => {

@@ -75,6 +75,8 @@ export default {
   txSplitCustom: 'Custom amounts',
   txSplitRemaining: '{amount} left to assign',
   txSplitOver: '{amount} assigned over the bill total',
+  txSplitFill: 'Use remainder',
+  txSplitFillFor: 'Use the remaining amount for {name}',
   txSplitComplete: 'Bill fully assigned',
   txSplitAdjust: 'Adjust shares',
   txSplitResetConfirm: 'Changing shares will reset the current repayment status. Continue?',
@@ -141,6 +143,13 @@ export default {
   itemDelete: 'Delete',
   itemSave: 'Save',
   itemCancel: 'Cancel',
+  itemEmoji: 'Item icon',
+  itemCover: 'Item photo',
+  itemCoverChoose: 'Choose photo',
+  itemCoverReplace: 'Replace photo',
+  itemCoverRemove: 'Remove',
+  itemCoverHint: 'Optional · automatically cropped and compressed',
+  itemCoverError: 'Photo upload failed. Please try a smaller JPG, PNG or WebP image.',
 
   // Reports
   reportsTitle: 'Reports',

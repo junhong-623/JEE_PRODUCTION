@@ -14,6 +14,15 @@ export function customSplitRemaining(total, shares) {
   return roundMoney(Number(total) - shares.reduce((sum, share) => sum + (Number(share) || 0), 0))
 }
 
+export function fillSplitRemainder(total, shares, index) {
+  const next = shares.map(share => Number(share) || 0)
+  if (index < 0 || index >= next.length) return next
+  const filledAmount = roundMoney(next[index] + customSplitRemaining(total, next))
+  if (filledAmount < 0) return next
+  next[index] = filledAmount
+  return next
+}
+
 export function isCustomSplitValid(total, shares) {
   return Number(total) > 0
     && shares.every(share => {

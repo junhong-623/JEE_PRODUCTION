@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useLang } from '../contexts/LangContext'
 import { useJSave } from '../hooks/useJSave'
 import { toLocalDateString } from '../utils/date'
-import { allocateEqualShares, customSplitRemaining, isCustomSplitValid } from '../utils/split'
+import { allocateEqualShares, customSplitRemaining, fillSplitRemainder, isCustomSplitValid } from '../utils/split'
 
 const INCOME_CATS  = ['catSalary', 'catFreelance', 'catInvestment', 'catGift', 'catOtherIncome']
 const EXPENSE_CATS = ['catFood', 'catTransport', 'catBills', 'catEntertainment', 'catHealth', 'catShopping', 'catOther']
@@ -48,21 +48,32 @@ function SplitModeControl({ mode, onChange, t }) {
 }
 
 function SplitAmountEditor({ names, shares, total, mode, currency, onChange, t }) {
+  const [activeIndex, setActiveIndex] = useState(0)
   const remaining = customSplitRemaining(total, shares)
+  const activeName = activeIndex === 0 ? t('txYou') : (names[activeIndex - 1]?.trim() || `#${activeIndex + 1}`)
+  const filledShares = fillSplitRemainder(total, shares, activeIndex)
+  const filledAmount = filledShares[activeIndex]
+  const canFill = mode === 'custom' && remaining !== 0 && customSplitRemaining(total, filledShares) === 0
   return (
     <div className="jsave-split-amount-editor">
       {shares.map((share, index) => (
         <label key={index} className="jsave-split-amount-row">
           <span>{index === 0 ? t('txYou') : (names[index - 1]?.trim() || `#${index + 1}`)}</span>
           {mode === 'custom' ? (
-            <span className="jsave-split-amount-input"><small>{currency}</small><input type="number" min="0" step="0.01" value={share} onChange={event => onChange(index, event.target.value)} /></span>
+            <span className="jsave-split-amount-input"><small>{currency}</small><input
+              type="number" min="0" step="0.01" inputMode="decimal" placeholder="0.00" value={share}
+              onFocus={event => { setActiveIndex(index); event.currentTarget.select() }}
+              onClick={event => event.currentTarget.select()}
+              onChange={event => onChange(index, event.target.value)}
+            /></span>
           ) : <strong>{fmt(share, currency)}</strong>}
         </label>
       ))}
       <div className={`jsave-split-allocation ${remaining === 0 ? 'complete' : 'incomplete'}`}>
-        {remaining === 0
+        <span>{remaining === 0
           ? t('txSplitComplete')
-          : t(remaining > 0 ? 'txSplitRemaining' : 'txSplitOver').replace('{amount}', fmt(Math.abs(remaining), currency))}
+          : t(remaining > 0 ? 'txSplitRemaining' : 'txSplitOver').replace('{amount}', fmt(Math.abs(remaining), currency))}</span>
+        {canFill && <button type="button" onClick={() => onChange(activeIndex, String(filledAmount))} aria-label={t('txSplitFillFor').replace('{name}', activeName)}>{t('txSplitFill')}</button>}
       </div>
     </div>
   )

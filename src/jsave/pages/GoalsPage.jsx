@@ -7,12 +7,14 @@ import { calendarDayDifference, toLocalDateString } from '../utils/date'
 import { ProgressRing } from '../components/JSaveCharts'
 import PageHeader from '../components/PageHeader'
 import GoalThumbnail from '../components/GoalThumbnail'
-import { deleteGoalCover, uploadGoalCover } from '../services/goalCover'
+import ItemThumbnail from '../components/ItemThumbnail'
+import { deleteGoalCover, deleteItemCover, uploadGoalCover, uploadItemCover } from '../services/goalCover'
 
 /* ──────────────────────────────────────────────────────────────────────
    Helpers
    ────────────────────────────────────────────────────────────────────── */
 const DEFAULT_EMOJIS = ['🎯','✈️','📱','🏠','🛡️','🎓','💍','🚗','🏖️','💎','🌏','☕','🎸','🎨','🐢']
+const ITEM_EMOJIS = ['📦','💻','📱','🎧','📷','⌚','👟','👜','🚲','🚗','🪑','☕','🎮','🎸','🏕️']
 
 function fmtAmt(n) {
   return new Intl.NumberFormat('en-MY', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n)
@@ -261,6 +263,8 @@ function GoalSettingsModal({ initial, onSave, onDelete, onClose, t }) {
    ────────────────────────────────────────────────────────────────────── */
 function ItemForm({ initial, cur, t, onSave, onDelete, onClose }) {
   const initStatus = itemStatus(initial ?? {})
+  const [emoji,        setEmoji]       = useState(initial?.emoji ?? '📦')
+  const [showEmoji,    setShowEmoji]   = useState(false)
   const [name,         setName]        = useState(initial?.name ?? '')
   const [cost,         setCost]        = useState(initial?.cost?.toString() ?? '')
   const [purchaseDate, setPurchaseDate] = useState(initial?.purchaseDate ?? todayStr())
@@ -270,15 +274,45 @@ function ItemForm({ initial, cur, t, onSave, onDelete, onClose }) {
   const [sold,         setSold]        = useState(initStatus === 'sold')
   const [salePrice,    setSalePrice]   = useState(initial?.salePrice?.toString() ?? '')
   const [saleDate,     setSaleDate]    = useState(initial?.saleDate ?? '')
+  const [coverFile,    setCoverFile]   = useState(null)
+  const [coverPreview, setCoverPreview] = useState(initial?.coverUrl ?? null)
+  const [removeCover,  setRemoveCover] = useState(false)
   const [saving,       setSaving]      = useState(false)
+  const [saveError,    setSaveError]   = useState(false)
+
+  useEffect(() => () => {
+    if (coverPreview?.startsWith('blob:')) URL.revokeObjectURL(coverPreview)
+  }, [coverPreview])
+
+  function chooseCover(file) {
+    if (!file) return
+    setCoverFile(file)
+    setRemoveCover(false)
+    setCoverPreview(URL.createObjectURL(file))
+    setSaveError(false)
+  }
+
+  function clearCover() {
+    setCoverFile(null)
+    setCoverPreview(null)
+    setRemoveCover(Boolean(initial?.coverPath))
+  }
 
   function toggleRetired(on) { setRetired(on); if (on) setSold(false) }
   function toggleSold(on)    { setSold(on);    if (on) setRetired(false) }
 
   async function handleSubmit(e) {
-    e.preventDefault(); setSaving(true)
+    e.preventDefault(); setSaving(true); setSaveError(false)
     const status = retired ? 'retired' : sold ? 'sold' : 'active'
-    await onSave({ name, cost: Number(cost), purchaseDate, status, retiredDate: retired ? (retiredDate || todayStr()) : null, salePrice: sold ? Number(salePrice) : null, saleDate: sold ? (saleDate || todayStr()) : null, disposeDate: retired ? (retiredDate || todayStr()) : null, note })
+    try {
+      await onSave(
+        { name, emoji, cost: Number(cost), purchaseDate, status, retiredDate: retired ? (retiredDate || todayStr()) : null, salePrice: sold ? Number(salePrice) : null, saleDate: sold ? (saleDate || todayStr()) : null, disposeDate: retired ? (retiredDate || todayStr()) : null, note },
+        { file: coverFile, remove: removeCover },
+      )
+    } catch {
+      setSaveError(true)
+      setSaving(false)
+    }
   }
 
   return (
@@ -288,6 +322,30 @@ function ItemForm({ initial, cur, t, onSave, onDelete, onClose }) {
           <button onClick={onClose} aria-label={t('close')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(241,245,249,0.5)', fontSize: 20 }}>✕</button>
         </h2>
         <form onSubmit={handleSubmit} className="jsave-form">
+          <div className="jsave-goal-cover-field">
+            <div className="jsave-goal-cover-preview">
+              {coverPreview ? <img src={coverPreview} alt="" /> : <span>{emoji}</span>}
+              <div><strong>{t('itemCover')}</strong><small>{t('itemCoverHint')}</small></div>
+            </div>
+            <div className="jsave-goal-cover-actions">
+              <label className="jsave-btn-ghost">
+                {coverPreview ? t('itemCoverReplace') : t('itemCoverChoose')}
+                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={event => chooseCover(event.target.files?.[0])} hidden />
+              </label>
+              {coverPreview && <button type="button" className="jsave-btn-link" onClick={clearCover}>{t('itemCoverRemove')}</button>}
+            </div>
+          </div>
+          <div>
+            <div className="jsave-label" style={{ marginBottom: 8 }}>{t('itemEmoji')}</div>
+            <button type="button" onClick={() => setShowEmoji(!showEmoji)} className="jsave-emoji-trigger">{emoji}</button>
+            {showEmoji && (
+              <div className="jsave-emoji-picker">
+                {ITEM_EMOJIS.map(value => (
+                  <button key={value} type="button" className={emoji === value ? 'active' : ''} onClick={() => { setEmoji(value); setShowEmoji(false) }}>{value}</button>
+                ))}
+              </div>
+            )}
+          </div>
           <div><label className="jsave-label">{t('itemName')}</label>
             <input className="jsave-input" placeholder={t('itemNamePh')} value={name} onChange={e => setName(e.target.value)} required /></div>
           <div><label className="jsave-label">{t('itemCost')} ({cur})</label>
@@ -314,15 +372,16 @@ function ItemForm({ initial, cur, t, onSave, onDelete, onClose }) {
             <button type="button" className="jsave-btn-ghost" onClick={onClose}>{t('itemCancel')}</button>
             <button type="submit" className="jsave-btn-primary" disabled={saving}>{t('itemSave')}</button>
           </div>
+          {saveError && <p className="jsave-error">{t('itemCoverError')}</p>}
         </form>
       </div>
     </div>
   )
 }
 
-function ThingsView({ t, lang }) {
+function ThingsView({ t, lang, showAdd, onShowAddChange }) {
   const { items, addItem, updateItem, deleteItem, settings } = useJSave()
-  const [showForm, setShowForm] = useState(false)
+  const { user } = useAuth()
   const [editing, setEditing] = useState(null)
   const cur = settings?.currency ?? 'MYR'
 
@@ -340,6 +399,41 @@ function ThingsView({ t, lang }) {
   const maxCPD = Math.max(...sortedItems.map(i => i.cost / daysTotal(i.purchaseDate, endDate(i))), 0.01)
   const best   = sortedItems[0]
   const worst  = sortedItems[sortedItems.length - 1]
+
+  function closeForm() {
+    setEditing(null)
+    onShowAddChange(false)
+  }
+
+  async function saveItem(data, coverChange) {
+    if (editing?.id) {
+      let coverUpdate = {}
+      if (coverChange.file) coverUpdate = await uploadItemCover(user.uid, editing.id, coverChange.file)
+      else if (coverChange.remove) coverUpdate = { coverPath: null, coverUrl: null }
+      await updateItem(editing.id, { ...data, ...coverUpdate })
+      if (coverChange.remove && editing.coverPath) await deleteItemCover(editing.coverPath)
+      closeForm()
+      return
+    }
+
+    const itemId = crypto.randomUUID()
+    const coverUpdate = coverChange.file ? await uploadItemCover(user.uid, itemId, coverChange.file) : {}
+    try {
+      await addItem({ ...data, ...coverUpdate, id: itemId })
+      closeForm()
+    } catch (error) {
+      if (coverUpdate.coverPath) await deleteItemCover(coverUpdate.coverPath).catch(() => {})
+      throw error
+    }
+  }
+
+  async function removeItem() {
+    if (!editing?.id || !window.confirm(t('confirmDelete'))) return
+    const coverPath = editing.coverPath
+    await deleteItem(editing.id)
+    if (coverPath) await deleteItemCover(coverPath).catch(() => {})
+    closeForm()
+  }
 
   return (
     <>
@@ -419,14 +513,12 @@ function ThingsView({ t, lang }) {
             const status = itemStatus(item)
 
             return (
-              <div key={item.id} onClick={() => { setEditing(item); setShowForm(true) }}
+              <div key={item.id} onClick={() => { setEditing(item); onShowAddChange(false) }}
                 style={{ padding: '12px 14px', borderRadius: 16, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(241,245,249,0.06)', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', transition: 'background 0.15s' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.025)'}
               >
-                <div style={{ width: 38, height: 38, borderRadius: 12, background: 'rgba(16,185,129,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
-                  📦
-                </div>
+                <ItemThumbnail item={item} size={38} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
                     <span style={{ fontSize: 12.5, fontWeight: 600, color: '#f1f5f9' }}>{item.name}</span>
@@ -455,26 +547,18 @@ function ThingsView({ t, lang }) {
       )}
 
       {/* Add item */}
-      <button onClick={() => { setEditing(null); setShowForm(true) }} style={{ width: '100%', padding: '13px 0', borderRadius: 16, border: '1px dashed rgba(16,185,129,0.4)', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, color: '#10b981', transition: 'background 0.15s' }}
+      <button onClick={() => { setEditing(null); onShowAddChange(true) }} style={{ width: '100%', padding: '13px 0', borderRadius: 16, border: '1px dashed rgba(16,185,129,0.4)', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, color: '#10b981', transition: 'background 0.15s' }}
         onMouseEnter={e => e.currentTarget.style.background = 'rgba(16,185,129,0.05)'}
         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
         + {t('addItem')}
       </button>
 
-      {showForm && (
+      {(showAdd || editing) && (
         <ItemForm
           initial={editing} cur={cur} t={t}
-          onSave={async (data) => {
-            if (editing?.id) await updateItem(editing.id, data)
-            else await addItem(data)
-            setShowForm(false)
-          }}
-          onDelete={async () => {
-            if (editing?.id && window.confirm(t('confirmDelete'))) {
-              await deleteItem(editing.id); setShowForm(false)
-            }
-          }}
-          onClose={() => setShowForm(false)}
+          onSave={saveItem}
+          onDelete={removeItem}
+          onClose={closeForm}
         />
       )}
     </>
@@ -535,6 +619,7 @@ export default function GoalsPage({ onOpenSettings }) {
   const [quickGoal, setQuickGoal]   = useState(null)            // goal for quick deposit
   const [settingsGoal, setSettingsGoal] = useState(null)        // goal for full settings
   const [showAddGoal, setShowAddGoal]   = useState(false)
+  const [showAddItem, setShowAddItem]   = useState(false)
 
   const sortedGoals = useMemo(() =>
     [...(goals || [])].sort((a, b) => {
@@ -587,13 +672,21 @@ export default function GoalsPage({ onOpenSettings }) {
         title={tab === 'goals' ? t('goalsTitle') : t('itemsTitle')}
         onOpenSettings={onOpenSettings}
         settingsLabel={t('navSettings')}
-        action={tab === 'goals' ? <button type="button" className="jsave-header-action primary" aria-label={t('addGoal')} onClick={() => { setSettingsGoal({}); setShowAddGoal(true) }}>+</button> : null}
+        action={<button
+          type="button"
+          className="jsave-header-action primary"
+          aria-label={tab === 'goals' ? t('addGoal') : t('addItem')}
+          onClick={() => {
+            if (tab === 'goals') { setSettingsGoal({}); setShowAddGoal(true) }
+            else setShowAddItem(true)
+          }}
+        >+</button>}
       />
 
       {/* ── Goals / Things ── */}
       <div className="jsave-goal-tabs" role="tablist" aria-label={t('goalsTitle')}>
         {[['goals', t('goalsTitle')], ['things', t('itemsTitle')]].map(([id, label]) => (
-          <button type="button" role="tab" aria-selected={tab === id} className={tab === id ? 'active' : ''} key={id} onClick={() => setTab(id)}>
+          <button type="button" role="tab" aria-selected={tab === id} className={tab === id ? 'active' : ''} key={id} onClick={() => { setTab(id); if (id !== 'things') setShowAddItem(false) }}>
             {label}
           </button>
         ))}
@@ -661,7 +754,7 @@ export default function GoalsPage({ onOpenSettings }) {
       )}
 
       {/* ── Things tab ── */}
-      {tab === 'things' && <ThingsView t={t} lang={lang} />}
+      {tab === 'things' && <ThingsView t={t} lang={lang} showAdd={showAddItem} onShowAddChange={setShowAddItem} />}
 
       {/* ── Quick Deposit Modal ── */}
       {quickGoal && (

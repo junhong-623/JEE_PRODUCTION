@@ -8,10 +8,11 @@ service firebase.storage {
             || request.auth.uid == "IhcEvknXK1OQ24PdA3UmwnyxzSq1");
     }
 
-    match /users/{uid}/jsave/goals/{goalId}/{fileName} {
+    match /users/{uid}/jsave/{collection}/{recordId}/{fileName} {
       allow read: if request.auth != null && (request.auth.uid == uid || isAdmin());
       allow create, update: if request.auth != null
         && request.auth.uid == uid
+        && (collection == 'goals' || collection == 'items')
         && request.resource.size < 1024 * 1024
         && request.resource.contentType.matches('image/(jpeg|png|webp)');
       allow delete: if request.auth != null && (request.auth.uid == uid || isAdmin());

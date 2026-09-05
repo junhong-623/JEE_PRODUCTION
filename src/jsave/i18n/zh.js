@@ -75,6 +75,8 @@ export default {
   txSplitCustom: '自定义金额',
   txSplitRemaining: '还有 {amount} 未分配',
   txSplitOver: '已超出账单总额 {amount}',
+  txSplitFill: '自动补齐',
+  txSplitFillFor: '将剩余金额自动填入{name}',
   txSplitComplete: '账单金额已全部分配',
   txSplitAdjust: '调整份额',
   txSplitResetConfirm: '修改份额会重置目前的还款状态，是否继续？',
@@ -141,6 +143,13 @@ export default {
   itemDelete: '删除',
   itemSave: '保存',
   itemCancel: '取消',
+  itemEmoji: '物品图标',
+  itemCover: '物品照片',
+  itemCoverChoose: '选择照片',
+  itemCoverReplace: '更换照片',
+  itemCoverRemove: '移除',
+  itemCoverHint: '可选 · 自动裁切并压缩',
+  itemCoverError: '照片上传失败，请尝试较小的 JPG、PNG 或 WebP 图片。',
 
   // Reports
   reportsTitle: '报告',

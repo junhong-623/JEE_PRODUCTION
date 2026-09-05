@@ -559,7 +559,8 @@ input[type="number"].jsave-input::-webkit-outer-spin-button { -webkit-appearance
 .jsave-split-amount-input { width: 126px; display: flex; align-items: center; gap: 5px; border-bottom: 1px solid rgba(245,158,11,.35); }
 .jsave-split-amount-input small { color: rgba(241,245,249,.35); font-family: var(--font-mono); font-size: 8px; }
 .jsave-split-amount-input input { width: 100%; padding: 7px 0; border: 0; outline: 0; color: #f59e0b; background: transparent; font: 650 13px var(--font-mono); text-align: right; }
-.jsave-split-allocation { padding-top: 9px; font-family: var(--font-mono); font-size: 9px; text-align: right; }
+.jsave-split-allocation { min-height: 32px; padding-top: 9px; display: flex; align-items: center; justify-content: flex-end; gap: 9px; font-family: var(--font-mono); font-size: 9px; text-align: right; }
+.jsave-split-allocation button { padding: 4px 7px; border: 1px solid rgba(245,158,11,.35); border-radius: 7px; color: #f59e0b; background: rgba(245,158,11,.08); font: 650 9px var(--font-sans); cursor: pointer; white-space: nowrap; }
 .jsave-split-allocation.complete { color: #10b981; }
 .jsave-split-allocation.incomplete { color: #f59e0b; }
 .jsave-split-adjust { margin: -2px 0 10px; padding: 5px 0; }
@@ -574,6 +575,12 @@ input[type="number"].jsave-input::-webkit-outer-spin-button { -webkit-appearance
 
 .jsave-goal-thumbnail { flex: 0 0 auto; overflow: hidden; border: 1px solid rgba(245,213,112,.28); border-radius: 10px; object-fit: cover; background: rgba(245,213,112,.12); }
 .jsave-goal-thumbnail.fallback { display: inline-grid; place-items: center; }
+.jsave-item-thumbnail { flex: 0 0 auto; overflow: hidden; border: 1px solid rgba(16,185,129,.22); border-radius: 10px; object-fit: cover; background: rgba(16,185,129,.08); }
+.jsave-item-thumbnail.fallback { display: inline-grid; place-items: center; }
+.jsave-emoji-trigger { width: 52px; height: 52px; display: grid; place-items: center; border: 1px solid rgba(16,185,129,.28); border-radius: 14px; color: inherit; background: rgba(16,185,129,.08); font-size: 25px; cursor: pointer; }
+.jsave-emoji-picker { margin-top: 9px; padding: 9px; display: flex; flex-wrap: wrap; gap: 6px; border: 1px solid rgba(241,245,249,.08); border-radius: 12px; background: rgba(8,18,32,.96); }
+.jsave-emoji-picker button { width: 36px; height: 36px; border: 1px solid transparent; border-radius: 9px; background: rgba(255,255,255,.04); font-size: 19px; cursor: pointer; }
+.jsave-emoji-picker button.active { border-color: rgba(16,185,129,.48); background: rgba(16,185,129,.16); }
 .jsave-goal-tabs { margin-bottom: 18px; display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid rgba(241,245,249,.09); }
 .jsave-goal-tabs button { position: relative; padding: 10px 8px 11px; border: 0; color: rgba(241,245,249,.45); background: transparent; font: 600 12px var(--font-sans); cursor: pointer; }
 .jsave-goal-tabs button::after { content: ''; position: absolute; right: 28%; bottom: -1px; left: 28%; height: 2px; background: #10b981; transform: scaleX(0); transition: transform .18s; }

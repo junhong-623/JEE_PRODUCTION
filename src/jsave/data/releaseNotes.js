@@ -1,8 +1,25 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.1.5',
+    version: '3.1.6',
     date: '2026-09-05',
     isLatest: true,
+    items: [
+      'Items now support a custom emoji or an account-scoped, cropped photo',
+      'Kept the add action available in the header when switching from goals to items',
+      'Custom AA splits can fill the selected person with the exact remaining amount',
+      'Tapping an AA amount selects the existing value for faster replacement',
+    ],
+    itemsZh: [
+      '物品现在支持自选 emoji 或按账号隔离、自动裁切的照片',
+      '从目标切换到物品后，右上角继续保留新增按钮',
+      'AA 自定义金额可以把剩余差额精确补入当前选中的人',
+      '点入 AA 金额会选中原有数值，方便直接覆盖',
+    ],
+  },
+  {
+    version: '3.1.5',
+    date: '2026-09-05',
+    isLatest: false,
     items: [
       'Auto salary now catches up on the next app open when the configured payday was missed',
       'Added clear last-added and next-scheduled salary status with an opt-in catch-up choice',
