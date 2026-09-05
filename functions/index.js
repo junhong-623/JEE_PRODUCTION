@@ -130,7 +130,8 @@ exports.submitHAgencyApplication = onCall(async (req) => {
 /**
  * Callable: deleteCloudinaryImage
  * data: { publicId: string }
- * Deletes an image from Cloudinary. Admin-only.
+ * Deletes an image from Cloudinary. Admins may delete any image; authenticated
+ * JSave users may only delete covers stored below their own UID folder.
  */
 exports.deleteCloudinaryImage = onCall(
   {
@@ -143,13 +144,15 @@ exports.deleteCloudinaryImage = onCall(
     if (!req.auth) {
       throw new HttpsError('unauthenticated', 'You must be signed in.')
     }
-    if (!ADMIN_UIDS.includes(req.auth.uid)) {
-      throw new HttpsError('permission-denied', 'Admin only.')
-    }
-
     const { publicId } = req.data
-    if (!publicId || typeof publicId !== 'string') {
+    if (!publicId || typeof publicId !== 'string' || publicId.length > 240) {
       throw new HttpsError('invalid-argument', 'publicId is required.')
+    }
+    const isAdmin = ADMIN_UIDS.includes(req.auth.uid)
+    const jsavePath = publicId.match(/^jsave\/([^/]+)\/(goals|items)\/([^/]+)\/([^/]+)$/)
+    const isOwnJSaveImage = jsavePath?.[1] === req.auth.uid
+    if (!isAdmin && !isOwnJSaveImage) {
+      throw new HttpsError('permission-denied', 'You may only delete your own JSave images.')
     }
 
     cloudinary.config({

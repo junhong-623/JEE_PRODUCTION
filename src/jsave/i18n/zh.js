@@ -299,7 +299,7 @@ export default {
   coverTooLargeError: '原始照片超过 {size} MB。',
   coverInvalidError: '浏览器无法读取这个图片格式，请尝试 JPG、PNG 或 WebP。',
   coverCompressionError: '照片无法压缩到上传限制以内。',
-  coverPermissionError: '这个账号暂时无法使用照片存储，请等待更新部署完成后重试。',
+  coverPermissionError: '这个账号暂时无法使用照片存储，请重新登录后重试。',
   coverUploadError: '照片上传失败，请检查网络后重试。',
   goalCoverError: '照片上传失败，请尝试较小的 JPG、PNG 或 WebP 图片。',
   goalProgress: '进度',

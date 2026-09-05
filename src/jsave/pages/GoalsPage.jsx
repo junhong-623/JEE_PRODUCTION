@@ -485,6 +485,7 @@ function ThingsView({ t, lang, showAdd, onShowAddChange }) {
       await updateItem(editing.id, { ...data, ...coverUpdate })
       if (data.kind === 'group') await syncGroupMembers(editing.id, memberIds)
       if (coverChange.remove && editing.coverPath) await deleteItemCover(editing.coverPath)
+      if (coverChange.file && editing.coverPath && editing.coverPath !== coverUpdate.coverPath) await deleteItemCover(editing.coverPath)
       closeForm()
       return
     }
@@ -743,6 +744,7 @@ export default function GoalsPage({ onOpenSettings }) {
       else if (coverChange.remove) coverUpdate = { coverPath: null, coverUrl: null }
       await updateGoal(settingsGoal.id, { ...data, ...coverUpdate })
       if (coverChange.remove && settingsGoal.coverPath) await deleteGoalCover(settingsGoal.coverPath)
+      if (coverChange.file && settingsGoal.coverPath && settingsGoal.coverPath !== coverUpdate.coverPath) await deleteGoalCover(settingsGoal.coverPath)
       return
     }
 

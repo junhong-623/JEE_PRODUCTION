@@ -1,8 +1,23 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.1.9',
+    version: '3.1.10',
     date: '2026-09-05',
     isLatest: true,
+    items: [
+      'Moved goal and item cover uploads from the invalid Firebase Storage bucket to Cloudinary',
+      'Kept adaptive browser compression before upload and account-scoped Cloudinary folders',
+      'Replaced covers now clean up the previous Cloudinary asset without affecting legacy links',
+    ],
+    itemsZh: [
+      '目标与物品照片从无效的 Firebase Storage bucket 改为上传至 Cloudinary',
+      '继续在浏览器端自适应压缩，并按账号 UID 隔离 Cloudinary 文件夹',
+      '更换照片后会清理旧 Cloudinary 资源，同时不会破坏旧照片链接',
+    ],
+  },
+  {
+    version: '3.1.9',
+    date: '2026-09-05',
+    isLatest: false,
     items: [
       'Components can now be edited directly while managing an item group',
       'Groups now distinguish lifetime cost from the cost of active components',

@@ -1,11 +1,13 @@
-import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage'
-import { storage } from '../../lib/firebase'
+import { httpsCallable } from 'firebase/functions'
+import { functions } from '../../lib/firebase'
 
 export const MAX_COVER_SOURCE_MB = 30
 const MAX_SOURCE_BYTES = MAX_COVER_SOURCE_MB * 1024 * 1024
 const MAX_OUTPUT_BYTES = 850 * 1024
 const COVER_WIDTH = 960
 const COVER_HEIGHT = 540
+const CLOUDINARY_CLOUD = 'db2ixn8zh'
+const CLOUDINARY_PRESET = 'H-Agency'
 
 export function validateCoverSource(file) {
   if (!file?.type?.startsWith('image/')) throw new Error('cover-invalid')
@@ -58,12 +60,29 @@ export async function prepareGoalCover(file) {
   throw new Error('cover-output-too-large')
 }
 
+export async function uploadPreparedCover(uid, collection, recordId, blob) {
+  const folder = `jsave/${uid}/${collection}/${recordId}`
+  const form = new FormData()
+  form.append('file', blob, 'cover.webp')
+  form.append('upload_preset', CLOUDINARY_PRESET)
+  form.append('folder', folder)
+
+  const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, {
+    method: 'POST',
+    body: form,
+  })
+  const result = await response.json().catch(() => ({}))
+  if (!response.ok || !result.secure_url || !result.public_id) {
+    const error = new Error('cover-upload')
+    error.detail = result?.error?.message
+    throw error
+  }
+
+  return { coverPath: result.public_id, coverUrl: result.secure_url }
+}
+
 async function uploadCover(uid, collection, recordId, file) {
-  const blob = await prepareGoalCover(file)
-  const path = `users/${uid}/jsave/${collection}/${recordId}/cover.webp`
-  const coverRef = ref(storage, path)
-  await uploadBytes(coverRef, blob, { contentType: blob.type, cacheControl: 'private,max-age=86400' })
-  return { coverPath: path, coverUrl: await getDownloadURL(coverRef) }
+  return uploadPreparedCover(uid, collection, recordId, await prepareGoalCover(file))
 }
 
 export function uploadGoalCover(uid, goalId, file) {
@@ -77,9 +96,11 @@ export function uploadItemCover(uid, itemId, file) {
 export async function deleteGoalCover(path) {
   if (!path) return
   try {
-    await deleteObject(ref(storage, path))
+    if (!path.startsWith('jsave/')) return
+    const removeImage = httpsCallable(functions, 'deleteCloudinaryImage')
+    await removeImage({ publicId: path })
   } catch (error) {
-    if (error?.code !== 'storage/object-not-found') throw error
+    console.warn('Cloudinary cover cleanup failed:', error?.message)
   }
 }
 

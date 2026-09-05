@@ -299,7 +299,7 @@ export default {
   coverTooLargeError: 'The original photo is larger than {size} MB.',
   coverInvalidError: 'This image format cannot be read by your browser. Try JPG, PNG or WebP.',
   coverCompressionError: 'The photo could not be compressed below the upload limit.',
-  coverPermissionError: 'Photo storage is not available for this account yet. Please try again after the update finishes deploying.',
+  coverPermissionError: 'Photo storage is not available for this account. Please sign in again and retry.',
   coverUploadError: 'Photo upload failed. Check your connection and try again.',
   goalCoverError: 'Photo upload failed. Please try a smaller JPG, PNG or WebP image.',
   goalProgress: 'Progress',
