@@ -42,4 +42,29 @@ describe('JSave automatic transactions', () => {
       transactions: [due.transaction], settings, uid: 'user-a', now,
     }).transaction).toBeNull()
   })
+
+  it('catches up salary when the app is opened after the configured day', () => {
+    const settings = {
+      autoSalary: true, salaryDay: 4, salaryAccountId: 'bank', monthlyIncome: 5000,
+    }
+    const due = getDueAutoSalary({
+      transactions: [], settings, uid: 'user-a', now: new Date(2026, 8, 9, 18, 0),
+    })
+    expect(due.transaction).toMatchObject({
+      id: 'auto-salary-2026-09', date: '2026-09-04', amount: 5000,
+    })
+  })
+
+  it('waits until the configured salary day and respects a skipped month', () => {
+    const settings = {
+      autoSalary: true, salaryDay: 10, salaryAccountId: 'bank', monthlyIncome: 5000,
+    }
+    expect(getDueAutoSalary({
+      transactions: [], settings, uid: 'user-a', now: new Date(2026, 8, 9, 18, 0),
+    })).toBeNull()
+    expect(getDueAutoSalary({
+      transactions: [], settings: { ...settings, salaryDay: 4, lastAutoSalaryMonth: '2026-09' },
+      uid: 'user-a', now: new Date(2026, 8, 9, 18, 0),
+    })).toBeNull()
+  })
 })

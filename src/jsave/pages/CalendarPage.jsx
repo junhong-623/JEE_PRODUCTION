@@ -3,6 +3,7 @@ import { useLang } from '../contexts/LangContext'
 import { useJSave } from '../hooks/useJSave'
 import GlassCard from '../components/GlassCard'
 import TransactionForm from '../components/TransactionForm'
+import PageHeader from '../components/PageHeader'
 import { toLocalDateString } from '../utils/date'
 
 const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
@@ -13,8 +14,8 @@ function fmt(amount, currency = 'MYR') {
 
 function pad(n) { return String(n).padStart(2, '0') }
 
-export default function CalendarPage() {
-  const { t } = useLang()
+export default function CalendarPage({ onOpenSettings }) {
+  const { t, lang } = useLang()
   const { transactions, settings } = useJSave()
   const cur = settings?.currency ?? 'MYR'
 
@@ -75,6 +76,8 @@ export default function CalendarPage() {
 
   return (
     <div className="jsave-page">
+      <PageHeader code={`02 / ${lang === 'zh' ? '日历' : 'CALENDAR'}`} title={t('navCalendar')} onOpenSettings={onOpenSettings} settingsLabel={t('navSettings')} />
+
       {/* Month nav */}
       <div className="jsave-cal-header">
         <button className="jsave-icon-btn" onClick={prevMonth}>‹</button>

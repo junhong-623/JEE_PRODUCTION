@@ -71,6 +71,15 @@ export default {
   txSettledSummary: '已收回',
   txSplitPendingCount: '{n} 位待还款',
   txSplitAllSettled: '全部已还清 ✓',
+  txSplitEqual: '平均分配',
+  txSplitCustom: '自定义金额',
+  txSplitRemaining: '还有 {amount} 未分配',
+  txSplitOver: '已超出账单总额 {amount}',
+  txSplitComplete: '账单金额已全部分配',
+  txSplitAdjust: '调整份额',
+  txSplitResetConfirm: '修改份额会重置目前的还款状态，是否继续？',
+  txSplitInvalid: '每个人的份额相加必须等于账单总额。',
+  txYou: '你',
   txReturnTo: '还款至',
 
   // Categories - income
@@ -186,6 +195,11 @@ export default {
   salaryDayHint: '每月几号（1–28）',
   salaryPreview: '将在每月 {day} 号自动添加 {amount} 到 {account}',
   salaryAdded: '本月薪资已自动添加',
+  salaryLastRun: '上次添加',
+  salaryNextRun: '下次计划',
+  salaryNeverRun: '尚未自动添加',
+  salaryCatchUpReady: '保存设置后将补记本月薪资',
+  salaryCatchUpConfirm: '本月发薪日已经过去。选择“确定”立即补记本月薪资；选择“取消”则从下个月开始自动添加。',
   noAccountForSalary: '请先添加账户',
 
   // 数据导出
@@ -247,6 +261,12 @@ export default {
   goalDeadline: '目标日期（可选）',
   goalEmoji: '图标',
   goalEmojiPh: '选一个表情',
+  goalCover: '目标封面',
+  goalCoverChoose: '选择照片',
+  goalCoverReplace: '更换照片',
+  goalCoverRemove: '移除',
+  goalCoverHint: '可选 · 自动裁切并压缩',
+  goalCoverError: '照片上传失败，请尝试较小的 JPG、PNG 或 WebP 图片。',
   goalProgress: '进度',
   goalDaysLeft: '天后到期',
   goalPace: '节奏',
@@ -269,6 +289,6 @@ export default {
   // Reports new labels
   spendBreakdown: '支出明细',
   weeklyTrend: '七日趋势',
-  aiSuggestion: 'AI 建议',
+  aiSuggestion: '本期观察',
   biggestSingle: '最大单笔',
 }

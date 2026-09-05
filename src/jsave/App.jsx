@@ -211,9 +211,9 @@ function JSaveShell() {
 
   const pages = {
     dashboard: <DashboardPage onOpenSettings={() => navigatePage('settings')} onNavigate={navigatePage} />,
-    calendar:  <CalendarPage />,
-    reports:   <ReportsPage />,
-    goals:     <GoalsPage />,
+    calendar:  <CalendarPage onOpenSettings={() => navigatePage('settings')} />,
+    reports:   <ReportsPage onOpenSettings={() => navigatePage('settings')} />,
+    goals:     <GoalsPage onOpenSettings={() => navigatePage('settings')} />,
     settings:  <SettingsPage onOpenAdmin={admin ? () => setShowAdmin(true) : null} />,
   }
 

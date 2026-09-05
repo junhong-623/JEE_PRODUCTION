@@ -3,6 +3,8 @@ import { useLang } from '../contexts/LangContext'
 import { useJSave } from '../hooks/useJSave'
 import TransactionForm from '../components/TransactionForm'
 import { Sparkline, ProgressRing } from '../components/JSaveCharts'
+import PageHeader from '../components/PageHeader'
+import GoalThumbnail from '../components/GoalThumbnail'
 import { localDateDaysAgo, toLocalDateString } from '../utils/date'
 
 function fmt(amount, currency = 'MYR') {
@@ -128,6 +130,15 @@ export default function DashboardPage({ onOpenSettings, onNavigate }) {
 
   const totalBalance = getTotalBalance()
   const recent = transactions.slice(0, 12)
+  const pendingSplits = useMemo(() => transactions.filter(transaction =>
+    transaction.type === 'split' && transaction.splitWith?.some(friend => !friend.settled)
+  ), [transactions])
+  const pendingSplitAmount = useMemo(() => pendingSplits.reduce((total, transaction) =>
+    total + transaction.splitWith.filter(friend => !friend.settled).reduce((sum, friend) => sum + Number(friend.share || 0), 0)
+  , 0), [pendingSplits])
+  const pendingSplitPeople = useMemo(() => pendingSplits.reduce((total, transaction) =>
+    total + transaction.splitWith.filter(friend => !friend.settled).length
+  , 0), [pendingSplits])
 
   // Sparkline: last 14 days running balance trend
   const sparkData = useMemo(() => {
@@ -174,29 +185,9 @@ export default function DashboardPage({ onOpenSettings, onNavigate }) {
   if (loading) return <div className="jsave-center-msg">{t('loading')}</div>
 
   return (
-    <div className="jsave-page" style={{ paddingTop: 16 }}>
+    <div className="jsave-page">
 
-      {/* ── Header ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 34, height: 34, borderRadius: 10,
-            background: 'linear-gradient(135deg, #10b981, #059669)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: 'var(--font-display)', fontSize: 19, color: '#04140d', fontWeight: 700,
-            boxShadow: '0 4px 14px rgba(16,185,129,0.4)',
-          }}>J</div>
-          <div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: 2, color: 'rgba(241,245,249,0.4)', textTransform: 'uppercase' }}>00 / HOME</div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, letterSpacing: -0.3, color: '#f1f5f9' }}>JSave</div>
-          </div>
-        </div>
-        <button onClick={onOpenSettings} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(241,245,249,0.08)', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(241,245,249,0.6)' }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9"/>
-          </svg>
-        </button>
-      </div>
+      <PageHeader code="00 / HOME" title="JSave" onOpenSettings={onOpenSettings} settingsLabel={t('navSettings')} />
 
       {/* ── Balance Hero Card ── */}
       <div style={{
@@ -230,6 +221,14 @@ export default function DashboardPage({ onOpenSettings, onNavigate }) {
         <i className="js-tick" style={{ position: 'absolute', top: 10, right: 10, width: 12, height: 12, color: '#10b981', opacity: 0.5 }}></i>
         <i className="js-tick" style={{ position: 'absolute', bottom: 10, left: 10, width: 12, height: 12, color: '#10b981', opacity: 0.5 }}></i>
       </div>
+
+      {pendingSplits.length > 0 && (
+        <button className="jsave-aa-receivable" type="button" onClick={() => { setEditTx(pendingSplits[0]); setShowForm(true) }}>
+          <span className="jsave-aa-receivable-icon">AA</span>
+          <span><small>{lang === 'zh' ? '待收分账' : 'Split receivables'}</small><strong>{fmt(pendingSplitAmount, cur)}</strong></span>
+          <span className="jsave-aa-receivable-meta">{lang === 'zh' ? `${pendingSplitPeople} 人待还` : `${pendingSplitPeople} pending`}<b>›</b></span>
+        </button>
+      )}
 
       {/* ── Double grid: Today spend + Top goal ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
@@ -266,8 +265,8 @@ export default function DashboardPage({ onOpenSettings, onNavigate }) {
               </ProgressRing>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8.5, letterSpacing: 1.4, color: 'rgba(241,245,249,0.4)', textTransform: 'uppercase' }}>{t('goalComplete')}</div>
-                <div style={{ marginTop: 3, fontSize: 12, fontWeight: 600, color: '#f1f5f9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {topGoal.emoji} {topGoal.name}
+                <div style={{ marginTop: 3, display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#f1f5f9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <GoalThumbnail goal={topGoal} size={22} /> <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{topGoal.name}</span>
                 </div>
               </div>
             </>

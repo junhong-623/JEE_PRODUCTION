@@ -7,6 +7,7 @@ import { JSAVE_BASE } from '../utils/basePath'
 import { useJSave } from '../hooks/useJSave'
 import { useAuth } from '../../contexts/AuthContext'
 import GlassCard from '../components/GlassCard'
+import PageHeader from '../components/PageHeader'
 import { JSAVE_VERSION } from '../version'
 import { subscribePush, unsubscribePush, updatePushLanguage, isPushSupported } from '../services/pushService'
 import { RELEASE_NOTES } from '../data/releaseNotes'
@@ -15,12 +16,31 @@ import { createCoffeeBill } from '../services/toyyibpay'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import { db } from '../../lib/firebase'
 import { collection, query, orderBy, getDocs } from 'firebase/firestore'
-import { toLocalDateString } from '../utils/date'
+import { localMonthKey, toLocalDateString } from '../utils/date'
 import { downloadTransactionsCsv } from '../services/export'
 
 const CURRENCIES = ['MYR', 'USD', 'SGD', 'CNY', 'EUR', 'GBP']
 const ACC_TYPES  = ['accCash', 'accBank', 'accEwallet', 'accCredit']
 const ACC_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6']
+
+function salaryDate(monthKey, day) {
+  if (!monthKey || !day) return null
+  const [year, month] = monthKey.split('-').map(Number)
+  return new Date(year, month - 1, Number(day))
+}
+
+function formatSalaryDate(date, lang) {
+  if (!date) return null
+  return date.toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-MY', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function nextSalaryDate(day, lastAutoSalaryMonth, now = new Date()) {
+  const currentMonth = localMonthKey(now)
+  if (lastAutoSalaryMonth !== currentMonth && now.getDate() <= Number(day)) {
+    return new Date(now.getFullYear(), now.getMonth(), Number(day))
+  }
+  return new Date(now.getFullYear(), now.getMonth() + 1, Number(day))
+}
 
 // ── Accordion ─────────────────────────────────────────────────────────────────
 function Accordion({ title, defaultOpen = false, children }) {
@@ -474,10 +494,18 @@ export default function SettingsPage({ onOpenAdmin }) {
   }, [])
 
   async function savePrefs() {
+    const nextSalaryDay = Number(salaryDay)
+    const currentMonth = localMonthKey()
+    const salaryOverrides = {}
+    if (autoSalary && !settings.autoSalary && new Date().getDate() >= nextSalaryDay && settings.lastAutoSalaryMonth !== currentMonth) {
+      const addCurrentMonth = window.confirm(t('salaryCatchUpConfirm'))
+      if (!addCurrentMonth) salaryOverrides.lastAutoSalaryMonth = currentMonth
+    }
     await updateSettings({
       monthlyIncome: Number(monthlyIncome),
       currency, dailyBudget: Number(dailyBudget), language: lang,
-      autoSalary, salaryAccountId, salaryDay: Number(salaryDay),
+      autoSalary, salaryAccountId, salaryDay: nextSalaryDay,
+      ...salaryOverrides,
     })
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
@@ -514,6 +542,8 @@ export default function SettingsPage({ onOpenAdmin }) {
 
   return (
     <div className="jsave-page">
+
+      <PageHeader code={`05 / ${lang === 'zh' ? '设置' : 'SETTINGS'}`} title={t('settingsTitle')} />
 
       {/* Activity — always at top, no accordion */}
       <ActivityCard transactions={transactions} t={t} />
@@ -627,6 +657,20 @@ export default function SettingsPage({ onOpenAdmin }) {
                     .replace('{day}', salaryDay)}
                 </p>
               )}
+              <div className="jsave-salary-status">
+                <div>
+                  <span>{t('salaryLastRun')}</span>
+                  <strong>{settings.lastAutoSalaryMonth
+                    ? formatSalaryDate(salaryDate(settings.lastAutoSalaryMonth, salaryDay), lang)
+                    : t('salaryNeverRun')}</strong>
+                </div>
+                <div>
+                  <span>{t('salaryNextRun')}</span>
+                  <strong>{settings.autoSalary && settings.lastAutoSalaryMonth !== localMonthKey() && new Date().getDate() >= Number(salaryDay)
+                    ? t('salaryCatchUpReady')
+                    : formatSalaryDate(nextSalaryDate(salaryDay, settings.lastAutoSalaryMonth), lang)}</strong>
+                </div>
+              </div>
               <button className="jsave-btn-primary jsave-btn-full" style={{ marginTop: 14 }} onClick={savePrefs}>
                 {saved ? '✓ ' + t('settingsSaved') : t('save')}
               </button>

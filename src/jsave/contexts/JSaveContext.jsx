@@ -264,7 +264,7 @@ export function JSaveProvider({ children, onLanguageChange }) {
     const goal = {
       ...data,
       userId: uid,
-      id: crypto.randomUUID(),
+      id: data.id || crypto.randomUUID(),
       createdAt: Date.now(),
       updatedAt: Date.now(),
     }

@@ -59,7 +59,9 @@ export function getDueRecurringTransactions({ transactions, uid, language = 'en'
 export function getDueAutoSalary({ transactions, settings, uid, now = new Date() }) {
   const { autoSalary, salaryDay, salaryAccountId, monthlyIncome } = settings
   if (!autoSalary || !salaryDay || !salaryAccountId || !monthlyIncome) return null
-  if (now.getDate() !== Number(salaryDay)) return null
+  // JSave automations run when the app opens. Catch up after the configured day
+  // so users do not miss a month simply because they did not open it that day.
+  if (now.getDate() < Number(salaryDay)) return null
 
   const monthKey = localMonthKey(now)
   if (settings.lastAutoSalaryMonth === monthKey) return null

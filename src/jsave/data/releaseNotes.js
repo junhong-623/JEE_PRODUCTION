@@ -1,8 +1,33 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.1.4',
+    version: '3.1.5',
     date: '2026-09-05',
     isLatest: true,
+    items: [
+      'Auto salary now catches up on the next app open when the configured payday was missed',
+      'Added clear last-added and next-scheduled salary status with an opt-in catch-up choice',
+      'Simplified report controls, replaced the account pie with balance bars, and added a real income-versus-spending trend chart',
+      'Made settings available from every main screen with a clearer sliders icon',
+      'Renamed the rule-based report suggestion to an honest period observation',
+      'Added equal or custom AA shares with exact-cent allocation and a receivables summary on the home screen',
+      'Savings goals now support account-scoped, cropped cover photos with emoji kept as an optional fallback',
+      'Refined goal and report navigation, spacing and empty states for a calmer, more consistent interface',
+    ],
+    itemsZh: [
+      '错过设定发薪日后，自动薪资会在下次打开应用时补记',
+      '新增上次添加与下次计划状态，并在启用时提供本月补记选择',
+      '简化报告页控件，以余额比例条取代账户圆饼图，并新增真实的收入与支出趋势图',
+      '所有主要页面都可进入设置，并采用更清楚的调节滑杆图标',
+      '规则计算生成的报告提示改名为如实表达的本期观察',
+      'AA 分账新增平均或自定义金额，支持精确到分的分配，并在首页汇总待收款项',
+      '储蓄目标现在支持按账号隔离、自动裁切的封面照片，emoji 保留为可选备用封面',
+      '统一目标与报告页的导航、间距和空状态，让界面更克制一致',
+    ],
+  },
+  {
+    version: '3.1.4',
+    date: '2026-09-05',
+    isLatest: false,
     items: [
       'Added AA bill splitting as a core story on the JSave introduction page',
       'Explained how equal splits, repayment tracking and personal spending totals work together',

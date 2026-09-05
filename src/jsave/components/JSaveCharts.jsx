@@ -195,7 +195,7 @@ export function AreaChart({ series, width = 720, height = 240, padding = 24, yTi
     padding + innerH - ((v - min) / (max - min || 1)) * innerH,
   ])
   return (
-    <svg ref={ref} width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: 'block' }}>
+    <svg ref={ref} width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: 'block', width: '100%', maxWidth: width, height: 'auto' }}>
       {Array.from({ length: yTicks + 1 }, (_, i) => {
         const y = padding + (innerH / yTicks) * i
         return (

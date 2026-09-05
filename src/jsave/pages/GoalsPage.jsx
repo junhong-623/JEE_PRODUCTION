@@ -1,9 +1,13 @@
 // GoalsPage.jsx — Savings Goals + Things (Cost Per Day) combined
-import { useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useLang } from '../contexts/LangContext'
 import { useJSave } from '../hooks/useJSave'
+import { useAuth } from '../../contexts/AuthContext'
 import { calendarDayDifference, toLocalDateString } from '../utils/date'
 import { ProgressRing } from '../components/JSaveCharts'
+import PageHeader from '../components/PageHeader'
+import GoalThumbnail from '../components/GoalThumbnail'
+import { deleteGoalCover, uploadGoalCover } from '../services/goalCover'
 
 /* ──────────────────────────────────────────────────────────────────────
    Helpers
@@ -55,9 +59,7 @@ function QuickDepositModal({ goal, onDeposit, onMoreSettings, onClose, t, lang }
         {/* Goal header */}
         <div style={{ padding: '20px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 46, height: 46, borderRadius: 14, background: 'rgba(245,213,112,0.18)', border: '1px solid rgba(245,213,112,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>
-              {goal.emoji}
-            </div>
+            <GoalThumbnail goal={goal} size={46} />
             <div>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: 1.5, color: 'rgba(241,245,249,0.4)', textTransform: 'uppercase', marginBottom: 2 }}>
                 {Math.round(pct * 100)}% {lang === 'zh' ? '完成' : 'complete'}
@@ -143,14 +145,45 @@ function GoalSettingsModal({ initial, onSave, onDelete, onClose, t }) {
   const [current, setCurrent] = useState(initial?.currentAmount?.toString() || '0')
   const [deadline, setDeadline] = useState(initial?.deadline || '')
   const [showEmoji, setShowEmoji] = useState(false)
+  const [coverFile, setCoverFile] = useState(null)
+  const [coverPreview, setCoverPreview] = useState(initial?.coverUrl || null)
+  const [removeCover, setRemoveCover] = useState(false)
   const [saving, setSaving]   = useState(false)
+  const [saveError, setSaveError] = useState(false)
   const isEdit = !!initial?.id
+
+  useEffect(() => () => {
+    if (coverPreview?.startsWith('blob:')) URL.revokeObjectURL(coverPreview)
+  }, [coverPreview])
+
+  function chooseCover(file) {
+    if (!file) return
+    setCoverFile(file)
+    setRemoveCover(false)
+    setCoverPreview(URL.createObjectURL(file))
+    setSaveError(false)
+  }
+
+  function clearCover() {
+    setCoverFile(null)
+    setCoverPreview(null)
+    setRemoveCover(Boolean(initial?.coverPath))
+  }
 
   async function handleSave() {
     if (!name.trim() || !target) return
     setSaving(true)
-    await onSave({ name: name.trim(), emoji, targetAmount: parseFloat(target) || 0, currentAmount: parseFloat(current) || 0, deadline: deadline || null })
-    onClose()
+    setSaveError(false)
+    try {
+      await onSave(
+        { name: name.trim(), emoji, targetAmount: parseFloat(target) || 0, currentAmount: parseFloat(current) || 0, deadline: deadline || null },
+        { file: coverFile, remove: removeCover },
+      )
+      onClose()
+    } catch {
+      setSaveError(true)
+      setSaving(false)
+    }
   }
 
   async function handleDelete() {
@@ -166,6 +199,20 @@ function GoalSettingsModal({ initial, onSave, onDelete, onClose, t }) {
           {isEdit ? t('editGoal') : t('addGoal')}
           <button onClick={onClose} aria-label={t('close')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(241,245,249,0.5)', fontSize: 20 }}>✕</button>
         </h2>
+
+        <div className="jsave-goal-cover-field">
+          <div className="jsave-goal-cover-preview">
+            {coverPreview ? <img src={coverPreview} alt="" /> : <span>{emoji}</span>}
+            <div><strong>{t('goalCover')}</strong><small>{t('goalCoverHint')}</small></div>
+          </div>
+          <div className="jsave-goal-cover-actions">
+            <label className="jsave-btn-ghost">
+              {coverPreview ? t('goalCoverReplace') : t('goalCoverChoose')}
+              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={event => chooseCover(event.target.files?.[0])} hidden />
+            </label>
+            {coverPreview && <button type="button" className="jsave-btn-link" onClick={clearCover}>{t('goalCoverRemove')}</button>}
+          </div>
+        </div>
 
         {/* Emoji picker */}
         <div style={{ marginBottom: 14 }}>
@@ -203,6 +250,7 @@ function GoalSettingsModal({ initial, onSave, onDelete, onClose, t }) {
             {saving ? t('loading') : t('goalSave')}
           </button>
         </div>
+        {saveError && <p className="jsave-error" style={{ marginTop: 10 }}>{t('goalCoverError')}</p>}
       </div>
     </div>
   )
@@ -357,7 +405,7 @@ function ThingsView({ t, lang }) {
 
       {items.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>🧮</div>
+          <div className="jsave-empty-symbol items" aria-hidden="true"><i /><i /><i /></div>
           <p className="jsave-empty-msg">{t('noItems')}</p>
         </div>
       ) : (
@@ -444,12 +492,13 @@ function HeroGoalCard({ goal, onClick, t, lang }) {
   const monthlyNeeded = monthsLeft ? (remaining / monthsLeft).toFixed(0) : null
 
   return (
-    <div onClick={onClick} style={{ padding: '22px', borderRadius: 26, background: 'radial-gradient(140% 80% at 0% 0%, rgba(245,213,112,0.22), transparent 60%), radial-gradient(120% 80% at 100% 100%, rgba(16,185,129,0.16), transparent 65%), rgba(8,18,32,0.6)', border: '1px solid rgba(245,213,112,0.28)', position: 'relative', overflow: 'hidden', cursor: 'pointer', marginBottom: 12, transition: 'transform 0.2s' }}
+    <button type="button" className={`jsave-goal-hero ${goal.coverUrl ? 'has-cover' : ''}`} onClick={onClick} style={{ padding: '22px', borderRadius: 18, background: 'radial-gradient(140% 80% at 0% 0%, rgba(245,213,112,0.22), transparent 60%), radial-gradient(120% 80% at 100% 100%, rgba(16,185,129,0.16), transparent 65%), rgba(8,18,32,0.6)', border: '1px solid rgba(245,213,112,0.28)', position: 'relative', overflow: 'hidden', cursor: 'pointer', marginBottom: 12, transition: 'transform 0.2s', width: '100%', textAlign: 'left' }}
       onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
       onMouseLeave={e => e.currentTarget.style.transform = 'none'}
     >
+      {goal.coverUrl && <div className="jsave-goal-hero-cover"><img src={goal.coverUrl} alt="" /></div>}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ width: 46, height: 46, borderRadius: 15, background: 'rgba(245,213,112,0.18)', border: '1px solid rgba(245,213,112,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>{goal.emoji}</div>
+        <GoalThumbnail goal={goal} size={46} />
         <div>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: 1.8, color: 'rgba(241,245,249,0.5)', textTransform: 'uppercase' }}>{t('activeGoals')}</div>
           <div style={{ marginTop: 2, fontFamily: 'var(--font-display)', fontSize: 22, letterSpacing: -0.6, color: '#f1f5f9' }}>{goal.name}</div>
@@ -466,20 +515,21 @@ function HeroGoalCard({ goal, onClick, t, lang }) {
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#10b981', fontWeight: 600 }}>{Math.round(pct * 100)}%</div>
       </div>
       <div style={{ marginTop: 8, display: 'flex', gap: 14, fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(241,245,249,0.5)' }}>
-        {daysLeft != null && <span>⏱ {daysLeft} {t('goalDaysLeft')}</span>}
-        {monthlyNeeded && <span>📈 RM {monthlyNeeded} {t('goalMonthly')}</span>}
+        {daysLeft != null && <span className="jsave-goal-meta">{daysLeft} {t('goalDaysLeft')}</span>}
+        {monthlyNeeded && <span className="jsave-goal-meta">RM {monthlyNeeded} {t('goalMonthly')}</span>}
       </div>
       <i className="js-tick" style={{ position: 'absolute', top: 10, right: 10, width: 12, height: 12, color: '#f5d570', opacity: 0.5 }}></i>
-    </div>
+    </button>
   )
 }
 
 /* ──────────────────────────────────────────────────────────────────────
    Main component
    ────────────────────────────────────────────────────────────────────── */
-export default function GoalsPage() {
+export default function GoalsPage({ onOpenSettings }) {
   const { t, lang } = useLang()
   const { goals, addGoal, updateGoal, deleteGoal } = useJSave()
+  const { user } = useAuth()
 
   const [tab, setTab]               = useState('goals')         // 'goals' | 'things'
   const [quickGoal, setQuickGoal]   = useState(null)            // goal for quick deposit
@@ -501,48 +551,49 @@ export default function GoalsPage() {
     await updateGoal(goalId, { currentAmount: newAmount })
   }
 
-  async function handleSaveGoal(data) {
-    if (settingsGoal?.id) await updateGoal(settingsGoal.id, data)
-    else await addGoal(data)
+  async function handleSaveGoal(data, coverChange) {
+    if (settingsGoal?.id) {
+      let coverUpdate = {}
+      if (coverChange.file) coverUpdate = await uploadGoalCover(user.uid, settingsGoal.id, coverChange.file)
+      else if (coverChange.remove) coverUpdate = { coverPath: null, coverUrl: null }
+      await updateGoal(settingsGoal.id, { ...data, ...coverUpdate })
+      if (coverChange.remove && settingsGoal.coverPath) await deleteGoalCover(settingsGoal.coverPath)
+      return
+    }
+
+    const goalId = crypto.randomUUID()
+    const coverUpdate = coverChange.file ? await uploadGoalCover(user.uid, goalId, coverChange.file) : {}
+    try {
+      await addGoal({ ...data, ...coverUpdate, id: goalId })
+    } catch (error) {
+      if (coverUpdate.coverPath) await deleteGoalCover(coverUpdate.coverPath).catch(() => {})
+      throw error
+    }
   }
 
   async function handleDeleteGoal(id) {
+    const goal = goals.find(item => item.id === id)
     await deleteGoal(id)
+    if (goal?.coverPath) await deleteGoalCover(goal.coverPath).catch(() => {})
   }
 
   const RING_COLORS = ['#10b981', '#22d3ee', '#8b5cf6', '#f59e0b']
 
   return (
-    <div className="jsave-page" style={{ paddingTop: 16 }}>
+    <div className="jsave-page">
 
-      {/* ── Header ── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontSize: 19, color: '#04140d', fontWeight: 700 }}>J</div>
-          <div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: 2, color: 'rgba(241,245,249,0.4)', textTransform: 'uppercase' }}>04 / {tab === 'goals' ? 'GOALS' : 'THINGS'}</div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, letterSpacing: -0.3, color: '#f1f5f9' }}>
-              {tab === 'goals' ? t('goalsTitle') : t('itemsTitle')}
-            </div>
-          </div>
-        </div>
-        {tab === 'goals' && (
-          <button onClick={() => { setSettingsGoal({}); setShowAddGoal(true) }} style={{ width: 36, height: 36, borderRadius: 12, background: 'linear-gradient(135deg, #10b981, #059669)', boxShadow: '0 4px 14px rgba(16,185,129,0.35)', border: 'none', cursor: 'pointer', color: '#04140d', fontSize: 20, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            +
-          </button>
-        )}
-      </div>
+      <PageHeader
+        code={`04 / ${tab === 'goals' ? 'GOALS' : 'THINGS'}`}
+        title={tab === 'goals' ? t('goalsTitle') : t('itemsTitle')}
+        onOpenSettings={onOpenSettings}
+        settingsLabel={t('navSettings')}
+        action={tab === 'goals' ? <button type="button" className="jsave-header-action primary" aria-label={t('addGoal')} onClick={() => { setSettingsGoal({}); setShowAddGoal(true) }}>+</button> : null}
+      />
 
-      {/* ── Segmented control: Goals 🎯 / Things 🧮 ── */}
-      <div style={{ display: 'flex', padding: 4, borderRadius: 999, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(241,245,249,0.06)', gap: 2, marginBottom: 18 }}>
-        {[['goals', `🎯 ${t('goalsTitle')}`], ['things', `🧮 ${t('itemsTitle')}`]].map(([id, label]) => (
-          <button key={id} onClick={() => setTab(id)} style={{
-            flex: 1, padding: '9px 0', textAlign: 'center', borderRadius: 999, cursor: 'pointer', border: 0,
-            background: tab === id ? 'linear-gradient(135deg, rgba(16,185,129,0.42), rgba(5,150,105,0.58))' : 'transparent',
-            color: tab === id ? '#04140d' : 'rgba(241,245,249,0.6)',
-            fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: tab === id ? 700 : 500,
-            transition: 'all 0.2s',
-          }}>
+      {/* ── Goals / Things ── */}
+      <div className="jsave-goal-tabs" role="tablist" aria-label={t('goalsTitle')}>
+        {[['goals', t('goalsTitle')], ['things', t('itemsTitle')]].map(([id, label]) => (
+          <button type="button" role="tab" aria-selected={tab === id} className={tab === id ? 'active' : ''} key={id} onClick={() => setTab(id)}>
             {label}
           </button>
         ))}
@@ -553,7 +604,7 @@ export default function GoalsPage() {
         <>
           {sortedGoals.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '48px 24px' }}>
-              <div style={{ fontSize: 56, marginBottom: 16 }}>🎯</div>
+              <div className="jsave-empty-symbol goal" aria-hidden="true"><i /></div>
               <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, letterSpacing: -0.5, color: '#f1f5f9', marginBottom: 8 }}>{t('noGoals')}</div>
               <p style={{ fontFamily: 'var(--font-sans)', fontSize: 14, color: 'rgba(241,245,249,0.5)', marginBottom: 28, lineHeight: 1.6 }}>{t('noGoalsHint')}</p>
               <button onClick={() => { setSettingsGoal({}); setShowAddGoal(true) }} className="jsave-btn-primary" style={{ padding: '12px 28px', fontSize: 15 }}>
@@ -582,7 +633,7 @@ export default function GoalsPage() {
                           </ProgressRing>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <span style={{ fontSize: 15 }}>{goal.emoji}</span>
+                              <GoalThumbnail goal={goal} size={24} />
                               <span style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{goal.name}</span>
                             </div>
                             <div style={{ marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'rgba(241,245,249,0.5)' }}>

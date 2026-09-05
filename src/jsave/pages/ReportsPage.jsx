@@ -1,7 +1,8 @@
-import { useState, useMemo, useEffect, useRef } from 'react'
+import { useState, useMemo } from 'react'
 import { useLang } from '../contexts/LangContext'
 import { useJSave } from '../hooks/useJSave'
-import { Donut, BarChart as JSBarChart } from '../components/JSaveCharts'
+import { Donut, BarChart as JSBarChart, AreaChart } from '../components/JSaveCharts'
+import PageHeader from '../components/PageHeader'
 import { localDateDaysAgo, toLocalDateString } from '../utils/date'
 
 function fmt(amount, currency = 'MYR') {
@@ -19,81 +20,36 @@ const VIEWS  = ['insights', 'balances', 'trend']
 const CAT_COLORS = ['#10b981','#f5d570','#22d3ee','#8b5cf6','#fb7185','#f59e0b','#3b82f6']
 const FALLBACK_COLORS = ['#10b981','#3b82f6','#f59e0b','#8b5cf6','#ec4899','#14b8a6','#ef4444']
 
-// ── Animated Pie (kept for balances view) ────────────────────────────────────
-const PIE_BASE_R   = 70
-const PIE_ACTIVE_R = 84
-const PIE_GAP      = 1.5
-const PIE_ANIM_MS  = 380
-
-function easeOutBack(t) {
-  const c1 = 1.70158, c3 = c1 + 1
-  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2)
-}
-function polarXY(cx, cy, r, deg) {
-  const rad = ((deg - 90) * Math.PI) / 180
-  return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)]
-}
-function slicePath(cx, cy, r, a0, a1) {
-  const [sx, sy] = polarXY(cx, cy, r, a0)
-  const [ex, ey] = polarXY(cx, cy, r, a1)
-  return `M${cx},${cy} L${sx},${sy} A${r},${r} 0 ${(a1 - a0) > 180 ? 1 : 0},1 ${ex},${ey}Z`
-}
-
-function AnimatedPie({ data, selectedIdx, onSelect }) {
-  const SIZE = 260, cx = SIZE / 2, cy = SIZE / 2
-  const total = data.reduce((s, d) => s + d.value, 0)
-  const slices = useMemo(() => {
-    let cum = 0
-    return data.map(d => {
-      const sweep = total > 0 ? (d.value / total) * 360 : 0
-      const s = { ...d, a0: cum + PIE_GAP / 2, a1: cum + sweep - PIE_GAP / 2 }
-      cum += sweep; return s
+function trendBuckets(range, lang) {
+  const now = new Date()
+  if (range === 'last30') {
+    const first = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29)
+    return Array.from({ length: 6 }, (_, index) => {
+      const start = new Date(first.getFullYear(), first.getMonth(), first.getDate() + index * 5)
+      const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 4)
+      return {
+        start: toLocalDateString(start), end: toLocalDateString(end),
+        label: start.toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en', { month: 'short', day: 'numeric' }),
+      }
     })
-  }, [data, total])
-  const radiiRef = useRef(slices.map(() => PIE_BASE_R))
-  const [, forceRender] = useState(0)
-  const rafRef = useRef(null)
-  useEffect(() => {
-    while (radiiRef.current.length < slices.length) radiiRef.current.push(PIE_BASE_R)
-    radiiRef.current = radiiRef.current.slice(0, slices.length)
-    const targets = slices.map((_, i) => i === selectedIdx ? PIE_ACTIVE_R : PIE_BASE_R)
-    const from = [...radiiRef.current]; const t0 = performance.now()
-    cancelAnimationFrame(rafRef.current)
-    function step(now) {
-      const t = Math.min((now - t0) / PIE_ANIM_MS, 1); const e = easeOutBack(t)
-      radiiRef.current = from.map((f, i) => f + (targets[i] - f) * e)
-      forceRender(n => n + 1)
-      if (t < 1) rafRef.current = requestAnimationFrame(step)
+  }
+
+  const count = range === 'last3m' ? 3 : range === 'last6m' ? 6 : now.getMonth() + 1
+  return Array.from({ length: count }, (_, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - (count - index - 1), 1)
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    return {
+      start: `${key}-01`, end: `${key}-31`,
+      label: date.toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en', { month: 'short' }),
     }
-    rafRef.current = requestAnimationFrame(step)
-    return () => cancelAnimationFrame(rafRef.current)
-  }, [selectedIdx, slices.length])
-  return (
-    <svg width="100%" height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} style={{ overflow: 'visible', cursor: 'pointer' }}>
-      {slices.map((s, i) => (
-        <path key={i} d={slicePath(cx, cy, Math.max(2, radiiRef.current[i] ?? PIE_BASE_R), s.a0, s.a1)}
-          fill={s.color} onClick={() => onSelect(i === selectedIdx ? null : i)} />
-      ))}
-      {slices.map((s, i) => {
-        const mid = (s.a0 + s.a1) / 2; const lr = PIE_ACTIVE_R + 26
-        const [lx, ly] = polarXY(cx, cy, lr, mid)
-        const anchor = Math.abs(lx - cx) < 10 ? 'middle' : lx > cx ? 'start' : 'end'
-        return (
-          <g key={`lbl-${i}`} style={{ pointerEvents: 'none' }}>
-            <text x={lx} y={ly - 4} textAnchor={anchor} fill={s.color} fontSize={9} fontWeight={600}>{s.name.length > 11 ? s.name.slice(0, 10) + '…' : s.name}</text>
-            <text x={lx} y={ly + 9} textAnchor={anchor} fill="rgba(241,245,249,0.5)" fontSize={9}>{s.percent}%</text>
-          </g>
-        )
-      })}
-    </svg>
-  )
+  })
 }
 
 // ── Card wrapper ────────────────────────────────────────────────────────────
 function Card({ children, style = {} }) {
   return (
     <div style={{
-      padding: '18px 16px', borderRadius: 22,
+      padding: '18px 16px', borderRadius: 18,
       background: 'rgba(255,255,255,0.025)',
       border: '1px solid rgba(241,245,249,0.06)',
       marginBottom: 12,
@@ -212,16 +168,9 @@ function InsightsView({ filtered, cur, t, lang }) {
         </div>
       </Card>
 
-      {/* AI suggestion */}
-      <div style={{
-        padding: '14px 16px', borderRadius: 18, marginBottom: 12,
-        background: 'linear-gradient(135deg, rgba(245,213,112,0.08), rgba(16,185,129,0.06))',
-        border: '1px solid rgba(245,213,112,0.22)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-          <div style={{ width: 24, height: 24, borderRadius: 8, background: 'rgba(245,213,112,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}>✨</div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: 2, color: '#f5d570', textTransform: 'uppercase' }}>{t('aiSuggestion')}</div>
-        </div>
+      {/* Deterministic observation based on this period's entries */}
+      <div className="jsave-report-observation">
+        <div className="jsave-report-observation-label">{t('aiSuggestion')}</div>
         <p style={{ fontSize: 13, lineHeight: 1.65, color: 'rgba(241,245,249,0.85)', margin: 0 }}>{aiTip}</p>
       </div>
     </>
@@ -230,61 +179,53 @@ function InsightsView({ filtered, cur, t, lang }) {
 
 // ── Balances view ──────────────────────────────────────────────────────────
 function BalancesView({ accounts, getAccountBalance, cur, t }) {
-  const [selectedIdx, setSelectedIdx] = useState(null)
   const balances = accounts.map(a => ({ ...a, bal: getAccountBalance(a.id) }))
   const total = balances.reduce((s, a) => s + a.bal, 0)
-  const piePositive = balances.filter(a => a.bal > 0)
-  const pieTotal = piePositive.reduce((s, a) => s + a.bal, 0)
-  const pieData = piePositive.map((a, i) => ({
-    name: a.name,
-    value: Math.round(a.bal),
-    percent: pieTotal > 0 ? Math.round((a.bal / pieTotal) * 100) : 0,
-    color: a.color || FALLBACK_COLORS[i % FALLBACK_COLORS.length],
-  }))
-  const selected = selectedIdx !== null ? pieData[selectedIdx] : null
+  const absoluteTotal = balances.reduce((sum, account) => sum + Math.abs(account.bal), 0)
   if (accounts.length === 0) return <p className="jsave-empty-msg">{t('noAccounts')}</p>
   return (
-    <>
-      <Card>
-        <Eyebrow>{t('accountBalances')}</Eyebrow>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {balances.map(acc => (
-            <div key={acc.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 0', borderBottom: '1px solid rgba(241,245,249,0.05)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: acc.color || '#10b981', flexShrink: 0 }}></span>
-                <span style={{ color: '#f1f5f9' }}>{acc.name}</span>
-              </div>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600, color: acc.bal >= 0 ? '#10b981' : '#f43f5e' }}>
-                {fmtFull(acc.bal, cur)}
-              </span>
+    <Card>
+      <Eyebrow>{t('accountBalances')}</Eyebrow>
+      <div className="jsave-report-balance-total">
+        <span>{t('totalBalance')}</span>
+        <strong className={total >= 0 ? 'positive' : 'negative'}>{fmtFull(total, cur)}</strong>
+      </div>
+      <div className="jsave-report-balance-list">
+        {balances.map((account, index) => {
+          const color = account.color || FALLBACK_COLORS[index % FALLBACK_COLORS.length]
+          const percentage = absoluteTotal > 0 ? Math.abs(account.bal) / absoluteTotal * 100 : 0
+          return (
+            <div className="jsave-report-balance-row" key={account.id}>
+              <div><span>{account.name}</span><strong className={account.bal >= 0 ? 'positive' : 'negative'}>{fmtFull(account.bal, cur)}</strong></div>
+              <div className="jsave-report-balance-track"><i style={{ width: `${percentage}%`, background: color }} /></div>
             </div>
-          ))}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, fontSize: 13, fontWeight: 700, color: 'rgba(241,245,249,0.6)' }}>
-            <span>{t('totalBalance')}</span>
-            <span style={{ color: total >= 0 ? '#10b981' : '#f43f5e', fontFamily: 'var(--font-mono)' }}>{fmtFull(total, cur)}</span>
-          </div>
-        </div>
-      </Card>
-      {pieData.length > 0 && (
-        <Card>
-          <Eyebrow>{t('accountBalances')}</Eyebrow>
-          <div style={{ minHeight: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 4, fontSize: 17, fontWeight: 700 }}>
-            {selected ? <span style={{ color: selected.color, fontFamily: 'var(--font-display)' }}>{fmtFull(selected.value, cur)}</span>
-              : <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(241,245,249,0.3)' }}>{t('tapSliceHint')}</span>}
-          </div>
-          <AnimatedPie data={pieData} selectedIdx={selectedIdx} onSelect={setSelectedIdx} />
-        </Card>
-      )}
-    </>
+          )
+        })}
+      </div>
+    </Card>
   )
 }
 
 // ── Trend view ───────────────────────────────────────────────────────────────
-function TrendView({ filtered, cur, t, lang }) {
+function TrendView({ filtered, cur, t, lang, range }) {
   const totalIncome  = filtered.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
   const totalExpense = filtered.filter(t => t.type === 'expense' || t.type === 'split')
     .reduce((s, t) => s + (t.type === 'split' ? (t.myShare ?? t.amount) : t.amount), 0)
   const savingsRate  = totalIncome > 0 ? Math.round(((totalIncome - totalExpense) / totalIncome) * 100) : 0
+  const buckets = useMemo(() => trendBuckets(range, lang), [range, lang])
+  const chartData = useMemo(() => {
+    const income = buckets.map(() => 0)
+    const expense = buckets.map(() => 0)
+    filtered.forEach(transaction => {
+      const bucketIndex = buckets.findIndex(bucket => transaction.date >= bucket.start && transaction.date <= bucket.end)
+      if (bucketIndex < 0) return
+      if (transaction.type === 'income') income[bucketIndex] += transaction.amount
+      if (transaction.type === 'expense' || transaction.type === 'split') {
+        expense[bucketIndex] += transaction.type === 'split' ? (transaction.myShare ?? transaction.amount) : transaction.amount
+      }
+    })
+    return { income: income.map(Math.round), expense: expense.map(Math.round) }
+  }, [buckets, filtered])
 
   if (filtered.length === 0) return <p className="jsave-empty-msg">{t('noData')}</p>
 
@@ -302,12 +243,30 @@ function TrendView({ filtered, cur, t, lang }) {
           </Card>
         ))}
       </div>
+      <Card>
+        <div className="jsave-report-chart-head">
+          <div><Eyebrow>{t('trendLabel')}</Eyebrow><h3>{lang === 'zh' ? '收入与支出变化' : 'Income and spending over time'}</h3></div>
+          <div className="jsave-report-chart-legend"><span className="income">{t('income')}</span><span className="expense">{t('expense')}</span></div>
+        </div>
+        <div className="jsave-report-area-chart">
+          <AreaChart
+            width={620}
+            height={230}
+            padding={36}
+            xLabels={buckets.map(bucket => bucket.label)}
+            series={[
+              { data: chartData.income, color: '#10b981' },
+              { data: chartData.expense, color: '#f43f5e' },
+            ]}
+          />
+        </div>
+      </Card>
     </>
   )
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
-export default function ReportsPage() {
+export default function ReportsPage({ onOpenSettings }) {
   const { t, lang } = useLang()
   const { transactions, accounts, settings, getAccountBalance } = useJSave()
   const [view, setView] = useState('insights')
@@ -321,7 +280,7 @@ export default function ReportsPage() {
   }
 
   const startDate = useMemo(() => {
-    if (range === 'last30') return subtractDays(30)
+    if (range === 'last30') return subtractDays(29)
     if (range === 'last3m') return subtractDays(90)
     if (range === 'last6m') return subtractDays(180)
     return startOfYear()
@@ -334,53 +293,29 @@ export default function ReportsPage() {
   )
 
   return (
-    <div className="jsave-page" style={{ paddingTop: 16 }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
-        <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #10b981, #059669)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontSize: 19, color: '#04140d', fontWeight: 700 }}>J</div>
-        <div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: 2, color: 'rgba(241,245,249,0.4)', textTransform: 'uppercase' }}>03 / {lang === 'zh' ? '洞察' : 'INSIGHTS'}</div>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 17, letterSpacing: -0.3, color: '#f1f5f9' }}>{t('reportsTitle')}</div>
-        </div>
-      </div>
+    <div className="jsave-page">
+      <PageHeader code={`03 / ${VIEW_LABELS[view]}`} title={t('reportsTitle')} onOpenSettings={onOpenSettings} settingsLabel={t('navSettings')} />
 
-      {/* View tabs — pill style */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+      <div className="jsave-report-tabs" role="tablist" aria-label={t('reportsTitle')}>
         {VIEWS.map(v => (
-          <button key={v} onClick={() => setView(v)} style={{
-            padding: '7px 14px', borderRadius: 999,
-            background: view === v ? 'rgba(16,185,129,0.18)' : 'rgba(255,255,255,0.03)',
-            border: view === v ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(241,245,249,0.06)',
-            color: view === v ? '#10b981' : 'rgba(241,245,249,0.6)',
-            fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: 1.2,
-            textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.18s',
-          }}>
+          <button key={v} role="tab" aria-selected={view === v} className={view === v ? 'active' : ''} onClick={() => setView(v)}>
             {VIEW_LABELS[v]}
           </button>
         ))}
       </div>
 
-      {/* Range pills (not for balances) */}
       {view !== 'balances' && (
-        <div style={{ display: 'flex', gap: 6, marginBottom: 16, overflowX: 'auto', scrollbarWidth: 'none' }}>
-          {RANGES.map(r => (
-            <button key={r} onClick={() => setRange(r)} style={{
-              padding: '5px 12px', borderRadius: 999,
-              background: range === r ? 'rgba(16,185,129,0.16)' : 'transparent',
-              border: range === r ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(241,245,249,0.08)',
-              color: range === r ? '#10b981' : 'rgba(241,245,249,0.5)',
-              fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: 1,
-              whiteSpace: 'nowrap', cursor: 'pointer', transition: 'all 0.15s',
-            }}>
-              {t(r)}
-            </button>
-          ))}
-        </div>
+        <label className="jsave-report-range">
+          <span>{lang === 'zh' ? '统计范围' : 'Period'}</span>
+          <select value={range} onChange={event => setRange(event.target.value)} aria-label={lang === 'zh' ? '统计范围' : 'Report period'}>
+            {RANGES.map(item => <option key={item} value={item}>{t(item)}</option>)}
+          </select>
+        </label>
       )}
 
       {view === 'insights'  && <InsightsView filtered={filtered} cur={cur} t={t} lang={lang} />}
       {view === 'balances'  && <BalancesView accounts={accounts} getAccountBalance={getAccountBalance} cur={cur} t={t} />}
-      {view === 'trend'     && <TrendView filtered={filtered} cur={cur} t={t} lang={lang} />}
+      {view === 'trend'     && <TrendView filtered={filtered} cur={cur} t={t} lang={lang} range={range} />}
     </div>
   )
 }

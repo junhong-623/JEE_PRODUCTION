@@ -8,8 +8,24 @@ service firebase.storage {
             || request.auth.uid == "IhcEvknXK1OQ24PdA3UmwnyxzSq1");
     }
 
-    match /{allPaths=**} {
-      allow read: if true;
+    match /users/{uid}/jsave/goals/{goalId}/{fileName} {
+      allow read: if request.auth != null && (request.auth.uid == uid || isAdmin());
+      allow create, update: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.size < 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp)');
+      allow delete: if request.auth != null && (request.auth.uid == uid || isAdmin());
+    }
+
+    // Preserve existing public assets outside JSave while keeping JSave user
+    // uploads account-scoped.
+    match /users/{uid}/{product}/{allPaths=**} {
+      allow read: if product != 'jsave';
+      allow write: if isAdmin();
+    }
+
+    match /{topLevel}/{allPaths=**} {
+      allow read: if topLevel != 'users';
       allow write: if isAdmin();
     }
   }

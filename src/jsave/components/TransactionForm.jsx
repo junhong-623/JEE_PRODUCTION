@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useLang } from '../contexts/LangContext'
 import { useJSave } from '../hooks/useJSave'
 import { toLocalDateString } from '../utils/date'
+import { allocateEqualShares, customSplitRemaining, isCustomSplitValid } from '../utils/split'
 
 const INCOME_CATS  = ['catSalary', 'catFreelance', 'catInvestment', 'catGift', 'catOtherIncome']
 const EXPENSE_CATS = ['catFood', 'catTransport', 'catBills', 'catEntertainment', 'catHealth', 'catShopping', 'catOther']
@@ -32,6 +33,39 @@ function monthPrefix(lang) {
 
 function fmt(amount, currency = 'MYR') {
   return new Intl.NumberFormat('en-MY', { style: 'currency', currency, minimumFractionDigits: 2 }).format(amount)
+}
+
+function SplitModeControl({ mode, onChange, t }) {
+  return (
+    <div className="jsave-split-mode" role="group" aria-label={t('txSplit')}>
+      {['equal', 'custom'].map(value => (
+        <button type="button" key={value} className={mode === value ? 'active' : ''} aria-pressed={mode === value} onClick={() => onChange(value)}>
+          {t(value === 'equal' ? 'txSplitEqual' : 'txSplitCustom')}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function SplitAmountEditor({ names, shares, total, mode, currency, onChange, t }) {
+  const remaining = customSplitRemaining(total, shares)
+  return (
+    <div className="jsave-split-amount-editor">
+      {shares.map((share, index) => (
+        <label key={index} className="jsave-split-amount-row">
+          <span>{index === 0 ? t('txYou') : (names[index - 1]?.trim() || `#${index + 1}`)}</span>
+          {mode === 'custom' ? (
+            <span className="jsave-split-amount-input"><small>{currency}</small><input type="number" min="0" step="0.01" value={share} onChange={event => onChange(index, event.target.value)} /></span>
+          ) : <strong>{fmt(share, currency)}</strong>}
+        </label>
+      ))}
+      <div className={`jsave-split-allocation ${remaining === 0 ? 'complete' : 'incomplete'}`}>
+        {remaining === 0
+          ? t('txSplitComplete')
+          : t(remaining > 0 ? 'txSplitRemaining' : 'txSplitOver').replace('{amount}', fmt(Math.abs(remaining), currency))}
+      </div>
+    </div>
+  )
 }
 
 // ── Label ──────────────────────────────────────────────────────────────────
@@ -67,12 +101,17 @@ function SplitEditView({ initial, onClose }) {
   const cur = settings?.currency ?? 'MYR'
 
   const [settlements, setSettlements] = useState(() => (initial.splitWith || []).map(f => ({ ...f })))
+  const [splitMode, setSplitMode] = useState(initial.splitMode || 'equal')
+  const [myShare, setMyShare] = useState(initial.myShare ?? allocateEqualShares(initial.amount, (initial.splitWith?.length || 1) + 1)[0])
+  const [editingShares, setEditingShares] = useState(false)
   const [note, setNote] = useState(initial.note ?? '')
   const [date, setDate] = useState(initial.date ?? today())
   const [saving, setSaving] = useState(false)
 
-  const totalOwed    = initial.amount - (initial.myShare ?? 0)
-  const totalSettled = settlements.filter(f => f.settled).reduce((s, f) => s + f.share, 0)
+  const splitShares = [myShare, ...settlements.map(friend => friend.share)]
+  const sharesValid = isCustomSplitValid(initial.amount, splitShares)
+  const totalOwed    = initial.amount - myShare
+  const totalSettled = settlements.filter(f => f.settled).reduce((s, f) => s + Number(f.share), 0)
   const pendingCount = settlements.filter(f => !f.settled).length
 
   function toggleSettled(i, on) {
@@ -86,9 +125,43 @@ function SplitEditView({ initial, onClose }) {
     setSettlements(prev => prev.map((f, idx) => idx === i ? { ...f, settledAccountId: accId } : f))
   }
 
+  function beginShareEdit() {
+    if (settlements.some(friend => friend.settled) && !window.confirm(t('txSplitResetConfirm'))) return
+    const equalShares = splitMode === 'equal' ? allocateEqualShares(initial.amount, settlements.length + 1) : null
+    if (equalShares) setMyShare(equalShares[0])
+    setSettlements(previous => previous.map((friend, index) => ({
+      ...friend,
+      ...(equalShares && { share: equalShares[index + 1] }),
+      settled: false,
+      settledAccountId: null,
+    })))
+    setEditingShares(true)
+  }
+
+  function changeSplitMode(nextMode) {
+    setSplitMode(nextMode)
+    if (nextMode !== 'equal') return
+    const shares = allocateEqualShares(initial.amount, settlements.length + 1)
+    setMyShare(shares[0])
+    setSettlements(previous => previous.map((friend, index) => ({ ...friend, share: shares[index + 1] })))
+  }
+
+  function updateSplitShare(index, value) {
+    if (index === 0) { setMyShare(value); return }
+    setSettlements(previous => previous.map((friend, friendIndex) => friendIndex === index - 1 ? { ...friend, share: value } : friend))
+  }
+
   async function handleSave() {
     setSaving(true)
-    await updateTransaction(initial.id, { ...initial, splitWith: settlements, note, date })
+    if (editingShares && !sharesValid) { setSaving(false); return }
+    await updateTransaction(initial.id, {
+      ...initial,
+      splitMode,
+      myShare: Number(myShare),
+      splitWith: settlements.map(friend => ({ ...friend, share: Number(friend.share) })),
+      note,
+      date,
+    })
     onClose()
   }
 
@@ -106,10 +179,19 @@ function SplitEditView({ initial, onClose }) {
         </h2>
         <div className="jsave-split-summary">
           <div className="jsave-split-summary-row"><span className="jsave-section-sub">{t('txBillAmount')}</span><span style={{ fontWeight: 600 }}>{fmt(initial.amount, cur)}</span></div>
-          <div className="jsave-split-summary-row"><span className="jsave-section-sub">{t('txMyShare')}</span><span style={{ fontWeight: 600, color: '#f59e0b' }}>{fmt(initial.myShare ?? 0, cur)}</span></div>
+          <div className="jsave-split-summary-row"><span className="jsave-section-sub">{t('txMyShare')}</span><span style={{ fontWeight: 600, color: '#f59e0b' }}>{fmt(Number(myShare) || 0, cur)}</span></div>
           <div className="jsave-split-summary-row"><span className="jsave-section-sub">{t('txSettledSummary')}</span><span style={{ fontWeight: 600, color: '#10b981' }}>{fmt(totalSettled, cur)} / {fmt(totalOwed, cur)}</span></div>
           {pendingCount === 0 && <div className="jsave-split-summary-row" style={{ marginTop: 2 }}><span style={{ color: '#10b981', fontSize: 12, fontWeight: 600 }}>{t('txSplitAllSettled')}</span></div>}
         </div>
+        {!editingShares ? (
+          <button type="button" className="jsave-btn-link jsave-split-adjust" onClick={beginShareEdit}>{t('txSplitAdjust')}</button>
+        ) : (
+          <div className="jsave-split-edit-panel">
+            <SplitModeControl mode={splitMode} onChange={changeSplitMode} t={t} />
+            <SplitAmountEditor names={settlements.map(friend => friend.name)} shares={splitShares} total={initial.amount} mode={splitMode} currency={cur} onChange={updateSplitShare} t={t} />
+            {!sharesValid && <p className="jsave-error">{t('txSplitInvalid')}</p>}
+          </div>
+        )}
         <div className="jsave-split-friends">
           {settlements.map((f, i) => (
             <div key={f.id || i} className="jsave-split-friend-row">
@@ -140,7 +222,7 @@ function SplitEditView({ initial, onClose }) {
         <div className="jsave-form-actions" style={{ marginTop: 16 }}>
           <button type="button" className="jsave-btn-danger" onClick={handleDelete}>{t('txDelete')}</button>
           <button type="button" className="jsave-btn-ghost" onClick={onClose}>{t('txCancel')}</button>
-          <button type="button" className="jsave-btn-primary" disabled={saving} onClick={handleSave}>{t('txSave')}</button>
+          <button type="button" className="jsave-btn-primary" disabled={saving || (editingShares && !sharesValid)} onClick={handleSave}>{t('txSave')}</button>
         </div>
       </div>
     </div>
@@ -170,13 +252,18 @@ function StandardTransactionForm({ initial, onClose }) {
   const [recurring, setRecurring] = useState(initial?.recurring ?? false)
   const [saving, setSaving]       = useState(false)
   const [splitCount, setSplitCount]     = useState(2)
+  const [splitMode, setSplitMode]       = useState('equal')
+  const [customShares, setCustomShares] = useState(['', ''])
   const [friendNames, setFriendNames]   = useState([''])
   const [showFriendDetails, setDetails] = useState(false)
 
   const cur      = settings?.currency ?? 'MYR'
   const cats     = type === 'income' ? INCOME_CATS : EXPENSE_CATS
   const totalAmt = Number(amount) || 0
-  const myShare  = splitCount > 0 ? Math.round((totalAmt / splitCount) * 100) / 100 : 0
+  const equalShares = allocateEqualShares(totalAmt, splitCount)
+  const splitShares = splitMode === 'equal' ? equalShares : customShares
+  const myShare = Number(splitShares[0]) || 0
+  const customSplitValid = splitMode === 'equal' || isCustomSplitValid(totalAmt, splitShares)
 
   const amtNum = parseFloat(amount) || 0
   const amtInt = Math.floor(amtNum).toString()
@@ -184,7 +271,7 @@ function StandardTransactionForm({ initial, onClose }) {
 
   function switchType(tp) {
     setType(tp); setCategory('')
-    if (tp === 'split') { setSplitCount(2); setFriendNames(['']) }
+    if (tp === 'split') { setSplitCount(2); setSplitMode('equal'); setFriendNames(['']); setCustomShares(['', '']) }
   }
 
   function updateSplitCount(n) {
@@ -195,16 +282,30 @@ function StandardTransactionForm({ initial, onClose }) {
       while (next.length < count - 1) next.push('')
       return next.slice(0, count - 1)
     })
+    setCustomShares(previous => {
+      const equal = allocateEqualShares(totalAmt, count)
+      return Array.from({ length: count }, (_, index) => previous[index] ?? equal[index])
+    })
   }
 
   function updateFriendName(i, name) {
     setFriendNames(prev => { const next = [...prev]; next[i] = name; return next })
   }
 
+  function changeSplitMode(nextMode) {
+    if (nextMode === 'custom' && splitMode !== 'custom') setCustomShares(equalShares.map(String))
+    setSplitMode(nextMode)
+  }
+
+  function updateCustomShare(index, value) {
+    setCustomShares(previous => previous.map((share, shareIndex) => shareIndex === index ? value : share))
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     const amt = Number(amount)
     if (!amt || amt <= 0) return
+    if (type === 'split' && !customSplitValid) return
     setSaving(true)
 
     let data
@@ -212,13 +313,12 @@ function StandardTransactionForm({ initial, onClose }) {
       if (fromAccountId === toAccountId) { setSaving(false); return }
       data = { type, amount: amt, fromAccountId, toAccountId, date, note, category: 'txTransfer' }
     } else if (type === 'split') {
-      const share = Math.round((amt / splitCount) * 100) / 100
       const splitWith = friendNames.map((name, i) => ({
         id: crypto.randomUUID(),
         name: name.trim() || `Person ${i + 2}`,
-        share, settled: false, settledAccountId: null,
+        share: Number(splitShares[i + 1]), settled: false, settledAccountId: null,
       }))
-      data = { type: 'split', amount: amt, myShare: share, splitWith, accountId, category, date, note }
+      data = { type: 'split', splitMode, amount: amt, myShare: Number(splitShares[0]), splitWith, accountId, category, date, note }
     } else {
       const finalNote = (type === 'expense' && recurring && note) ? `${monthPrefix(lang)} - ${note}` : note
       data = {
@@ -356,6 +456,7 @@ function StandardTransactionForm({ initial, onClose }) {
           {/* ── Split count ── */}
           {type === 'split' && (
             <div style={{ margin: '12px 16px 0' }}>
+              <SplitModeControl mode={splitMode} onChange={changeSplitMode} t={t} />
               <FieldLabel>{t('txSplitCount')}</FieldLabel>
               <div className="jsave-split-stepper-row">
                 <div className="jsave-split-stepper">
@@ -383,6 +484,8 @@ function StandardTransactionForm({ initial, onClose }) {
                   ))}
                 </div>
               )}
+              <SplitAmountEditor names={friendNames} shares={splitShares} total={totalAmt} mode={splitMode} currency={cur} onChange={updateCustomShare} t={t} />
+              {!customSplitValid && <p className="jsave-error" style={{ marginTop: 7 }}>{t('txSplitInvalid')}</p>}
             </div>
           )}
 
@@ -422,7 +525,7 @@ function StandardTransactionForm({ initial, onClose }) {
               <button type="button" className="jsave-btn-danger" onClick={handleDelete}>{t('txDelete')}</button>
             )}
             <button type="button" className="jsave-btn-ghost" onClick={onClose} style={{ flex: 1 }}>{t('txCancel')}</button>
-            <button type="submit" className="jsave-btn-primary" disabled={saving} style={{
+            <button type="submit" className="jsave-btn-primary" disabled={saving || (type === 'split' && !customSplitValid)} style={{
               flex: 2, justifyContent: 'center', borderRadius: 14, padding: '13px 0',
             }}>
               {saving ? t('loading') : t('txSave')} {!saving && <span style={{ fontSize: 14 }}>→</span>}

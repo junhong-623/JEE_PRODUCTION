@@ -71,6 +71,15 @@ export default {
   txSettledSummary: 'Recovered',
   txSplitPendingCount: '{n} pending',
   txSplitAllSettled: 'All settled ✓',
+  txSplitEqual: 'Equal split',
+  txSplitCustom: 'Custom amounts',
+  txSplitRemaining: '{amount} left to assign',
+  txSplitOver: '{amount} assigned over the bill total',
+  txSplitComplete: 'Bill fully assigned',
+  txSplitAdjust: 'Adjust shares',
+  txSplitResetConfirm: 'Changing shares will reset the current repayment status. Continue?',
+  txSplitInvalid: 'The shares must add up to the total bill.',
+  txYou: 'You',
   txReturnTo: 'Return to',
 
   // Categories - income
@@ -186,6 +195,11 @@ export default {
   salaryDayHint: 'Day of month (1–28)',
   salaryPreview: 'Will add {amount} to {account} on the {day}th each month',
   salaryAdded: 'Salary auto-added for this month',
+  salaryLastRun: 'Last added',
+  salaryNextRun: 'Next scheduled',
+  salaryNeverRun: 'Not added yet',
+  salaryCatchUpReady: 'Waiting to add this month when settings are saved',
+  salaryCatchUpConfirm: 'This month’s salary date has passed. Select OK to add it now, or Cancel to enable auto salary starting next month.',
   noAccountForSalary: 'Add an account first',
 
   // Data export
@@ -247,6 +261,12 @@ export default {
   goalDeadline: 'Target date (optional)',
   goalEmoji: 'Icon',
   goalEmojiPh: 'Pick an emoji',
+  goalCover: 'Cover photo',
+  goalCoverChoose: 'Choose photo',
+  goalCoverReplace: 'Replace photo',
+  goalCoverRemove: 'Remove',
+  goalCoverHint: 'Optional · automatically cropped and compressed',
+  goalCoverError: 'Photo upload failed. Please try a smaller JPG, PNG or WebP image.',
   goalProgress: 'Progress',
   goalDaysLeft: 'days left',
   goalPace: 'Pace',
@@ -269,6 +289,6 @@ export default {
   // Reports new labels
   spendBreakdown: 'Spend breakdown',
   weeklyTrend: '7-day trend',
-  aiSuggestion: 'AI suggestion',
+  aiSuggestion: 'Period observation',
   biggestSingle: 'Biggest single',
 }
