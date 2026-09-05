@@ -157,7 +157,6 @@
 .ji-story-copy li::before { content: ''; width: 14px; height: 1px; flex: 0 0 auto; background: var(--ji-green-dark); }
 .ji-story:nth-child(even) .ji-story-copy li { color: rgba(255,255,255,.66); }
 .ji-story:nth-child(even) .ji-story-copy li::before { background: #62d9ac; }
-.ji-story:nth-child(even) li { color: rgba(255,255,255,.72); border-color: rgba(255,255,255,.12); background: rgba(255,255,255,.05); }
 .ji-story-visual { min-width: 0; display: flex; justify-content: center; align-items: center; }
 .ji-story-phone { width: 351px; height: 690px; overflow: hidden; border-radius: 48px 48px 0 0; filter: drop-shadow(0 40px 42px rgba(0,0,0,.18)); }
 
@@ -180,6 +179,24 @@
 .ji-sync-line i:nth-child(2) { animation-delay: .55s; }
 .ji-sync-line i:nth-child(3) { animation-delay: 1.1s; }
 @keyframes ji-sync { from { left: 2%; opacity: 0; transform: translateY(-50%); } 20% { opacity: 1; } to { left: 94%; opacity: 0; transform: translateY(-50%); } }
+
+.ji-split-visual { width: min(600px, 100%); padding: clamp(28px, 4.5vw, 50px); border: 1px solid rgba(255,255,255,.11); border-radius: 36px; background: linear-gradient(145deg, rgba(255,255,255,.085), rgba(255,255,255,.025)); box-shadow: 0 40px 90px rgba(0,0,0,.3); }
+.ji-split-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
+.ji-split-head span, .ji-split-summary span { color: #62d9ac; font-size: 10px; font-weight: 750; letter-spacing: .14em; }
+.ji-split-head h4 { margin-top: 9px; color: #fff; font-size: 25px; font-weight: 640; letter-spacing: -.035em; }
+.ji-split-head > strong { color: #fff; font-size: clamp(27px, 3vw, 38px); line-height: 1; letter-spacing: -.05em; white-space: nowrap; }
+.ji-split-people { margin-top: 34px; border-top: 1px solid rgba(255,255,255,.1); }
+.ji-split-person { min-width: 0; padding: 17px 0; display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; gap: 14px; border-bottom: 1px solid rgba(255,255,255,.09); }
+.ji-split-person.is-own { position: relative; }
+.ji-split-person.is-own::before { content: ''; position: absolute; left: -14px; width: 2px; height: 30px; background: #62d9ac; }
+.ji-split-avatar { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 50%; color: #d9f8ec; background: rgba(98,217,172,.13); font-size: 12px; font-weight: 700; }
+.ji-split-person div { min-width: 0; }
+.ji-split-person b { display: block; color: #f6f8f7; font-size: 14px; font-weight: 630; }
+.ji-split-person small { display: block; margin-top: 4px; overflow: hidden; color: rgba(255,255,255,.42); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.ji-split-person small.is-settled { color: #62d9ac; }
+.ji-split-person > strong { color: rgba(255,255,255,.8); font-size: 15px; letter-spacing: -.02em; white-space: nowrap; }
+.ji-split-summary { padding-top: 27px; display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
+.ji-split-summary strong { color: #62d9ac; font-size: clamp(27px, 3vw, 38px); line-height: 1; letter-spacing: -.05em; white-space: nowrap; }
 
 .ji-lifestyle { position: relative; min-height: 760px; overflow: hidden; color: #fff; background: #131713; }
 .ji-lifestyle > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
@@ -376,6 +393,17 @@
   .ji-sync-line { width: 2px; height: 58px; margin: 0 auto; }
   .ji-sync-line i { left: 50%; animation: ji-sync-mobile 2.3s ease-in-out infinite; }
   @keyframes ji-sync-mobile { from { top: 2%; opacity: 0; transform: translateX(-50%); } 20% { opacity: 1; } to { top: 94%; opacity: 0; transform: translateX(-50%); } }
+  .ji-split-visual { padding: 26px 20px; border-radius: 28px; }
+  .ji-split-head { align-items: flex-start; gap: 12px; }
+  .ji-split-head h4 { font-size: 20px; }
+  .ji-split-head > strong { padding-top: 18px; font-size: 23px; }
+  .ji-split-people { margin-top: 26px; }
+  .ji-split-person { grid-template-columns: 34px minmax(0, 1fr) auto; gap: 11px; }
+  .ji-split-avatar { width: 34px; height: 34px; }
+  .ji-split-person.is-own::before { left: -10px; }
+  .ji-split-person > strong { font-size: 13px; }
+  .ji-split-summary { padding-top: 23px; }
+  .ji-split-summary strong { font-size: 25px; }
   .ji-lifestyle { min-height: 700px; }
   .ji-lifestyle > img { object-position: 57% center; }
   .ji-lifestyle-copy { width: calc(100% - 40px); left: 20px; }

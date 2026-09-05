@@ -37,6 +37,7 @@ const COPY = {
       { no: '01', label: 'FAST CAPTURE', title: 'A money habit you can actually keep.', body: 'Choose an amount, category and account. That is enough. Recurring entries take care of predictable monthly spending without creating duplicates.', points: ['Four transaction types', 'Recurring monthly entries', 'Clear account balances'] },
       { no: '02', label: 'USEFUL FEEDBACK', title: 'Know what today means for tomorrow.', body: 'A daily budget signal turns a long monthly number into a decision you can use right now. Goals and cost-per-day add context without judging you.', points: ['Daily budget pacing', 'Goal progress', 'True cost per day'] },
       { no: '03', label: 'OFFLINE BY DESIGN', title: 'Your records stay available when the signal disappears.', body: 'Each account has its own offline cache. Changes queue safely and reconcile with your private cloud path when the connection returns.', points: ['Account-isolated cache', 'Reliable queued sync', 'CSV export anytime'] },
+      { no: '04', label: 'AA BILL SPLITTING', title: 'One shared bill. Only your share counts.', body: 'Pay for the table, split the total equally, and keep track of who has paid you back. JSave remembers the full bill while counting only your own share as personal spending.', points: ['Equal split in seconds', 'Track repayments', 'Accurate personal spending'] },
     ],
     lifestyleKicker: 'Made for real life',
     lifestyleTitle: 'Money clarity should feel quiet.',
@@ -96,6 +97,7 @@ const COPY = {
       { no: '01', label: '快速记录', title: '真正坚持得下来的金钱习惯。', body: '选择金额、类别和账户，就够了。固定的每月开销可以自动记录，同时避免重复生成。', points: ['四种交易类型', '每月周期记账', '清楚的账户余额'] },
       { no: '02', label: '有用的反馈', title: '看懂今天，会怎样影响明天。', body: '每日预算把遥远的月度数字，变成当下可用的判断。目标进度和日均成本提供背景，但不评判你。', points: ['每日预算节奏', '目标进度', '真实日均成本'] },
       { no: '03', label: '为离线而设计', title: '没有信号，记录也依然在。', body: '每个账号都有独立的离线缓存。网络恢复后，排队中的修改会可靠地同步到你的私人云端路径。', points: ['账号隔离缓存', '可靠队列同步', '随时导出 CSV'] },
+      { no: '04', label: 'AA 分账', title: '一笔共同消费，只算自己的那份。', body: '先替整桌付款、按人数均分，再记录谁已经还款。JSave 会保留完整账单，但个人支出统计只计入你自己的份额。', points: ['几秒完成均分', '清楚追踪还款', '个人支出不失真'] },
     ],
     lifestyleKicker: '为真实生活而做', lifestyleTitle: '看清钱，不应该让人焦虑。',
     lifestyleBody: 'JSave 在吉隆坡设计，关注的是组成一个月的普通小决定，而不是华而不实的金融表演。',
@@ -159,6 +161,7 @@ function ArrowIcon() {
 function FeatureGlyph({ type }) {
   if (type === 'capture') return <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 5v22M5 16h22"/><rect x="3.5" y="3.5" width="25" height="25" rx="8"/></svg>
   if (type === 'feedback') return <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 24V13M13 24V7M21 24v-8M29 24V4"/><path d="M3 27h27"/></svg>
+  if (type === 'split') return <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="10" cy="11" r="4"/><circle cx="22" cy="11" r="4"/><path d="M3.5 26c.7-5.1 3-7.5 6.5-7.5s5.8 2.4 6.5 7.5M15.5 26c.7-5.1 3-7.5 6.5-7.5s5.8 2.4 6.5 7.5"/></svg>
   return <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 13a9 9 0 0117-3M25 19a9 9 0 01-17 3"/><path d="M24 4v6h-6M8 28v-6h6"/></svg>
 }
 
@@ -283,7 +286,7 @@ export default function JSaveIntro({ onOpenApp, withHead = true }) {
       <section id="product" className="ji-stories">
         {c.stories.map((story, index) => <article className={`ji-story ji-story-${index + 1}`} key={story.no}>
           <Reveal direction={index % 2 === 0 ? 'left' : 'right'} className="ji-story-copy">
-            <div className="ji-story-glyph"><FeatureGlyph type={['capture', 'feedback', 'sync'][index]} /></div>
+            <div className="ji-story-glyph"><FeatureGlyph type={['capture', 'feedback', 'sync', 'split'][index]} /></div>
             <p className="ji-story-label">{story.no} · {story.label}</p><h3>{story.title}</h3><p className="ji-story-body">{story.body}</p>
             <ul>{story.points.map(point => <li key={point}>{point}</li>)}</ul>
           </Reveal>
@@ -291,6 +294,20 @@ export default function JSaveIntro({ onOpenApp, withHead = true }) {
             {index === 0 && <div className="ji-story-phone"><Device><PhoneAdd lang={lang} /></Device></div>}
             {index === 1 && <div className="ji-budget-visual"><div className="ji-budget-head"><span>{zh ? '九月节奏' : 'SEPTEMBER PACE'}</span><b>68%</b></div><div className="ji-budget-track"><span /></div><div className="ji-budget-row"><span>{zh ? '今天已用' : 'Spent today'}</span><strong>RM 42.60</strong></div><div className="ji-budget-row"><span>{zh ? '仍可安心使用' : 'Still comfortable'}</span><strong className="is-green">RM 38.20</strong></div></div>}
             {index === 2 && <div className="ji-sync-visual"><div className="ji-sync-device"><span>{zh ? '手机' : 'PHONE'}</span><b>12</b><small>{zh ? '本地记录' : 'local records'}</small></div><div className="ji-sync-line"><i /><i /><i /></div><div className="ji-sync-device"><span>{zh ? '私人云端' : 'PRIVATE CLOUD'}</span><b>12</b><small>{zh ? '已同步' : 'synced safely'}</small></div></div>}
+            {index === 3 && <div className="ji-split-visual">
+              <div className="ji-split-head"><div><span>{zh ? 'AA 分账' : 'AA SPLIT'}</span><h4>{zh ? '周五晚餐' : 'Friday dinner'}</h4></div><strong>RM 168.00</strong></div>
+              <div className="ji-split-people">
+                {[
+                  { initial: 'Y', name: zh ? '你' : 'You', status: zh ? '计入我的支出' : 'counts as your spend', own: true },
+                  { initial: 'M', name: 'Mei', status: zh ? '已还款' : 'settled', settled: true },
+                  { initial: 'K', name: 'Kai', status: zh ? '等待还款' : 'pending' },
+                  { initial: 'A', name: 'Aina', status: zh ? '已还款' : 'settled', settled: true },
+                ].map(person => <div className={`ji-split-person ${person.own ? 'is-own' : ''}`} key={person.name}>
+                  <span className="ji-split-avatar">{person.initial}</span><div><b>{person.name}</b><small className={person.settled ? 'is-settled' : ''}>{person.status}</small></div><strong>RM 42.00</strong>
+                </div>)}
+              </div>
+              <div className="ji-split-summary"><span>{zh ? '我的实际支出' : 'YOUR ACTUAL SPEND'}</span><strong>RM 42.00</strong></div>
+            </div>}
           </Reveal>
         </article>)}
       </section>

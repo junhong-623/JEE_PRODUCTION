@@ -1,8 +1,21 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.1.3',
+    version: '3.1.4',
     date: '2026-09-05',
     isLatest: true,
+    items: [
+      'Added AA bill splitting as a core story on the JSave introduction page',
+      'Explained how equal splits, repayment tracking and personal spending totals work together',
+    ],
+    itemsZh: [
+      '在 JSave 介绍页新增 AA 分账核心特色',
+      '清楚说明均分、还款追踪与个人支出统计如何配合',
+    ],
+  },
+  {
+    version: '3.1.3',
+    date: '2026-09-05',
+    isLatest: false,
     items: [
       'Moved the spending total below the donut so large amounts remain readable',
       'Made the seven-day spending chart responsive on narrow phone screens',
