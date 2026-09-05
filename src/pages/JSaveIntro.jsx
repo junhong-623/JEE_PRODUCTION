@@ -192,8 +192,8 @@ function Reveal({ children, className = '', delay = 0, direction = 'up', as: Tag
   return <Tag {...props} ref={ref} className={`ji-reveal ji-reveal-${direction} ${visible ? 'is-visible' : ''} ${className}`} style={{ '--ji-reveal-delay': `${delay}ms` }}>{children}</Tag>
 }
 
-export default function JSaveIntro({ onOpenApp, withHead = true }) {
-  const [lang, setLang] = useState(() => {
+export default function JSaveIntro({ onOpenApp, withHead = true, language, onLanguageChange }) {
+  const [localLanguage, setLocalLanguage] = useState(() => {
     const pathLanguage = window.location.pathname.match(/^\/(en|zh)(?:\/|$)/)?.[1]
     return pathLanguage || localStorage.getItem('jsave-lang') || 'en'
   })
@@ -202,6 +202,7 @@ export default function JSaveIntro({ onOpenApp, withHead = true }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [installGuide, setInstallGuide] = useState(null)
   const deferredPromptRef = useRef(null)
+  const lang = language || localLanguage
   const zh = lang === 'zh'
   const c = COPY[lang]
   const appHref = onOpenApp ? '#' : 'https://jsave.jeeprod.com'
@@ -217,7 +218,11 @@ export default function JSaveIntro({ onOpenApp, withHead = true }) {
   const handleOpenApp = event => { if (onOpenApp) { event.preventDefault(); onOpenApp() } }
   const changeLanguage = () => {
     const next = zh ? 'en' : 'zh'
-    setLang(next)
+    if (onLanguageChange) {
+      onLanguageChange(next)
+      return
+    }
+    setLocalLanguage(next)
     localStorage.setItem('jsave-lang', next)
     if (window.location.hostname === 'jsave.jeeprod.com') {
       window.history.replaceState({}, '', `/${next}/${window.location.search}${window.location.hash}`)

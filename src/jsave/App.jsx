@@ -1,6 +1,6 @@
-import { lazy, Suspense, useState, useEffect } from 'react'
+import { lazy, Suspense, useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { LangProvider } from './contexts/LangContext'
+import { LangProvider, languageFromPath } from './contexts/LangContext'
 import { JSaveProvider } from './contexts/JSaveContext'
 import { useLang } from './contexts/LangContext'
 import BottomNav from './components/BottomNav'
@@ -268,8 +268,12 @@ export default function JSaveApp() {
 
 function JSaveDataProvider() {
   const { setLanguage } = useLang()
+  const applySavedLanguage = useCallback(
+    language => setLanguage(languageFromPath() || language),
+    [setLanguage],
+  )
   return (
-    <JSaveProvider onLanguageChange={setLanguage}>
+    <JSaveProvider onLanguageChange={applySavedLanguage}>
       <JSaveShell />
     </JSaveProvider>
   )

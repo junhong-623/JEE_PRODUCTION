@@ -1,8 +1,23 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.2.0',
+    version: '3.2.1',
     date: '2026-09-05',
     isLatest: true,
+    items: [
+      'English and Chinese URLs now control the language of the complete JSave experience',
+      'Saved account language can no longer overwrite an explicit /en/ or /zh/ page',
+      'Changing language now keeps the localized URL in sync across the intro and signed-in app',
+    ],
+    itemsZh: [
+      '英文与中文网址现在会统一控制整个 JSave 页面及应用界面的语言',
+      '账号保存的语言不再覆盖明确打开的 /en/ 或 /zh/ 页面',
+      '在介绍页或登录后的应用切换语言时，网址也会保持同步',
+    ],
+  },
+  {
+    version: '3.2.0',
+    date: '2026-09-05',
+    isLatest: false,
     items: [
       'Added crawlable English and Chinese product pages with focused search descriptions',
       'Added canonical URLs, structured app and FAQ data, a sitemap and clear crawler rules',
