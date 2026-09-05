@@ -1,8 +1,21 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.1.2',
+    version: '3.1.3',
     date: '2026-09-05',
     isLatest: true,
+    items: [
+      'Moved the spending total below the donut so large amounts remain readable',
+      'Made the seven-day spending chart responsive on narrow phone screens',
+    ],
+    itemsZh: [
+      '支出总额移至环形图下方，大额数字也能保持清楚完整',
+      '七日支出趋势图现会随手机宽度缩放，不再超出屏幕',
+    ],
+  },
+  {
+    version: '3.1.2',
+    date: '2026-09-05',
+    isLatest: false,
     items: [
       'Added viewport-triggered reveals inspired by the H Agency site, with reduced-motion support',
       'Expanded the introduction with a four-step monthly journey and a connected product toolkit',

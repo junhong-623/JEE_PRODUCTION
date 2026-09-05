@@ -147,10 +147,10 @@ export function ProgressRing({ value = 0.65, size = 64, thickness = 6, color = '
 
 export function BarChart({ data, width = 280, height = 120, color = '#10b981', highlight }) {
   const [ref, seen] = useInView({ threshold: 0.3 })
-  const max = Math.max(...data.map(d => d.value))
+  const max = Math.max(1, ...data.map(d => d.value))
   const barW = (width - (data.length - 1) * 8) / data.length
   return (
-    <svg ref={ref} width={width} height={height + 18} viewBox={`0 0 ${width} ${height + 18}`}>
+    <svg ref={ref} width={width} height={height + 18} viewBox={`0 0 ${width} ${height + 18}`} style={{ display: 'block', width: '100%', maxWidth: width, height: 'auto' }}>
       {data.map((d, i) => {
         const h = (d.value / max) * height
         const isH = highlight === i

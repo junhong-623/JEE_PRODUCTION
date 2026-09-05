@@ -160,21 +160,28 @@ function InsightsView({ filtered, cur, t, lang }) {
     <>
       {/* Donut — spend breakdown */}
       <Card>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <div style={{ marginBottom: 14 }}>
           <div>
             <Eyebrow>{t('spendBreakdown')}</Eyebrow>
             <div style={{ fontFamily: 'var(--font-display)', fontSize: 20, letterSpacing: -0.5, color: '#f1f5f9' }}>
               {new Date().toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en', { month: 'long', year: 'numeric' })}
             </div>
           </div>
-          <div style={{ padding: '3px 10px', borderRadius: 999, background: 'rgba(245,213,112,0.12)', border: '1px solid rgba(245,213,112,0.3)', fontFamily: 'var(--font-mono)', fontSize: 9.5, color: '#f5d570', letterSpacing: 1.2 }}>
-            {fmt(totalExpense, cur)}
-          </div>
         </div>
         {donutData.length > 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <Donut data={donutData} size={130} thickness={16} centerLabel={lang === 'zh' ? '总额' : 'Total'} centerValue={`RM ${(totalExpense / 1000).toFixed(1)}k`} />
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 7 }}>
+            <div style={{ width: 140, flex: '0 0 140px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <Donut data={donutData} size={130} thickness={16} />
+              <div style={{ width: '100%', marginTop: 10, textAlign: 'center' }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8.5, letterSpacing: 1.6, color: 'rgba(241,245,249,0.4)', textTransform: 'uppercase' }}>
+                  {lang === 'zh' ? '总额' : 'Total'}
+                </div>
+                <div style={{ marginTop: 4, fontFamily: 'var(--font-display)', fontSize: 'clamp(14px, 4vw, 18px)', lineHeight: 1.2, color: '#f1f5f9', overflowWrap: 'anywhere' }}>
+                  {fmtFull(totalExpense, cur)}
+                </div>
+              </div>
+            </div>
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
               {donutData.map(d => (
                 <div key={d.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ width: 8, height: 8, borderRadius: 2, background: d.color, boxShadow: `0 0 6px ${d.color}`, flexShrink: 0 }}></span>
@@ -200,7 +207,9 @@ function InsightsView({ filtered, cur, t, lang }) {
             RM {weekData.reduce((s, d) => s + d.value, 0)}
           </div>
         </div>
-        <JSBarChart data={weekData} width={360} height={100} color="#10b981" highlight={maxIdx} />
+        <div style={{ width: '100%', minWidth: 0, overflow: 'hidden' }}>
+          <JSBarChart data={weekData} width={360} height={100} color="#10b981" highlight={maxIdx} />
+        </div>
       </Card>
 
       {/* AI suggestion */}
