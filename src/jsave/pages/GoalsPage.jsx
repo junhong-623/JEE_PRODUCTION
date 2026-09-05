@@ -651,6 +651,7 @@ function ThingsView({ t, lang, showAdd, onShowAddChange }) {
 
       {(showAdd || editing) && (
         <ItemForm
+          key={editing?.id ? `edit:${editing.id}` : groupMode ? 'new:group' : `new:item:${pendingParentId || 'root'}`}
           initial={editing} cur={cur} t={t}
           onSave={saveItem}
           onDelete={removeItem}

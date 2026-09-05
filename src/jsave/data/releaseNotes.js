@@ -1,8 +1,21 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.1.10',
+    version: '3.1.11',
     date: '2026-09-05',
     isLatest: true,
+    items: [
+      'Editing a component from a group now opens that exact item with its saved details',
+      'New item, group and component forms now keep independent state when switching between them',
+    ],
+    itemsZh: [
+      '从组合编辑部件时，现在会正确载入指定物品及其已有资料',
+      '新物品、组合与部件表单切换时使用独立状态，不再残留上一个表单内容',
+    ],
+  },
+  {
+    version: '3.1.10',
+    date: '2026-09-05',
+    isLatest: false,
     items: [
       'Moved goal and item cover uploads from the invalid Firebase Storage bucket to Cloudinary',
       'Kept adaptive browser compression before upload and account-scoped Cloudinary folders',
