@@ -8,14 +8,23 @@ import { ProgressRing } from '../components/JSaveCharts'
 import PageHeader from '../components/PageHeader'
 import GoalThumbnail from '../components/GoalThumbnail'
 import ItemThumbnail from '../components/ItemThumbnail'
-import { deleteGoalCover, deleteItemCover, uploadGoalCover, uploadItemCover } from '../services/goalCover'
+import { deleteGoalCover, deleteItemCover, MAX_COVER_SOURCE_MB, uploadGoalCover, uploadItemCover, validateCoverSource } from '../services/goalCover'
 import { isSingleEmoji, singleEmoji } from '../utils/emoji'
+import { buildItemEntries, isItemGroup } from '../utils/itemGroups'
 
 /* ──────────────────────────────────────────────────────────────────────
    Helpers
    ────────────────────────────────────────────────────────────────────── */
 const DEFAULT_EMOJIS = ['🎯','✈️','📱','🏠','🛡️','🎓','💍','🚗','🏖️','💎','🌏','☕','🎸','🎨','🐢']
 const ITEM_EMOJIS = ['📦','💻','📱','🎧','📷','⌚','👟','👜','🚲','🚗','🪑','☕','🎮','🎸','🏕️']
+
+function coverErrorMessage(error, t) {
+  if (error?.message === 'cover-too-large') return t('coverTooLargeError').replace('{size}', MAX_COVER_SOURCE_MB)
+  if (error?.message === 'cover-invalid') return t('coverInvalidError')
+  if (error?.message === 'cover-compression' || error?.message === 'cover-output-too-large') return t('coverCompressionError')
+  if (error?.code === 'storage/unauthorized') return t('coverPermissionError')
+  return t('coverUploadError')
+}
 
 function fmtAmt(n) {
   return new Intl.NumberFormat('en-MY', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n)
@@ -152,7 +161,7 @@ function GoalSettingsModal({ initial, onSave, onDelete, onClose, t }) {
   const [coverPreview, setCoverPreview] = useState(initial?.coverUrl || null)
   const [removeCover, setRemoveCover] = useState(false)
   const [saving, setSaving]   = useState(false)
-  const [saveError, setSaveError] = useState(false)
+  const [saveError, setSaveError] = useState(null)
   const isEdit = !!initial?.id
 
   useEffect(() => () => {
@@ -161,10 +170,11 @@ function GoalSettingsModal({ initial, onSave, onDelete, onClose, t }) {
 
   function chooseCover(file) {
     if (!file) return
+    try { validateCoverSource(file) } catch (error) { setSaveError(coverErrorMessage(error, t)); return }
     setCoverFile(file)
     setRemoveCover(false)
     setCoverPreview(URL.createObjectURL(file))
-    setSaveError(false)
+    setSaveError(null)
   }
 
   function clearCover() {
@@ -176,15 +186,15 @@ function GoalSettingsModal({ initial, onSave, onDelete, onClose, t }) {
   async function handleSave() {
     if (!name.trim() || !target) return
     setSaving(true)
-    setSaveError(false)
+    setSaveError(null)
     try {
       await onSave(
         { name: name.trim(), emoji, targetAmount: parseFloat(target) || 0, currentAmount: parseFloat(current) || 0, deadline: deadline || null },
         { file: coverFile, remove: removeCover },
       )
       onClose()
-    } catch {
-      setSaveError(true)
+    } catch (error) {
+      setSaveError(coverErrorMessage(error, t))
       setSaving(false)
     }
   }
@@ -206,12 +216,12 @@ function GoalSettingsModal({ initial, onSave, onDelete, onClose, t }) {
         <div className="jsave-goal-cover-field">
           <div className="jsave-goal-cover-preview">
             {coverPreview ? <img src={coverPreview} alt="" /> : <span>{emoji}</span>}
-            <div><strong>{t('goalCover')}</strong><small>{t('goalCoverHint')}</small></div>
+              <div><strong>{t('goalCover')}</strong><small>{t('goalCoverHint').replace('{size}', MAX_COVER_SOURCE_MB)}</small></div>
           </div>
           <div className="jsave-goal-cover-actions">
             <label className="jsave-btn-ghost">
               {coverPreview ? t('goalCoverReplace') : t('goalCoverChoose')}
-              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={event => chooseCover(event.target.files?.[0])} hidden />
+              <input type="file" accept="image/*" onChange={event => chooseCover(event.target.files?.[0])} hidden />
             </label>
             {coverPreview && <button type="button" className="jsave-btn-link" onClick={clearCover}>{t('goalCoverRemove')}</button>}
           </div>
@@ -253,7 +263,7 @@ function GoalSettingsModal({ initial, onSave, onDelete, onClose, t }) {
             {saving ? t('loading') : t('goalSave')}
           </button>
         </div>
-        {saveError && <p className="jsave-error" style={{ marginTop: 10 }}>{t('goalCoverError')}</p>}
+        {saveError && <p className="jsave-error" style={{ marginTop: 10 }}>{saveError}</p>}
       </div>
     </div>
   )
@@ -262,7 +272,7 @@ function GoalSettingsModal({ initial, onSave, onDelete, onClose, t }) {
 /* ──────────────────────────────────────────────────────────────────────
    Things view — Cost Per Day (uses existing items from JSaveContext)
    ────────────────────────────────────────────────────────────────────── */
-function ItemForm({ initial, cur, t, onSave, onDelete, onClose }) {
+function ItemForm({ initial, cur, t, onSave, onDelete, onClose, groupMode = false, availableItems = [], initialMemberIds = [], onAddComponent }) {
   const initStatus = itemStatus(initial ?? {})
   const initialEmoji = initial?.emoji ?? '📦'
   const [emoji,        setEmoji]       = useState(initialEmoji)
@@ -281,7 +291,8 @@ function ItemForm({ initial, cur, t, onSave, onDelete, onClose }) {
   const [coverPreview, setCoverPreview] = useState(initial?.coverUrl ?? null)
   const [removeCover,  setRemoveCover] = useState(false)
   const [saving,       setSaving]      = useState(false)
-  const [saveError,    setSaveError]   = useState(false)
+  const [saveError,    setSaveError]   = useState(null)
+  const [memberIds,    setMemberIds]   = useState(initialMemberIds)
   const customEmojiValid = !customEmoji || isSingleEmoji(customEmoji)
 
   useEffect(() => () => {
@@ -290,10 +301,11 @@ function ItemForm({ initial, cur, t, onSave, onDelete, onClose }) {
 
   function chooseCover(file) {
     if (!file) return
+    try { validateCoverSource(file) } catch (error) { setSaveError(coverErrorMessage(error, t)); return }
     setCoverFile(file)
     setRemoveCover(false)
     setCoverPreview(URL.createObjectURL(file))
-    setSaveError(false)
+    setSaveError(null)
   }
 
   function clearCover() {
@@ -306,16 +318,20 @@ function ItemForm({ initial, cur, t, onSave, onDelete, onClose }) {
   function toggleSold(on)    { setSold(on);    if (on) setRetired(false) }
 
   async function handleSubmit(e) {
-    e.preventDefault(); setSaving(true); setSaveError(false)
+    e.preventDefault(); setSaving(true); setSaveError(null)
     if (!customEmojiValid) { setSaving(false); return }
-    const status = retired ? 'retired' : sold ? 'sold' : 'active'
     try {
-      await onSave(
-        { name, emoji, cost: Number(cost), purchaseDate, status, retiredDate: retired ? (retiredDate || todayStr()) : null, salePrice: sold ? Number(salePrice) : null, saleDate: sold ? (saleDate || todayStr()) : null, disposeDate: retired ? (retiredDate || todayStr()) : null, note },
-        { file: coverFile, remove: removeCover },
-      )
-    } catch {
-      setSaveError(true)
+      if (groupMode) {
+        await onSave({ kind: 'group', name: name.trim(), emoji, note, status: 'active' }, { file: coverFile, remove: removeCover }, memberIds)
+      } else {
+        const status = retired ? 'retired' : sold ? 'sold' : 'active'
+        await onSave(
+          { name: name.trim(), emoji, cost: Number(cost), purchaseDate, status, retiredDate: retired ? (retiredDate || todayStr()) : null, salePrice: sold ? Number(salePrice) : null, saleDate: sold ? (saleDate || todayStr()) : null, disposeDate: retired ? (retiredDate || todayStr()) : null, note },
+          { file: coverFile, remove: removeCover },
+        )
+      }
+    } catch (error) {
+      setSaveError(coverErrorMessage(error, t))
       setSaving(false)
     }
   }
@@ -323,25 +339,25 @@ function ItemForm({ initial, cur, t, onSave, onDelete, onClose }) {
   return (
     <div className="jsave-modal-overlay centered" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="jsave-modal glass-card" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()} style={{ borderRadius: 24 }}>
-        <h2 className="jsave-modal-title">{initial?.id ? t('itemEdit') : t('addItem')}
+        <h2 className="jsave-modal-title">{groupMode ? (initial?.id ? t('itemGroupEdit') : t('itemGroupAdd')) : (initial?.id ? t('itemEdit') : t('addItem'))}
           <button onClick={onClose} aria-label={t('close')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(241,245,249,0.5)', fontSize: 20 }}>✕</button>
         </h2>
         <form onSubmit={handleSubmit} className="jsave-form">
           <div className="jsave-goal-cover-field">
             <div className="jsave-goal-cover-preview">
               {coverPreview ? <img src={coverPreview} alt="" /> : <span>{emoji}</span>}
-              <div><strong>{t('itemCover')}</strong><small>{t('itemCoverHint')}</small></div>
+              <div><strong>{t(groupMode ? 'itemGroupCover' : 'itemCover')}</strong><small>{t('itemCoverHint').replace('{size}', MAX_COVER_SOURCE_MB)}</small></div>
             </div>
             <div className="jsave-goal-cover-actions">
               <label className="jsave-btn-ghost">
                 {coverPreview ? t('itemCoverReplace') : t('itemCoverChoose')}
-                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={event => chooseCover(event.target.files?.[0])} hidden />
+                <input type="file" accept="image/*" onChange={event => chooseCover(event.target.files?.[0])} hidden />
               </label>
               {coverPreview && <button type="button" className="jsave-btn-link" onClick={clearCover}>{t('itemCoverRemove')}</button>}
             </div>
           </div>
           <div>
-            <div className="jsave-label" style={{ marginBottom: 8 }}>{t('itemEmoji')}</div>
+            <div className="jsave-label" style={{ marginBottom: 8 }}>{t(groupMode ? 'itemGroupEmoji' : 'itemEmoji')}</div>
             <button type="button" onClick={() => setShowEmoji(!showEmoji)} className="jsave-emoji-trigger">{emoji}</button>
             {showEmoji && (
               <div className="jsave-emoji-picker">
@@ -368,15 +384,35 @@ function ItemForm({ initial, cur, t, onSave, onDelete, onClose }) {
             )}
             {!customEmojiValid && <p className="jsave-error" style={{ marginTop: 7 }}>{t('itemEmojiInvalid')}</p>}
           </div>
-          <div><label className="jsave-label">{t('itemName')}</label>
-            <input className="jsave-input" placeholder={t('itemNamePh')} value={name} onChange={e => setName(e.target.value)} required /></div>
-          <div><label className="jsave-label">{t('itemCost')} ({cur})</label>
-            <input className="jsave-input" type="number" min="0" step="0.01" placeholder="0.00" value={cost} onChange={e => setCost(e.target.value)} required /></div>
-          <div><label className="jsave-label">{t('itemPurchaseDate')}</label>
-            <input className="jsave-input" type="date" value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)} required /></div>
+          <div><label className="jsave-label">{t(groupMode ? 'itemGroupName' : 'itemName')}</label>
+            <input className="jsave-input" placeholder={t(groupMode ? 'itemGroupNamePh' : 'itemNamePh')} value={name} onChange={e => setName(e.target.value)} required /></div>
+          {!groupMode && <>
+            <div><label className="jsave-label">{t('itemCost')} ({cur})</label>
+              <input className="jsave-input" type="number" min="0" step="0.01" placeholder="0.00" value={cost} onChange={e => setCost(e.target.value)} required /></div>
+            <div><label className="jsave-label">{t('itemPurchaseDate')}</label>
+              <input className="jsave-input" type="date" value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)} required /></div>
+          </>}
           <div><label className="jsave-label">{t('itemNote')}</label>
             <input className="jsave-input" value={note} onChange={e => setNote(e.target.value)} /></div>
-          <div className="jsave-setting-row" style={{ marginTop: 8 }}>
+          {groupMode && (
+            <div className="jsave-group-members-field">
+              <div className="jsave-label">{t('itemGroupMembers')}</div>
+              <p className="jsave-section-sub">{t('itemGroupMembersHint')}</p>
+              {availableItems.length > 0 ? (
+                <div className="jsave-group-member-list">
+                  {availableItems.map(item => (
+                    <label key={item.id} className="jsave-group-member-row">
+                      <input type="checkbox" checked={memberIds.includes(item.id)} onChange={event => setMemberIds(previous => event.target.checked ? [...previous, item.id] : previous.filter(id => id !== item.id))} />
+                      <ItemThumbnail item={item} size={32} />
+                      <span><strong>{item.name}</strong><small>{cur} {fmtAmt(item.cost || 0)} · {item.purchaseDate}</small></span>
+                    </label>
+                  ))}
+                </div>
+              ) : <p className="jsave-empty-msg" style={{ padding: '10px 0' }}>{t('itemGroupNoAvailable')}</p>}
+              {initial?.id && <button type="button" className="jsave-btn-ghost jsave-btn-full" onClick={onAddComponent}>+ {t('itemGroupAddComponent')}</button>}
+            </div>
+          )}
+          {!groupMode && <><div className="jsave-setting-row" style={{ marginTop: 8 }}>
             <span className="jsave-label">{t('itemRetiredToggle')}</span>
             <label className="jsave-toggle"><input type="checkbox" checked={retired} onChange={e => toggleRetired(e.target.checked)} /><span className="jsave-toggle-track" /></label>
           </div>
@@ -388,13 +424,13 @@ function ItemForm({ initial, cur, t, onSave, onDelete, onClose }) {
           {sold && (<>
             <div><label className="jsave-label">{t('itemSalePrice')} ({cur})</label><input className="jsave-input" type="number" min="0" step="0.01" placeholder="0.00" value={salePrice} onChange={e => setSalePrice(e.target.value)} /></div>
             <div><label className="jsave-label">{t('itemSaleDate')}</label><input className="jsave-input" type="date" value={saleDate} onChange={e => setSaleDate(e.target.value)} /></div>
-          </>)}
+          </>)}</>}
           <div className="jsave-form-actions">
-            {initial?.id && <button type="button" className="jsave-btn-danger" onClick={onDelete}>{t('itemDelete')}</button>}
+            {initial?.id && <button type="button" className="jsave-btn-danger" onClick={onDelete}>{groupMode ? t('itemGroupDelete') : t('itemDelete')}</button>}
             <button type="button" className="jsave-btn-ghost" onClick={onClose}>{t('itemCancel')}</button>
-            <button type="submit" className="jsave-btn-primary" disabled={saving || !customEmojiValid}>{t('itemSave')}</button>
+            <button type="submit" className="jsave-btn-primary" disabled={saving || !customEmojiValid || !name.trim()}>{t('itemSave')}</button>
           </div>
-          {saveError && <p className="jsave-error">{t('itemCoverError')}</p>}
+          {saveError && <p className="jsave-error">{saveError}</p>}
         </form>
       </div>
     </div>
@@ -405,34 +441,47 @@ function ThingsView({ t, lang, showAdd, onShowAddChange }) {
   const { items, addItem, updateItem, deleteItem, settings } = useJSave()
   const { user } = useAuth()
   const [editing, setEditing] = useState(null)
+  const [pendingParentId, setPendingParentId] = useState(null)
   const cur = settings?.currency ?? 'MYR'
 
-  const sortedItems = useMemo(() =>
-    [...items].sort((a, b) => {
-      const cpdA = a.cost / daysTotal(a.purchaseDate, endDate(a))
-      const cpdB = b.cost / daysTotal(b.purchaseDate, endDate(b))
-      return cpdA - cpdB // best value first
-    }), [items])
+  const regularItems = useMemo(() => items.filter(item => !isItemGroup(item)), [items])
+  const itemEntries = useMemo(() => buildItemEntries(items), [items])
+  const sortedItems = useMemo(() => [...itemEntries].sort((a, b) => a.cpd - b.cpd), [itemEntries])
 
-  const activeItems  = items.filter(i => itemStatus(i) === 'active')
-  const totalAssets  = activeItems.reduce((s, i) => s + i.cost, 0)
+  const activeItems  = regularItems.filter(i => itemStatus(i) === 'active')
+  const totalAssets  = activeItems.reduce((s, i) => s + (Number(i.cost) || 0), 0)
   const totalCPD     = activeItems.reduce((s, i) => s + i.cost / daysTotal(i.purchaseDate, endDate(i)), 0)
 
-  const maxCPD = Math.max(...sortedItems.map(i => i.cost / daysTotal(i.purchaseDate, endDate(i))), 0.01)
+  const maxCPD = Math.max(...sortedItems.map(i => i.cpd), 0.01)
   const best   = sortedItems[0]
   const worst  = sortedItems[sortedItems.length - 1]
+  const groupMode = isItemGroup(editing)
+  const availableGroupItems = regularItems.filter(item => !item.parentItemId || item.parentItemId === editing?.id)
 
   function closeForm() {
     setEditing(null)
+    setPendingParentId(null)
     onShowAddChange(false)
   }
 
-  async function saveItem(data, coverChange) {
+  async function syncGroupMembers(groupId, selectedIds) {
+    const selected = new Set(selectedIds)
+    const changes = regularItems.filter(item =>
+      (selected.has(item.id) && item.parentItemId !== groupId)
+      || (!selected.has(item.id) && item.parentItemId === groupId)
+    )
+    await Promise.all(changes.map(item => updateItem(item.id, {
+      parentItemId: selected.has(item.id) ? groupId : null,
+    })))
+  }
+
+  async function saveItem(data, coverChange, memberIds = []) {
     if (editing?.id) {
       let coverUpdate = {}
       if (coverChange.file) coverUpdate = await uploadItemCover(user.uid, editing.id, coverChange.file)
       else if (coverChange.remove) coverUpdate = { coverPath: null, coverUrl: null }
       await updateItem(editing.id, { ...data, ...coverUpdate })
+      if (data.kind === 'group') await syncGroupMembers(editing.id, memberIds)
       if (coverChange.remove && editing.coverPath) await deleteItemCover(editing.coverPath)
       closeForm()
       return
@@ -441,7 +490,8 @@ function ThingsView({ t, lang, showAdd, onShowAddChange }) {
     const itemId = crypto.randomUUID()
     const coverUpdate = coverChange.file ? await uploadItemCover(user.uid, itemId, coverChange.file) : {}
     try {
-      await addItem({ ...data, ...coverUpdate, id: itemId })
+      await addItem({ ...data, ...coverUpdate, id: itemId, ...(data.kind !== 'group' && { parentItemId: pendingParentId || null }) })
+      if (data.kind === 'group') await syncGroupMembers(itemId, memberIds)
       closeForm()
     } catch (error) {
       if (coverUpdate.coverPath) await deleteItemCover(coverUpdate.coverPath).catch(() => {})
@@ -452,9 +502,19 @@ function ThingsView({ t, lang, showAdd, onShowAddChange }) {
   async function removeItem() {
     if (!editing?.id || !window.confirm(t('confirmDelete'))) return
     const coverPath = editing.coverPath
+    if (isItemGroup(editing)) {
+      await Promise.all(regularItems.filter(item => item.parentItemId === editing.id).map(item => updateItem(item.id, { parentItemId: null })))
+    }
     await deleteItem(editing.id)
     if (coverPath) await deleteItemCover(coverPath).catch(() => {})
     closeForm()
+  }
+
+  function addComponentToGroup() {
+    const groupId = editing?.id
+    setEditing(null)
+    setPendingParentId(groupId)
+    onShowAddChange(true)
   }
 
   return (
@@ -496,7 +556,7 @@ function ThingsView({ t, lang, showAdd, onShowAddChange }) {
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9', marginBottom: 4 }}>{best.name}</div>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: '#10b981' }}>
-                  RM {(best.cost / daysTotal(best.purchaseDate, endDate(best))).toFixed(2)}<span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(241,245,249,0.4)' }}> / {lang === 'zh' ? '天' : 'day'}</span>
+                  RM {best.cpd.toFixed(2)}<span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(241,245,249,0.4)' }}> / {lang === 'zh' ? '天' : 'day'}</span>
                 </div>
               </div>
               <div style={{ padding: 14, borderRadius: 16, background: 'rgba(245,213,112,0.07)', border: '1px solid rgba(245,213,112,0.22)' }}>
@@ -506,7 +566,7 @@ function ThingsView({ t, lang, showAdd, onShowAddChange }) {
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9', marginBottom: 4 }}>{worst.name}</div>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: '#f5d570' }}>
-                  RM {(worst.cost / daysTotal(worst.purchaseDate, endDate(worst))).toFixed(2)}<span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(241,245,249,0.4)' }}> / {lang === 'zh' ? '天' : 'day'}</span>
+                  RM {worst.cpd.toFixed(2)}<span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(241,245,249,0.4)' }}> / {lang === 'zh' ? '天' : 'day'}</span>
                 </div>
               </div>
             </div>
@@ -519,7 +579,7 @@ function ThingsView({ t, lang, showAdd, onShowAddChange }) {
         {lang === 'zh' ? '全部用品 · 按日均排序' : 'All things · sorted by cost/day'}
       </div>
 
-      {items.length === 0 ? (
+      {itemEntries.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 20px' }}>
           <div className="jsave-empty-symbol items" aria-hidden="true"><i /><i /><i /></div>
           <p className="jsave-empty-msg">{t('noItems')}</p>
@@ -527,12 +587,11 @@ function ThingsView({ t, lang, showAdd, onShowAddChange }) {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
           {sortedItems.map((item, i) => {
-            const end  = endDate(item)
-            const days = daysTotal(item.purchaseDate, end)
-            const cpd  = item.cost / days
+            const days = item.isGroup ? null : daysTotal(item.purchaseDate, endDate(item))
+            const cpd  = item.cpd
             const fill = Math.min(cpd / maxCPD, 1)
             const isBest = i === 0
-            const status = itemStatus(item)
+            const status = item.isGroup ? 'active' : itemStatus(item)
 
             return (
               <div key={item.id} onClick={() => { setEditing(item); onShowAddChange(false) }}
@@ -544,10 +603,13 @@ function ThingsView({ t, lang, showAdd, onShowAddChange }) {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
                     <span style={{ fontSize: 12.5, fontWeight: 600, color: '#f1f5f9' }}>{item.name}</span>
+                    {item.isGroup && <span className="jsave-item-group-badge">{t('itemGroup')}</span>}
                     {status !== 'active' && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'rgba(241,245,249,0.4)', letterSpacing: 1, textTransform: 'uppercase', background: 'rgba(241,245,249,0.06)', padding: '1px 6px', borderRadius: 4 }}>{t(status === 'sold' ? 'itemSold' : 'itemRetired')}</span>}
                   </div>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(241,245,249,0.45)' }}>
-                    RM {fmtAmt(item.cost)} · {days} {lang === 'zh' ? '天' : 'd'}
+                    {item.isGroup
+                      ? `${cur} ${fmtAmt(item.totalCost)} · ${item.members.length} ${t('itemGroupParts')}`
+                      : `RM ${fmtAmt(item.cost)} · ${days} ${lang === 'zh' ? '天' : 'd'}`}
                   </div>
                   {/* amortization bar */}
                   <div style={{ marginTop: 6, height: 4, borderRadius: 999, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
@@ -568,12 +630,11 @@ function ThingsView({ t, lang, showAdd, onShowAddChange }) {
         </div>
       )}
 
-      {/* Add item */}
-      <button onClick={() => { setEditing(null); onShowAddChange(true) }} style={{ width: '100%', padding: '13px 0', borderRadius: 16, border: '1px dashed rgba(16,185,129,0.4)', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, color: '#10b981', transition: 'background 0.15s' }}
-        onMouseEnter={e => e.currentTarget.style.background = 'rgba(16,185,129,0.05)'}
-        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-        + {t('addItem')}
-      </button>
+      {/* Add item / group */}
+      <div className="jsave-item-add-actions">
+        <button onClick={() => { setEditing(null); setPendingParentId(null); onShowAddChange(true) }}>+ {t('addItem')}</button>
+        <button onClick={() => { setEditing({ kind: 'group', emoji: '🖥️' }); setPendingParentId(null); onShowAddChange(false) }}>+ {t('itemGroupAdd')}</button>
+      </div>
 
       {(showAdd || editing) && (
         <ItemForm
@@ -581,6 +642,10 @@ function ThingsView({ t, lang, showAdd, onShowAddChange }) {
           onSave={saveItem}
           onDelete={removeItem}
           onClose={closeForm}
+          groupMode={groupMode}
+          availableItems={availableGroupItems}
+          initialMemberIds={groupMode ? (editing.members?.map(item => item.id) || []) : []}
+          onAddComponent={addComponentToGroup}
         />
       )}
     </>

@@ -1,8 +1,27 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.1.7',
+    version: '3.1.8',
     date: '2026-09-05',
     isLatest: true,
+    items: [
+      'Added item groups that combine existing or new components while preserving each purchase date',
+      'Group totals and cost per day now sum each component using its own ownership period',
+      'Raised the original photo limit from 8 MB to 30 MB and added adaptive compression below the upload limit',
+      'Fixed photo permissions by deploying account-scoped Storage rules together with Hosting',
+      'Added specific messages for oversized, unreadable, compression, permission and network failures',
+    ],
+    itemsZh: [
+      '新增物品组合，可加入现有或新部件，并保留每个部件各自的购买日期',
+      '组合总价与日均成本会按照各部件自己的使用期间分别计算后汇总',
+      '原始照片限制从 8 MB 提高至 30 MB，并自适应压缩到上传限制以内',
+      'Storage 权限规则现在会随 Hosting 一起部署，修复普通账号照片上传权限',
+      '分别提示原图过大、格式无法读取、压缩、权限及网络错误',
+    ],
+  },
+  {
+    version: '3.1.7',
+    date: '2026-09-05',
+    isLatest: false,
     items: [
       'Added custom emoji input for items while retaining all default choices',
       'Custom item icons now accept exactly one visible emoji, including joined and flag emoji',
