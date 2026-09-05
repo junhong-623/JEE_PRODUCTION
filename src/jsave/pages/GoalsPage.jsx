@@ -9,6 +9,7 @@ import PageHeader from '../components/PageHeader'
 import GoalThumbnail from '../components/GoalThumbnail'
 import ItemThumbnail from '../components/ItemThumbnail'
 import { deleteGoalCover, deleteItemCover, uploadGoalCover, uploadItemCover } from '../services/goalCover'
+import { isSingleEmoji, singleEmoji } from '../utils/emoji'
 
 /* ──────────────────────────────────────────────────────────────────────
    Helpers
@@ -263,7 +264,9 @@ function GoalSettingsModal({ initial, onSave, onDelete, onClose, t }) {
    ────────────────────────────────────────────────────────────────────── */
 function ItemForm({ initial, cur, t, onSave, onDelete, onClose }) {
   const initStatus = itemStatus(initial ?? {})
-  const [emoji,        setEmoji]       = useState(initial?.emoji ?? '📦')
+  const initialEmoji = initial?.emoji ?? '📦'
+  const [emoji,        setEmoji]       = useState(initialEmoji)
+  const [customEmoji,  setCustomEmoji] = useState(ITEM_EMOJIS.includes(initialEmoji) ? '' : initialEmoji)
   const [showEmoji,    setShowEmoji]   = useState(false)
   const [name,         setName]        = useState(initial?.name ?? '')
   const [cost,         setCost]        = useState(initial?.cost?.toString() ?? '')
@@ -279,6 +282,7 @@ function ItemForm({ initial, cur, t, onSave, onDelete, onClose }) {
   const [removeCover,  setRemoveCover] = useState(false)
   const [saving,       setSaving]      = useState(false)
   const [saveError,    setSaveError]   = useState(false)
+  const customEmojiValid = !customEmoji || isSingleEmoji(customEmoji)
 
   useEffect(() => () => {
     if (coverPreview?.startsWith('blob:')) URL.revokeObjectURL(coverPreview)
@@ -303,6 +307,7 @@ function ItemForm({ initial, cur, t, onSave, onDelete, onClose }) {
 
   async function handleSubmit(e) {
     e.preventDefault(); setSaving(true); setSaveError(false)
+    if (!customEmojiValid) { setSaving(false); return }
     const status = retired ? 'retired' : sold ? 'sold' : 'active'
     try {
       await onSave(
@@ -341,10 +346,27 @@ function ItemForm({ initial, cur, t, onSave, onDelete, onClose }) {
             {showEmoji && (
               <div className="jsave-emoji-picker">
                 {ITEM_EMOJIS.map(value => (
-                  <button key={value} type="button" className={emoji === value ? 'active' : ''} onClick={() => { setEmoji(value); setShowEmoji(false) }}>{value}</button>
+                  <button key={value} type="button" className={emoji === value ? 'active' : ''} onClick={() => { setEmoji(value); setCustomEmoji(''); setShowEmoji(false) }}>{value}</button>
                 ))}
+                <label className="jsave-custom-emoji">
+                  <span>{t('itemEmojiCustom')}</span>
+                  <input
+                    type="text"
+                    value={customEmoji}
+                    maxLength={24}
+                    placeholder={t('itemEmojiCustomPh')}
+                    aria-invalid={!customEmojiValid}
+                    onChange={event => {
+                      const value = event.target.value
+                      setCustomEmoji(value)
+                      const validEmoji = singleEmoji(value)
+                      if (validEmoji) setEmoji(validEmoji)
+                    }}
+                  />
+                </label>
               </div>
             )}
+            {!customEmojiValid && <p className="jsave-error" style={{ marginTop: 7 }}>{t('itemEmojiInvalid')}</p>}
           </div>
           <div><label className="jsave-label">{t('itemName')}</label>
             <input className="jsave-input" placeholder={t('itemNamePh')} value={name} onChange={e => setName(e.target.value)} required /></div>
@@ -370,7 +392,7 @@ function ItemForm({ initial, cur, t, onSave, onDelete, onClose }) {
           <div className="jsave-form-actions">
             {initial?.id && <button type="button" className="jsave-btn-danger" onClick={onDelete}>{t('itemDelete')}</button>}
             <button type="button" className="jsave-btn-ghost" onClick={onClose}>{t('itemCancel')}</button>
-            <button type="submit" className="jsave-btn-primary" disabled={saving}>{t('itemSave')}</button>
+            <button type="submit" className="jsave-btn-primary" disabled={saving || !customEmojiValid}>{t('itemSave')}</button>
           </div>
           {saveError && <p className="jsave-error">{t('itemCoverError')}</p>}
         </form>

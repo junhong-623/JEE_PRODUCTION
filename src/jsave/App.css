@@ -581,6 +581,10 @@ input[type="number"].jsave-input::-webkit-outer-spin-button { -webkit-appearance
 .jsave-emoji-picker { margin-top: 9px; padding: 9px; display: flex; flex-wrap: wrap; gap: 6px; border: 1px solid rgba(241,245,249,.08); border-radius: 12px; background: rgba(8,18,32,.96); }
 .jsave-emoji-picker button { width: 36px; height: 36px; border: 1px solid transparent; border-radius: 9px; background: rgba(255,255,255,.04); font-size: 19px; cursor: pointer; }
 .jsave-emoji-picker button.active { border-color: rgba(16,185,129,.48); background: rgba(16,185,129,.16); }
+.jsave-custom-emoji { width: 100%; margin-top: 4px; padding-top: 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid rgba(241,245,249,.07); color: rgba(241,245,249,.48); font: 600 10px var(--font-sans); }
+.jsave-custom-emoji input { width: 132px; padding: 7px 9px; border: 1px solid rgba(241,245,249,.1); border-radius: 8px; outline: 0; color: #f1f5f9; background: rgba(255,255,255,.035); font: 18px var(--font-sans); text-align: center; }
+.jsave-custom-emoji input:focus { border-color: rgba(16,185,129,.52); }
+.jsave-custom-emoji input[aria-invalid="true"] { border-color: rgba(244,63,94,.65); }
 .jsave-goal-tabs { margin-bottom: 18px; display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid rgba(241,245,249,.09); }
 .jsave-goal-tabs button { position: relative; padding: 10px 8px 11px; border: 0; color: rgba(241,245,249,.45); background: transparent; font: 600 12px var(--font-sans); cursor: pointer; }
 .jsave-goal-tabs button::after { content: ''; position: absolute; right: 28%; bottom: -1px; left: 28%; height: 2px; background: #10b981; transform: scaleX(0); transition: transform .18s; }

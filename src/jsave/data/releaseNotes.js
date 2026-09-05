@@ -1,8 +1,23 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.1.6',
+    version: '3.1.7',
     date: '2026-09-05',
     isLatest: true,
+    items: [
+      'Added custom emoji input for items while retaining all default choices',
+      'Custom item icons now accept exactly one visible emoji, including joined and flag emoji',
+      'Invalid text, mixed content and multiple emoji are clearly rejected before saving',
+    ],
+    itemsZh: [
+      '物品新增自定义 emoji 输入，同时完整保留所有默认选项',
+      '自定义物品图标只接受一个可见 emoji，并支持组合与国旗 emoji',
+      '文字、混合内容与多个 emoji 会在保存前明确拦截',
+    ],
+  },
+  {
+    version: '3.1.6',
+    date: '2026-09-05',
+    isLatest: false,
     items: [
       'Items now support a custom emoji or an account-scoped, cropped photo',
       'Kept the add action available in the header when switching from goals to items',
