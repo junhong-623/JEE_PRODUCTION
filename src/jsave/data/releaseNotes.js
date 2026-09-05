@@ -1,8 +1,29 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.1.1',
+    version: '3.1.2',
     date: '2026-09-05',
     isLatest: true,
+    items: [
+      'Added viewport-triggered reveals inspired by the H Agency site, with reduced-motion support',
+      'Expanded the introduction with a four-step monthly journey and a connected product toolkit',
+      'Added two original Malaysian lifestyle scenes using genuine JSave record and goal interfaces',
+      'Made the phone demo navigation interactive and anchored its slimmer tab bar to the device bottom',
+      'Restyled informational feature tags as non-interactive notes and balanced the overview headline',
+      'Linked the footer credit directly to the Jee Production website',
+    ],
+    itemsZh: [
+      '新增参考 H Agency 的视口触发显现动画，并支持减少动态效果偏好',
+      '新增四步月度使用流程与完整产品工具介绍，让页面内容更充实',
+      '新增两张原创马来西亚生活场景图片，并采用真实的 JSave 记账与目标界面',
+      '手机演示的底部导航现可切换页面，并以更轻巧的尺寸固定在设备底部',
+      '功能标签改为明确的非交互说明，并重新平衡概览标题的桌面换行',
+      '页尾 Jee Production 署名现可直接前往官方网站',
+    ],
+  },
+  {
+    version: '3.1.1',
+    date: '2026-09-05',
+    isLatest: false,
     items: [
       'Rebuilt the JSave introduction around three clear product stories instead of an emoji feature wall',
       'Phone layouts now stay complete at narrow mobile widths with no hidden or clipped sections',

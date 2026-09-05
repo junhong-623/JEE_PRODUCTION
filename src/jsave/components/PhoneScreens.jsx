@@ -28,26 +28,27 @@ function PhoneTopChrome({ pageLabel, pageNum }) {
   )
 }
 
-function PhoneTabbar({ active }) {
+function PhoneTabbar({ active, lang = 'en', onNavigate }) {
   const tabs = [
-    { id: 'home', icon: '◳', en: 'Home' },
-    { id: 'tx',   icon: '≡', en: 'Ledger' },
-    { id: 'add',  icon: '＋', en: '' },
-    { id: 'ins',  icon: '◔', en: 'Insights' },
-    { id: 'goal', icon: '◉', en: 'Goals' },
+    { id: 'home', index: 0, icon: '◳', en: 'Home', zh: '主页' },
+    { id: 'tx',   index: 1, icon: '≡', en: 'Ledger', zh: '账本' },
+    { id: 'add',  index: 2, icon: '＋', en: 'Add', zh: '新增' },
+    { id: 'ins',  index: 3, icon: '◔', en: 'Insights', zh: '洞察' },
+    { id: 'goal', index: 4, icon: '◉', en: 'Goals', zh: '目标' },
   ]
   return (
-    <div style={{ position: 'sticky', bottom: 0, margin: '24px 14px 18px', padding: '8px', borderRadius: 24, background: 'rgba(8, 18, 32, 0.7)', backdropFilter: 'blur(20px) saturate(160%)', WebkitBackdropFilter: 'blur(20px) saturate(160%)', border: '1px solid rgba(241,245,249,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <div role="tablist" aria-label={lang === 'zh' ? '产品页面' : 'Product screens'} style={{ position: 'absolute', zIndex: 40, left: 12, right: 12, bottom: 18, margin: 0, padding: '5px 6px', borderRadius: 21, background: 'rgba(8, 18, 32, 0.78)', boxShadow: '0 10px 28px rgba(0,0,0,.28)', backdropFilter: 'blur(20px) saturate(160%)', WebkitBackdropFilter: 'blur(20px) saturate(160%)', border: '1px solid rgba(241,245,249,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
       {tabs.map((t) => {
         const isActive = active === t.id
+        const label = lang === 'zh' ? t.zh : t.en
         if (t.id === 'add') return (
-          <div key={t.id} style={{ width: 44, height: 44, borderRadius: 16, background: 'linear-gradient(135deg, #10b981, #059669)', boxShadow: '0 6px 18px rgba(16,185,129,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#04140d', fontSize: 22, fontWeight: 600 }}>＋</div>
+          <button type="button" role="tab" aria-label={label} aria-selected={isActive} key={t.id} onClick={() => onNavigate?.(t.index)} tabIndex={onNavigate ? 0 : -1} style={{ width: 42, height: 42, padding: 0, border: 0, borderRadius: 15, background: 'linear-gradient(135deg, #10b981, #059669)', boxShadow: isActive ? '0 0 0 2px rgba(241,245,249,.7), 0 6px 18px rgba(16,185,129,0.48)' : '0 6px 18px rgba(16,185,129,0.38)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#04140d', fontSize: 21, fontWeight: 650, cursor: onNavigate ? 'pointer' : 'default' }}>＋</button>
         )
         return (
-          <div key={t.id} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '6px 0', color: isActive ? JS_EMERALD : 'rgba(241,245,249,0.4)' }}>
+          <button type="button" role="tab" aria-label={label} aria-selected={isActive} key={t.id} onClick={() => onNavigate?.(t.index)} tabIndex={onNavigate ? 0 : -1} style={{ flex: 1, minWidth: 0, padding: '4px 0', border: 0, background: 'transparent', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, color: isActive ? JS_EMERALD : 'rgba(241,245,249,0.4)', cursor: onNavigate ? 'pointer' : 'default' }}>
             <div style={{ fontSize: 14 }}>{t.icon}</div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, letterSpacing: 1.2 }}>{t.en.toUpperCase()}</div>
-          </div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 7.5, letterSpacing: lang === 'zh' ? 0.4 : 1.1 }}>{label.toUpperCase()}</div>
+          </button>
         )
       })}
     </div>
@@ -55,7 +56,7 @@ function PhoneTabbar({ active }) {
 }
 
 /* ── 1. Dashboard ─────────────────────────────────────────────────────── */
-export function PhoneDashboard({ lang = 'en', accent = JS_EMERALD }) {
+export function PhoneDashboard({ lang = 'en', accent = JS_EMERALD, onNavigate }) {
   const trend = [42, 38, 51, 47, 58, 62, 55, 68, 72, 69, 78, 84, 81, 92]
   const t = lang === 'zh' ? {
     title: '主页', num: '00 / 主页',
@@ -140,13 +141,13 @@ export function PhoneDashboard({ lang = 'en', accent = JS_EMERALD }) {
           ))}
         </div>
       </div>
-      <PhoneTabbar active="home" />
+      <PhoneTabbar active="home" lang={lang} onNavigate={onNavigate} />
     </div>
   )
 }
 
 /* ── 2. Ledger ────────────────────────────────────────────────────────── */
-export function PhoneTransactions({ lang = 'en' }) {
+export function PhoneTransactions({ lang = 'en', onNavigate }) {
   const t = lang === 'zh' ? {
     title: '账本', num: '01 / 账本', sum: '本月支出', net: '本月净存',
     filters: ['全部', '支出', '收入', '订阅'],
@@ -220,13 +221,13 @@ export function PhoneTransactions({ lang = 'en' }) {
           </div>
         ))}
       </div>
-      <PhoneTabbar active="tx" />
+      <PhoneTabbar active="tx" lang={lang} onNavigate={onNavigate} />
     </div>
   )
 }
 
 /* ── 3. Add ───────────────────────────────────────────────────────────── */
-export function PhoneAdd({ lang = 'en' }) {
+export function PhoneAdd({ lang = 'en', onNavigate }) {
   const t = lang === 'zh' ? {
     title: '新增', num: '02 / 新增', type: ['支出', '收入', '转账'],
     amount: '金额', cat: '类别', note: '备注', account: '账户', when: '时间',
@@ -277,13 +278,13 @@ export function PhoneAdd({ lang = 'en' }) {
           {t.save} <span style={{ fontSize: 14 }}>→</span>
         </button>
       </div>
-      <PhoneTabbar active="add" />
+      <PhoneTabbar active="add" lang={lang} onNavigate={onNavigate} />
     </div>
   )
 }
 
 /* ── 4. Insights ──────────────────────────────────────────────────────── */
-export function PhoneInsights({ lang = 'en' }) {
+export function PhoneInsights({ lang = 'en', onNavigate }) {
   const t = lang === 'zh' ? {
     title: '洞察', num: '03 / 洞察', breakdown: '本月支出明细', total: '本月总额',
     weekly: '七日趋势', smarter: 'AI 建议',
@@ -340,13 +341,13 @@ export function PhoneInsights({ lang = 'en' }) {
         </div>
         <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.6, color: 'rgba(241,245,249,0.85)' }}>{t.tip}</div>
       </div>
-      <PhoneTabbar active="ins" />
+      <PhoneTabbar active="ins" lang={lang} onNavigate={onNavigate} />
     </div>
   )
 }
 
 /* ── 5. Goals ─────────────────────────────────────────────────────────── */
-export function PhoneGoals({ lang = 'en' }) {
+export function PhoneGoals({ lang = 'en', onNavigate }) {
   const t = lang === 'zh' ? {
     title: '目标', num: '04 / 目标', active: '进行中', upcoming: '即将开始',
     primary: { name: 'Tokyo 2026', emoji: '✈️', sub: '日本 · 10 月', cur: 7240, target: 10000, days: 142, pace: '+RM 480/月' },
@@ -415,7 +416,7 @@ export function PhoneGoals({ lang = 'en' }) {
           ))}
         </div>
       </div>
-      <PhoneTabbar active="goal" />
+      <PhoneTabbar active="goal" lang={lang} onNavigate={onNavigate} />
     </div>
   )
 }

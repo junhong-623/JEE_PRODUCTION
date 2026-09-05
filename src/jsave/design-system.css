@@ -328,6 +328,7 @@
 .js-phone-shell {
   height: 100%; background: #050d1a;
   color: var(--js-ink); font-family: var(--font-sans);
+  box-sizing: border-box; padding-bottom: 82px;
   overflow: auto; scrollbar-width: none;
 }
 .js-phone-shell::-webkit-scrollbar { display: none; }
