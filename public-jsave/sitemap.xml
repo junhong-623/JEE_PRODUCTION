@@ -3,7 +3,7 @@
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://jsave.jeeprod.com/</loc>
-    <lastmod>2026-09-05</lastmod>
+    <lastmod>2026-09-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://jsave.jeeprod.com/en/" />
@@ -12,7 +12,7 @@
   </url>
   <url>
     <loc>https://jsave.jeeprod.com/en/</loc>
-    <lastmod>2026-09-05</lastmod>
+    <lastmod>2026-09-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://jsave.jeeprod.com/en/" />
@@ -21,11 +21,65 @@
   </url>
   <url>
     <loc>https://jsave.jeeprod.com/zh/</loc>
-    <lastmod>2026-09-05</lastmod>
+    <lastmod>2026-09-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://jsave.jeeprod.com/en/" />
     <xhtml:link rel="alternate" hreflang="zh" href="https://jsave.jeeprod.com/zh/" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://jsave.jeeprod.com/" />
+  </url>
+  <url>
+    <loc>https://jsave.jeeprod.com/en/articles/offline-expense-tracking/</loc>
+    <lastmod>2026-09-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://jsave.jeeprod.com/en/articles/offline-expense-tracking/" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://jsave.jeeprod.com/zh/articles/offline-expense-tracking/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://jsave.jeeprod.com/en/articles/offline-expense-tracking/" />
+  </url>
+  <url>
+    <loc>https://jsave.jeeprod.com/zh/articles/offline-expense-tracking/</loc>
+    <lastmod>2026-09-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://jsave.jeeprod.com/en/articles/offline-expense-tracking/" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://jsave.jeeprod.com/zh/articles/offline-expense-tracking/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://jsave.jeeprod.com/en/articles/offline-expense-tracking/" />
+  </url>
+  <url>
+    <loc>https://jsave.jeeprod.com/en/articles/malaysia-daily-budget/</loc>
+    <lastmod>2026-09-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://jsave.jeeprod.com/en/articles/malaysia-daily-budget/" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://jsave.jeeprod.com/zh/articles/malaysia-daily-budget/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://jsave.jeeprod.com/en/articles/malaysia-daily-budget/" />
+  </url>
+  <url>
+    <loc>https://jsave.jeeprod.com/zh/articles/malaysia-daily-budget/</loc>
+    <lastmod>2026-09-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://jsave.jeeprod.com/en/articles/malaysia-daily-budget/" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://jsave.jeeprod.com/zh/articles/malaysia-daily-budget/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://jsave.jeeprod.com/en/articles/malaysia-daily-budget/" />
+  </url>
+  <url>
+    <loc>https://jsave.jeeprod.com/en/articles/jsave-vs-expense-apps/</loc>
+    <lastmod>2026-09-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://jsave.jeeprod.com/en/articles/jsave-vs-expense-apps/" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://jsave.jeeprod.com/zh/articles/jsave-vs-expense-apps/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://jsave.jeeprod.com/en/articles/jsave-vs-expense-apps/" />
+  </url>
+  <url>
+    <loc>https://jsave.jeeprod.com/zh/articles/jsave-vs-expense-apps/</loc>
+    <lastmod>2026-09-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://jsave.jeeprod.com/en/articles/jsave-vs-expense-apps/" />
+    <xhtml:link rel="alternate" hreflang="zh" href="https://jsave.jeeprod.com/zh/articles/jsave-vs-expense-apps/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://jsave.jeeprod.com/en/articles/jsave-vs-expense-apps/" />
   </url>
 </urlset>

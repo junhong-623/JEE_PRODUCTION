@@ -1,8 +1,23 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.2.3',
+    version: '3.3.0',
     date: '2026-09-06',
     isLatest: true,
+    items: [
+      'Published three substantial bilingual guides about offline reliability, practical Malaysian daily budgets and choosing an expense tracker',
+      'Added original editorial photography, article reading navigation and related-guide discovery',
+      'Added crawlable article HTML, structured Article data, canonical language pairs and sitemap entries',
+    ],
+    itemsZh: [
+      '发布三篇完整双语指南，深入介绍离线可靠性、马来西亚每日预算及记账工具选择',
+      '加入原创编辑摄影、文章阅读导航及相关文章入口',
+      '加入可抓取文章正文、Article 结构化资料、中英文规范网址配对及网站地图',
+    ],
+  },
+  {
+    version: '3.2.3',
+    date: '2026-09-06',
+    isLatest: false,
     items: [
       'Replaced the plain initial loading text with a polished JSave startup screen',
       'Unified the full viewport and phone safe-area background to remove visible color seams',

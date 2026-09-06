@@ -7,6 +7,15 @@ English: https://jsave.jeeprod.com/en/
 中文: https://jsave.jeeprod.com/zh/
 Developer: https://www.jeeprod.com/
 
+## Guides
+
+- Reliable offline expense tracking: https://jsave.jeeprod.com/en/articles/offline-expense-tracking/
+- A practical daily budget for Malaysia: https://jsave.jeeprod.com/en/articles/malaysia-daily-budget/
+- JSave compared with typical expense apps: https://jsave.jeeprod.com/en/articles/jsave-vs-expense-apps/
+- 中文指南：https://jsave.jeeprod.com/zh/articles/offline-expense-tracking/
+- 马来西亚每日预算：https://jsave.jeeprod.com/zh/articles/malaysia-daily-budget/
+- JSave 与一般记账 App：https://jsave.jeeprod.com/zh/articles/jsave-vs-expense-apps/
+
 ## What JSave does
 
 - Records income, expenses and transfers without requiring bank credentials.

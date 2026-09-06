@@ -29,6 +29,9 @@ describe('JSave search discovery', () => {
     expect(sitemap).toContain('<loc>https://jsave.jeeprod.com/en/</loc>')
     expect(sitemap).toContain('<loc>https://jsave.jeeprod.com/zh/</loc>')
     expect(sitemap).toContain('hreflang="x-default"')
+    expect(sitemap).toContain('/en/articles/offline-expense-tracking/')
+    expect(sitemap).toContain('/zh/articles/malaysia-daily-budget/')
+    expect(sitemap).toContain('/en/articles/jsave-vs-expense-apps/')
   })
 
   it('redirects duplicate Jee Production routes to the canonical product site', () => {

@@ -10,6 +10,7 @@ import { installState, isStandalone, setupPwaInstall, doInstall } from './instal
 import { db } from '../lib/firebase'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import { toLocalDateString } from './utils/date'
+import { articleRoute } from './data/articleRoutes'
 import './design-system.css'
 import './App.css'
 
@@ -22,6 +23,7 @@ const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const GoalsPage = lazy(() => import('./pages/GoalsPage'))
 const AdminPage = lazy(() => import('./pages/AdminPage'))
 const TransactionForm = lazy(() => import('./components/TransactionForm'))
+const ArticlePage = lazy(() => import('./pages/ArticlePage'))
 
 function PageFallback() {
   return <LoadingScreen />
@@ -257,9 +259,21 @@ function JSaveShell() {
 export default function JSaveApp() {
   return (
     <LangProvider>
-      <JSaveDataProvider />
+      <JSaveRoute />
     </LangProvider>
   )
+}
+
+function JSaveRoute() {
+  const article = articleRoute()
+  if (article) {
+    return (
+      <Suspense fallback={<PageFallback />}>
+        <ArticlePage slug={article.slug} language={article.language} />
+      </Suspense>
+    )
+  }
+  return <JSaveDataProvider />
 }
 
 function JSaveDataProvider() {

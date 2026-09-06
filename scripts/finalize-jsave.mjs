@@ -1,5 +1,7 @@
 import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { relative, resolve } from 'node:path'
+import { ARTICLES } from '../src/jsave/data/articles.js'
+import { articleHref } from '../src/jsave/data/articleRoutes.js'
 
 const outputDirectory = resolve('dist-jsave')
 
@@ -98,6 +100,89 @@ function localizedHtml(source, language, page) {
     .replace(/<main id="jsave-seo-fallback">[\s\S]*?<\/main>/, page.fallback.trim())
 }
 
+function escapeHtml(value = '') {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+}
+
+function renderArticleFallback(article, language) {
+  const copy = article.locales[language]
+  const zh = language === 'zh'
+  const sectionMarkup = copy.sections.map((section, index) => `
+    <section id="section-${index + 1}">
+      <p class="seo-eyebrow">${String(index + 1).padStart(2, '0')}</p>
+      <h2>${escapeHtml(section.title)}</h2>
+      ${section.paragraphs.map(paragraph => `<p>${escapeHtml(paragraph)}</p>`).join('\n')}
+      ${section.list ? `<ul>${section.list.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>` : ''}
+      ${section.callout ? `<aside><h3>${escapeHtml(section.callout.title)}</h3><p>${escapeHtml(section.callout.body)}</p></aside>` : ''}
+      ${section.table ? `<div class="seo-table"><table><thead><tr>${section.table.headers.map(header => `<th>${escapeHtml(header)}</th>`).join('')}</tr></thead><tbody>${section.table.rows.map(row => `<tr>${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` : ''}
+    </section>`).join('\n')
+
+  return `
+    <main id="jsave-seo-fallback" class="seo-article">
+      <header>
+        <a href="/${language}/">← ${zh ? '返回 JSave 首页' : 'Back to JSave home'}</a>
+        <p class="seo-eyebrow">${escapeHtml(copy.category)} · JSave</p>
+        <h1>${escapeHtml(copy.title)}</h1>
+        <p>${escapeHtml(copy.deck)}</p>
+        <p>${escapeHtml(copy.readingTime)} · Jee Production · ${article.publishedAt}</p>
+        <img src="${article.image}" alt="${escapeHtml(copy.imageAlt)}" width="1600" height="1067" />
+      </header>
+      <section class="seo-summary">
+        <h2>${escapeHtml(copy.takeawaysTitle)}</h2>
+        <ul>${copy.takeaways.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+      </section>
+      ${sectionMarkup}
+      <section>
+        <h2>${escapeHtml(copy.sourcesTitle)}</h2>
+        <ul>${copy.sources.map(source => `<li><a href="${escapeHtml(source.url)}">${escapeHtml(source.label)}</a> — ${escapeHtml(source.note)}</li>`).join('')}</ul>
+        ${copy.disclaimer ? `<p>${escapeHtml(copy.disclaimer)}</p>` : ''}
+      </section>
+      <footer><p>© 2026 JSave · <a href="https://www.jeeprod.com/">Jee Production</a></p></footer>
+    </main>`
+}
+
+function articleHtml(source, article, language) {
+  const copy = article.locales[language]
+  const url = `https://jsave.jeeprod.com${articleHref(article.slug, language)}`
+  const image = `https://jsave.jeeprod.com${article.image}`
+  const alternate = otherLanguage => `https://jsave.jeeprod.com${articleHref(article.slug, otherLanguage)}`
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: copy.title,
+    description: copy.deck,
+    image,
+    datePublished: article.publishedAt,
+    dateModified: article.publishedAt,
+    inLanguage: language === 'zh' ? 'zh-CN' : 'en-MY',
+    mainEntityOfPage: url,
+    author: { '@type': 'Organization', name: 'Jee Production', url: 'https://www.jeeprod.com/' },
+    publisher: { '@type': 'Organization', name: 'Jee Production', url: 'https://www.jeeprod.com/' },
+  }
+
+  const articleSource = source.replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/, '')
+
+  return localizedHtml(articleSource, language === 'zh' ? 'zh-CN' : 'en-MY', {
+    title: `${escapeHtml(copy.title)} · JSave`,
+    description: escapeHtml(copy.deck),
+    url,
+    fallback: renderArticleFallback(article, language),
+  })
+    .replace('<meta property="og:type" content="website" />', '<meta property="og:type" content="article" />')
+    .replace(/<meta property="og:image" content="[^"]*" \/>/, `<meta property="og:image" content="${image}" />`)
+    .replace(/<meta property="og:image:alt" content="[^"]*" \/>/, `<meta property="og:image:alt" content="${escapeHtml(copy.imageAlt)}" />`)
+    .replace(/<meta name="twitter:image" content="[^"]*" \/>/, `<meta name="twitter:image" content="${image}" />`)
+    .replace(/<link rel="alternate" hreflang="en" href="[^"]*" \/>/, `<link rel="alternate" hreflang="en" href="${alternate('en')}" />`)
+    .replace(/<link rel="alternate" hreflang="zh" href="[^"]*" \/>/, `<link rel="alternate" hreflang="zh" href="${alternate('zh')}" />`)
+    .replace(/<link rel="alternate" hreflang="x-default" href="[^"]*" \/>/, `<link rel="alternate" hreflang="x-default" href="${alternate('en')}" />`)
+    .replace('</head>', `<meta property="article:published_time" content="${article.publishedAt}" /><script type="application/ld+json">${JSON.stringify(schema).replaceAll('<', '\\u003c')}</script></head>`)
+}
+
 const builtHtmlPath = resolve(outputDirectory, 'jsave.html')
 const builtHtml = readFileSync(builtHtmlPath, 'utf8')
 
@@ -105,6 +190,14 @@ for (const [language, page] of Object.entries(localePages)) {
   const localeDirectory = resolve(outputDirectory, language)
   mkdirSync(localeDirectory, { recursive: true })
   writeFileSync(resolve(localeDirectory, 'index.html'), localizedHtml(builtHtml, language, page))
+}
+
+for (const article of ARTICLES) {
+  for (const language of ['en', 'zh']) {
+    const articleDirectory = resolve(outputDirectory, language, 'articles', article.slug)
+    mkdirSync(articleDirectory, { recursive: true })
+    writeFileSync(resolve(articleDirectory, 'index.html'), articleHtml(builtHtml, article, language))
+  }
 }
 
 function filesIn(directory) {
@@ -127,4 +220,4 @@ writeFileSync(
   `${JSON.stringify({ assets }, null, 2)}\n`,
 )
 
-console.log(`✓ JSave localized pages and precache manifest generated (${assets.length} files)`)
+console.log(`✓ JSave localized pages, ${ARTICLES.length * 2} article pages and precache manifest generated (${assets.length} files)`)

@@ -9,12 +9,13 @@ import {
   PhoneTransactions,
 } from '../jsave/components/PhoneScreens'
 import { JSAVE_BASE } from '../jsave/utils/basePath'
+import { ARTICLE_SUMMARIES, articleHref } from '../jsave/data/articleRoutes'
 import '../jsave/design-system.css'
 import './JSaveIntro.css'
 
 const COPY = {
   en: {
-    nav: ['Overview', 'How it works', 'Product', 'Principles'],
+    nav: ['Overview', 'How it works', 'Product', 'Guides', 'Principles'],
     open: 'Open JSave', install: 'Install',
     eyebrow: 'Personal finance, without the noise',
     heroA: 'Spend clearly.', heroB: 'Save calmly.',
@@ -61,6 +62,9 @@ const COPY = {
       { no: '05', title: 'Recurring', body: 'Let predictable monthly entries appear once, reliably, across your devices.' },
       { no: '06', title: 'Your data', body: 'Use it offline, sync it privately, and export it when you choose.' },
     ],
+    guidesKicker: 'JSave GUIDES', guidesTitle: 'Useful thinking, beyond the interface.',
+    guidesBody: 'Long-form, practical guides to building a calmer money routine—grounded in real Malaysian life and the decisions behind JSave.',
+    guidesRead: 'Read guide',
     principlesKicker: 'OUR PRINCIPLES', principlesTitle: 'Built to earn a place in your routine.',
     principles: [
       { title: 'Manual on purpose', body: 'You decide what enters the ledger. JSave never asks for bank credentials.' },
@@ -78,7 +82,7 @@ const COPY = {
     footer: 'Designed and built in Kuala Lumpur.', close: 'Close', menu: 'Menu',
   },
   zh: {
-    nav: ['概览', '使用方式', '产品', '原则'], open: '打开 JSave', install: '安装',
+    nav: ['概览', '使用方式', '产品', '指南', '原则'], open: '打开 JSave', install: '安装',
     eyebrow: '个人理财，不需要噪音', heroA: '花得清楚。', heroB: '存得从容。',
     heroBody: '为马来西亚日常生活而做的专注理财伙伴。几秒记下一笔，看懂自己的节奏，继续走向真正重要的目标。',
     start: '免费开始', explore: '看看产品', assurances: ['无需连接银行', '离线可用', '中文 + English'],
@@ -119,6 +123,9 @@ const COPY = {
       { no: '05', title: '周期记账', body: '固定月度项目只生成一次，并可靠同步到不同设备。' },
       { no: '06', title: '你的数据', body: '离线使用、私人同步，并在你选择时自由导出。' },
     ],
+    guidesKicker: 'JSave 指南', guidesTitle: '不只介绍功能，也认真谈怎样使用。',
+    guidesBody: '围绕真实马来西亚生活写成的长篇实用指南，解释怎样建立更安静、可持续的金钱习惯，以及 JSave 背后的产品取舍。',
+    guidesRead: '阅读指南',
     principlesKicker: '产品原则', principlesTitle: '值得留在你日常里的工具。',
     principles: [
       { title: '有意采用手动记录', body: '由你决定什么进入账本。JSave 永远不会索取银行登录资料。' },
@@ -149,6 +156,8 @@ const PWA_STEPS = {
     desktop: ['在地址栏寻找安装图标', '选择「安装」'],
   },
 }
+
+const NAV_TARGETS = ['#overview', '#journey', '#product', '#guides', '#principles']
 
 function Device({ children }) {
   return <div className="ji-device-viewport"><div className="ji-device-scale"><IOSDevice width={390} height={844} dark>{children}</IOSDevice></div></div>
@@ -205,6 +214,7 @@ export default function JSaveIntro({ onOpenApp, withHead = true, language, onLan
   const lang = language || localLanguage
   const zh = lang === 'zh'
   const c = COPY[lang]
+  const guideArticles = ARTICLE_SUMMARIES.map(article => ({ ...article, copy: article.locales[lang] }))
   const appHref = onOpenApp ? '#' : 'https://jsave.jeeprod.com'
 
   const screens = [
@@ -258,7 +268,7 @@ export default function JSaveIntro({ onOpenApp, withHead = true, language, onLan
       <nav className="ji-nav" aria-label={zh ? '主要导航' : 'Primary navigation'}>
         <div className="ji-nav-inner">
           <a className="ji-brand" href="#top" aria-label="JSave home"><span className="ji-brand-mark">J</span><span>JSave</span></a>
-          <div className="ji-nav-links">{c.nav.map((item, index) => <a key={item} href={['#overview', '#journey', '#product', '#principles'][index]}>{item}</a>)}</div>
+          <div className="ji-nav-links">{c.nav.map((item, index) => <a key={item} href={NAV_TARGETS[index]}>{item}</a>)}</div>
           <div className="ji-nav-actions">
             <button className="ji-language" onClick={changeLanguage} aria-label={zh ? 'Switch to English' : '切换到中文'}>{zh ? 'EN' : '中文'}</button>
             <a className="ji-nav-open" href={appHref} onClick={handleOpenApp}>{c.open}</a>
@@ -266,7 +276,7 @@ export default function JSaveIntro({ onOpenApp, withHead = true, language, onLan
           </div>
         </div>
         {menuOpen && <div className="ji-mobile-menu">
-          {c.nav.map((item, index) => <a key={item} href={['#overview', '#journey', '#product', '#principles'][index]} onClick={() => setMenuOpen(false)}>{item}</a>)}
+          {c.nav.map((item, index) => <a key={item} href={NAV_TARGETS[index]} onClick={() => setMenuOpen(false)}>{item}</a>)}
           <a href={appHref} onClick={event => { setMenuOpen(false); handleOpenApp(event) }}>{c.open}</a>
         </div>}
       </nav>
@@ -354,6 +364,16 @@ export default function JSaveIntro({ onOpenApp, withHead = true, language, onLan
       <section className="ji-toolkit">
         <Reveal className="ji-toolkit-heading"><p className="ji-kicker">{c.toolkitKicker}</p><h2>{c.toolkitTitle}</h2><p>{c.toolkitBody}</p></Reveal>
         <div className="ji-toolkit-grid">{c.toolkit.map((item, index) => <Reveal as="article" direction="scale" delay={(index % 3) * 90} key={item.no}><span>{item.no}</span><h3>{item.title}</h3><p>{item.body}</p></Reveal>)}</div>
+      </section>
+
+      <section id="guides" className="ji-guides">
+        <Reveal className="ji-guides-heading"><p className="ji-kicker">{c.guidesKicker}</p><h2>{c.guidesTitle}</h2><p>{c.guidesBody}</p></Reveal>
+        <div className="ji-guides-grid">{guideArticles.map((article, index) => <Reveal as="article" direction="scale" delay={index * 90} key={article.slug}>
+          <a href={articleHref(article.slug, lang)}>
+            <div className="ji-guide-image"><img src={article.image} alt="" loading="lazy" width="1600" height="1067" /><span>{String(index + 1).padStart(2, '0')}</span></div>
+            <p>{article.copy.category}</p><h3>{article.copy.title}</h3><div>{article.copy.deck}</div><b>{c.guidesRead}<ArrowIcon /></b>
+          </a>
+        </Reveal>)}</div>
       </section>
 
       <section id="principles" className="ji-principles">
