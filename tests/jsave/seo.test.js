@@ -28,6 +28,8 @@ describe('JSave search discovery', () => {
     expect(sitemap).toContain('<loc>https://jsave.jeeprod.com/</loc>')
     expect(sitemap).toContain('<loc>https://jsave.jeeprod.com/en/</loc>')
     expect(sitemap).toContain('<loc>https://jsave.jeeprod.com/zh/</loc>')
+    expect(sitemap).toContain('<loc>https://jsave.jeeprod.com/en/guides/</loc>')
+    expect(sitemap).toContain('<loc>https://jsave.jeeprod.com/zh/guides/</loc>')
     expect(sitemap).toContain('hreflang="x-default"')
     expect(sitemap).toContain('/en/articles/offline-expense-tracking/')
     expect(sitemap).toContain('/zh/articles/malaysia-daily-budget/')

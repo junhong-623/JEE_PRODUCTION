@@ -1,8 +1,23 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.3.0',
+    version: '3.3.1',
     date: '2026-09-06',
     isLatest: true,
+    items: [
+      'Added a dedicated bilingual JSave Guides index that stays accessible whether signed in or not',
+      'Back to JSave Guides now returns to the guide collection instead of the product homepage',
+      'Added restrained entry and scroll animations throughout the guides with reduced-motion support',
+    ],
+    itemsZh: [
+      '新增独立的中英文 JSave 指南目录，登录前后都可以直接浏览',
+      '「返回 JSave 指南」现在会回到指南目录，不再跳到产品首页',
+      '为指南加入克制的入场及滚动动画，并完整支持减少动态效果偏好',
+    ],
+  },
+  {
+    version: '3.3.0',
+    date: '2026-09-06',
+    isLatest: false,
     items: [
       'Published three substantial bilingual guides about offline reliability, practical Malaysian daily budgets and choosing an expense tracker',
       'Added original editorial photography, article reading navigation and related-guide discovery',

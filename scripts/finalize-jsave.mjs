@@ -1,7 +1,7 @@
 import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { relative, resolve } from 'node:path'
 import { ARTICLES } from '../src/jsave/data/articles.js'
-import { articleHref } from '../src/jsave/data/articleRoutes.js'
+import { ARTICLE_SUMMARIES, articleHref, guidesHref } from '../src/jsave/data/articleRoutes.js'
 
 const outputDirectory = resolve('dist-jsave')
 
@@ -183,6 +183,61 @@ function articleHtml(source, article, language) {
     .replace('</head>', `<meta property="article:published_time" content="${article.publishedAt}" /><script type="application/ld+json">${JSON.stringify(schema).replaceAll('<', '\\u003c')}</script></head>`)
 }
 
+function renderGuidesFallback(language) {
+  const zh = language === 'zh'
+  return `
+    <main id="jsave-seo-fallback" class="seo-article">
+      <header>
+        <a href="/${language}/">← ${zh ? '返回 JSave 首页' : 'Back to JSave home'}</a>
+        <p class="seo-eyebrow">JSave ${zh ? '指南' : 'Guides'}</p>
+        <h1>${zh ? '把每天的金钱选择，想得更清楚。' : 'Think more clearly about everyday money.'}</h1>
+        <p>${zh ? '不写空泛的省钱清单。这里认真解释离线资料、可执行预算，以及一款安静记账工具背后的取舍。' : 'No generic list of money hacks. These guides explain offline data, actionable budgets and the decisions behind a quieter expense tracker.'}</p>
+      </header>
+      <section>
+        <h2>${zh ? '全部指南' : 'All guides'}</h2>
+        ${ARTICLE_SUMMARIES.map((article, index) => {
+          const copy = article.locales[language]
+          return `<article><p class="seo-eyebrow">${String(index + 1).padStart(2, '0')} · ${escapeHtml(copy.category)}</p><h3><a href="${articleHref(article.slug, language)}">${escapeHtml(copy.title)}</a></h3><p>${escapeHtml(copy.deck)}</p></article>`
+        }).join('\n')}
+      </section>
+      <footer><p>© 2026 JSave · <a href="https://www.jeeprod.com/">Jee Production</a></p></footer>
+    </main>`
+}
+
+function guidesHtml(source, language) {
+  const zh = language === 'zh'
+  const url = `https://jsave.jeeprod.com${guidesHref(language)}`
+  const title = zh ? 'JSave 指南 — 马来西亚个人预算与可靠记账' : 'JSave Guides — Practical budgeting and reliable money tracking'
+  const description = zh ? '阅读 JSave 深度指南：可靠离线记账、马来西亚每日预算，以及 JSave 与一般记账 App 的差异。' : 'Read in-depth JSave guides about reliable offline tracking, practical daily budgets in Malaysia and choosing an expense tracker.'
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: title,
+    description,
+    url,
+    inLanguage: zh ? 'zh-CN' : 'en-MY',
+    mainEntity: {
+      '@type': 'ItemList',
+      itemListElement: ARTICLE_SUMMARIES.map((article, index) => ({
+        '@type': 'ListItem', position: index + 1,
+        url: `https://jsave.jeeprod.com${articleHref(article.slug, language)}`,
+        name: article.locales[language].title,
+      })),
+    },
+  }
+  const guideSource = source.replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/, '')
+  return localizedHtml(guideSource, zh ? 'zh-CN' : 'en-MY', {
+    title: escapeHtml(title), description: escapeHtml(description), url,
+    fallback: renderGuidesFallback(language),
+  })
+    .replace(/<meta property="og:image" content="[^"]*" \/>/, `<meta property="og:image" content="https://jsave.jeeprod.com${ARTICLE_SUMMARIES[0].image}" />`)
+    .replace(/<meta name="twitter:image" content="[^"]*" \/>/, `<meta name="twitter:image" content="https://jsave.jeeprod.com${ARTICLE_SUMMARIES[0].image}" />`)
+    .replace(/<link rel="alternate" hreflang="en" href="[^"]*" \/>/, `<link rel="alternate" hreflang="en" href="https://jsave.jeeprod.com${guidesHref('en')}" />`)
+    .replace(/<link rel="alternate" hreflang="zh" href="[^"]*" \/>/, `<link rel="alternate" hreflang="zh" href="https://jsave.jeeprod.com${guidesHref('zh')}" />`)
+    .replace(/<link rel="alternate" hreflang="x-default" href="[^"]*" \/>/, `<link rel="alternate" hreflang="x-default" href="https://jsave.jeeprod.com${guidesHref('en')}" />`)
+    .replace('</head>', `<script type="application/ld+json">${JSON.stringify(schema).replaceAll('<', '\\u003c')}</script></head>`)
+}
+
 const builtHtmlPath = resolve(outputDirectory, 'jsave.html')
 const builtHtml = readFileSync(builtHtmlPath, 'utf8')
 
@@ -198,6 +253,12 @@ for (const article of ARTICLES) {
     mkdirSync(articleDirectory, { recursive: true })
     writeFileSync(resolve(articleDirectory, 'index.html'), articleHtml(builtHtml, article, language))
   }
+}
+
+for (const language of ['en', 'zh']) {
+  const guidesDirectory = resolve(outputDirectory, language, 'guides')
+  mkdirSync(guidesDirectory, { recursive: true })
+  writeFileSync(resolve(guidesDirectory, 'index.html'), guidesHtml(builtHtml, language))
 }
 
 function filesIn(directory) {
@@ -220,4 +281,4 @@ writeFileSync(
   `${JSON.stringify({ assets }, null, 2)}\n`,
 )
 
-console.log(`✓ JSave localized pages, ${ARTICLES.length * 2} article pages and precache manifest generated (${assets.length} files)`)
+console.log(`✓ JSave localized pages, ${ARTICLES.length * 2} article pages, 2 guide indexes and precache manifest generated (${assets.length} files)`)

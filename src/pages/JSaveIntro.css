@@ -266,6 +266,9 @@
 .ji-guides-grid a > div:not(.ji-guide-image) { max-width: 760px; margin: 16px 9px 0; color: var(--ji-muted); font-size: 14px; line-height: 1.6; }
 .ji-guides-grid a > b { margin: 24px 9px 0; display: inline-flex; align-items: center; gap: 8px; color: var(--ji-green-dark); font-size: 12px; }
 .ji-guides-grid a > b svg { width: 17px; height: 17px; }
+.ji-guides-all { width: fit-content; margin: 38px auto 0; padding: 13px 19px; display: flex; align-items: center; gap: 9px; color: var(--ji-green-dark); border: 1px solid rgba(8,127,91,.22); border-radius: 999px; background: #fff; font-size: 13px; font-weight: 700; text-decoration: none; transition: transform .3s ease, border-color .3s ease, background .3s ease; }
+.ji-guides-all:hover { transform: translateY(-2px); border-color: rgba(8,127,91,.48); background: #f2faf6; }
+.ji-guides-all svg { width: 17px; height: 17px; }
 
 .ji-principles { padding: 140px max(24px, calc((100vw - 1120px) / 2)); color: #f7f8f7; background: #060806; }
 .ji-principles .ji-section-copy { text-align: left; margin: 0; }

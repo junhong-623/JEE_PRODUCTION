@@ -10,7 +10,7 @@ import { installState, isStandalone, setupPwaInstall, doInstall } from './instal
 import { db } from '../lib/firebase'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import { toLocalDateString } from './utils/date'
-import { articleRoute } from './data/articleRoutes'
+import { articleRoute, guidesRoute } from './data/articleRoutes'
 import './design-system.css'
 import './App.css'
 
@@ -24,6 +24,7 @@ const GoalsPage = lazy(() => import('./pages/GoalsPage'))
 const AdminPage = lazy(() => import('./pages/AdminPage'))
 const TransactionForm = lazy(() => import('./components/TransactionForm'))
 const ArticlePage = lazy(() => import('./pages/ArticlePage'))
+const GuidesPage = lazy(() => import('./pages/GuidesPage'))
 
 function PageFallback() {
   return <LoadingScreen />
@@ -266,10 +267,18 @@ export default function JSaveApp() {
 
 function JSaveRoute() {
   const article = articleRoute()
+  const guides = guidesRoute()
   if (article) {
     return (
       <Suspense fallback={<PageFallback />}>
         <ArticlePage slug={article.slug} language={article.language} />
+      </Suspense>
+    )
+  }
+  if (guides) {
+    return (
+      <Suspense fallback={<PageFallback />}>
+        <GuidesPage language={guides.language} />
       </Suspense>
     )
   }

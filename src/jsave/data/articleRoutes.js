@@ -64,3 +64,12 @@ export function articleRoute(pathname = window.location.pathname) {
 export function articleHref(slug, language) {
   return `/${language}/articles/${slug}/`
 }
+
+export function guidesRoute(pathname = window.location.pathname) {
+  const match = pathname.match(/^\/(en|zh)\/guides\/?$/)
+  return match ? { language: match[1] } : null
+}
+
+export function guidesHref(language) {
+  return `/${language}/guides/`
+}

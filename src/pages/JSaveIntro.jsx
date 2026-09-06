@@ -9,7 +9,7 @@ import {
   PhoneTransactions,
 } from '../jsave/components/PhoneScreens'
 import { JSAVE_BASE } from '../jsave/utils/basePath'
-import { ARTICLE_SUMMARIES, articleHref } from '../jsave/data/articleRoutes'
+import { ARTICLE_SUMMARIES, articleHref, guidesHref } from '../jsave/data/articleRoutes'
 import '../jsave/design-system.css'
 import './JSaveIntro.css'
 
@@ -64,7 +64,7 @@ const COPY = {
     ],
     guidesKicker: 'JSave GUIDES', guidesTitle: 'Useful thinking, beyond the interface.',
     guidesBody: 'Long-form, practical guides to building a calmer money routine—grounded in real Malaysian life and the decisions behind JSave.',
-    guidesRead: 'Read guide',
+    guidesRead: 'Read guide', guidesAll: 'View all guides',
     principlesKicker: 'OUR PRINCIPLES', principlesTitle: 'Built to earn a place in your routine.',
     principles: [
       { title: 'Manual on purpose', body: 'You decide what enters the ledger. JSave never asks for bank credentials.' },
@@ -125,7 +125,7 @@ const COPY = {
     ],
     guidesKicker: 'JSave 指南', guidesTitle: '不只介绍功能，也认真谈怎样使用。',
     guidesBody: '围绕真实马来西亚生活写成的长篇实用指南，解释怎样建立更安静、可持续的金钱习惯，以及 JSave 背后的产品取舍。',
-    guidesRead: '阅读指南',
+    guidesRead: '阅读指南', guidesAll: '查看全部指南',
     principlesKicker: '产品原则', principlesTitle: '值得留在你日常里的工具。',
     principles: [
       { title: '有意采用手动记录', body: '由你决定什么进入账本。JSave 永远不会索取银行登录资料。' },
@@ -374,6 +374,7 @@ export default function JSaveIntro({ onOpenApp, withHead = true, language, onLan
             <p>{article.copy.category}</p><h3>{article.copy.title}</h3><div>{article.copy.deck}</div><b>{c.guidesRead}<ArrowIcon /></b>
           </a>
         </Reveal>)}</div>
+        <Reveal><a className="ji-guides-all" href={guidesHref(lang)}>{c.guidesAll}<ArrowIcon /></a></Reveal>
       </section>
 
       <section id="principles" className="ji-principles">

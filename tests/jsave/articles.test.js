@@ -1,7 +1,13 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { ARTICLES } from '../../src/jsave/data/articles'
-import { ARTICLE_SUMMARIES, articleHref, articleRoute } from '../../src/jsave/data/articleRoutes'
+import {
+  ARTICLE_SUMMARIES,
+  articleHref,
+  articleRoute,
+  guidesHref,
+  guidesRoute,
+} from '../../src/jsave/data/articleRoutes'
 
 const read = path => readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8')
 
@@ -39,9 +45,26 @@ describe('JSave long-form guides', () => {
     expect(articleHref('offline-expense-tracking', 'en')).toBe('/en/articles/offline-expense-tracking/')
   })
 
+  it('recognizes localized guide indexes and keeps article navigation in the collection', () => {
+    expect(guidesRoute('/zh/guides/')).toEqual({ language: 'zh' })
+    expect(guidesRoute('/en/guides')).toEqual({ language: 'en' })
+    expect(guidesRoute('/guides/')).toBeNull()
+    expect(guidesHref('zh')).toBe('/zh/guides/')
+
+    const articlePage = read('src/jsave/pages/ArticlePage.jsx')
+    expect(articlePage).toContain('href={guidesHref(locale)}')
+    expect(articlePage).toContain('IntersectionObserver')
+  })
+
   it('lists every localized article in the sitemap and llms guide', () => {
     const sitemap = read('public-jsave/sitemap.xml')
     const llms = read('public-jsave/llms.txt')
+
+    for (const language of ['en', 'zh']) {
+      const guideIndex = `https://jsave.jeeprod.com${guidesHref(language)}`
+      expect(sitemap).toContain(guideIndex)
+      expect(llms).toContain(guideIndex)
+    }
 
     for (const article of ARTICLES) {
       for (const language of ['en', 'zh']) {

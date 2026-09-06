@@ -9,6 +9,8 @@ Developer: https://www.jeeprod.com/
 
 ## Guides
 
+- Guide index: https://jsave.jeeprod.com/en/guides/
+- 中文指南目录：https://jsave.jeeprod.com/zh/guides/
 - Reliable offline expense tracking: https://jsave.jeeprod.com/en/articles/offline-expense-tracking/
 - A practical daily budget for Malaysia: https://jsave.jeeprod.com/en/articles/malaysia-daily-budget/
 - JSave compared with typical expense apps: https://jsave.jeeprod.com/en/articles/jsave-vs-expense-apps/
