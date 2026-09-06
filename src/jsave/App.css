@@ -628,6 +628,22 @@ body.jsave-body {
   appearance: none;
 }
 
+/* iOS zooms the page when a focused form control renders below 16px. Keep
+   pinch-to-zoom available for accessibility and prevent only that focus zoom. */
+.jsave-root input,
+.jsave-root select,
+.jsave-root textarea {
+  touch-action: manipulation;
+}
+
+@media (max-width: 820px), (hover: none) and (pointer: coarse) {
+  .jsave-root input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='color']),
+  .jsave-root select,
+  .jsave-root textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* Remove number spinners */
 input[type="number"].jsave-input { -moz-appearance: textfield; }
 input[type="number"].jsave-input::-webkit-inner-spin-button,

@@ -1,8 +1,23 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.5.0',
+    version: '3.5.1',
     date: '2026-09-06',
     isLatest: true,
+    items: [
+      'Stopped iOS and installed PWA screens from zooming when compact form fields receive focus',
+      'Covered setup, settings, goals, items, bill splits, account forms, login and report filters',
+      'Kept normal pinch-to-zoom available for accessibility',
+    ],
+    itemsZh: [
+      '修复 iOS 及已安装 PWA 聚焦小字号输入框时自动放大页面的问题',
+      '统一覆盖首次设置、偏好设置、目标、物品、AA 分账、账户、登录及报告筛选输入框',
+      '保留用户主动双指缩放的无障碍能力',
+    ],
+  },
+  {
+    version: '3.5.0',
+    date: '2026-09-06',
+    isLatest: false,
     items: [
       'Added a friendly first-run setup for language, main currency and an optional daily budget',
       'Expanded currency choices across Asia and major international markets, including CNY',

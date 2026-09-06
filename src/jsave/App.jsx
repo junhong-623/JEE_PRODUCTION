@@ -181,7 +181,7 @@ function OnboardingDialog() {
             <span>{zh ? '主要货币' : 'Main currency'}</span>
             <div className="jsave-onboarding-select-wrap">
               <b>{currencySymbol(currency, lang)}</b>
-              <select value={currency} onChange={event => setCurrency(event.target.value)} autoFocus>
+              <select value={currency} onChange={event => setCurrency(event.target.value)}>
                 {SUPPORTED_CURRENCIES.map(code => (
                   <option key={code} value={code}>{code} — {currencyName(code, lang)}</option>
                 ))}
