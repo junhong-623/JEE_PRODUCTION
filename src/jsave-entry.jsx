@@ -4,6 +4,9 @@ import { AuthProvider } from './contexts/AuthContext'
 import JSaveApp from './jsave/App'
 import './jsave/App.css'
 
+document.documentElement.classList.add('jsave-html')
+document.body.classList.add('jsave-body')
+
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {})
 }

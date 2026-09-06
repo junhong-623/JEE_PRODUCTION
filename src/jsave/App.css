@@ -11,6 +11,19 @@
   --js-nav-height:    64px;
 }
 
+html.jsave-html,
+body.jsave-body,
+body.jsave-body #root {
+  min-height: 100%;
+  min-height: 100dvh;
+  background: #050d1a;
+}
+
+body.jsave-body {
+  margin: 0;
+  overscroll-behavior-y: none;
+}
+
 /* ── Root ── */
 .jsave-root {
   min-height: 100vh;
@@ -62,6 +75,156 @@
   max-width: 480px;
   margin: 0 auto;
   width: 100%;
+}
+
+/* ── Branded startup screen ── */
+.jsave-loading-screen {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding:
+    max(28px, env(safe-area-inset-top, 0px))
+    max(24px, env(safe-area-inset-right, 0px))
+    max(28px, env(safe-area-inset-bottom, 0px))
+    max(24px, env(safe-area-inset-left, 0px));
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  color: #f1f5f9;
+  background:
+    radial-gradient(80% 58% at 50% 40%, rgba(16,185,129,.14), transparent 68%),
+    linear-gradient(160deg, #071321 0%, #050d1a 54%, #06150f 100%);
+  font-family: var(--font-sans, "DM Sans", system-ui, sans-serif);
+}
+
+.jsave-loading-glow {
+  position: absolute;
+  z-index: -2;
+  width: min(72vw, 520px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: .14;
+}
+.jsave-loading-glow-left { top: -34%; left: -30%; background: #10b981; }
+.jsave-loading-glow-right { right: -38%; bottom: -40%; background: #22d3ee; opacity: .08; }
+.jsave-loading-grid {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  opacity: .38;
+  background-image:
+    linear-gradient(rgba(241,245,249,.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(241,245,249,.022) 1px, transparent 1px);
+  background-size: 48px 48px;
+  -webkit-mask-image: radial-gradient(circle at 50% 44%, #000 0%, transparent 70%);
+          mask-image: radial-gradient(circle at 50% 44%, #000 0%, transparent 70%);
+}
+.jsave-loading-content {
+  width: min(100%, 330px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.jsave-loading-mark {
+  position: relative;
+  width: 74px;
+  height: 74px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(16,185,129,.32);
+  border-radius: 23px;
+  color: #04140d;
+  background: linear-gradient(145deg, #35d6a0, #079669);
+  box-shadow: 0 20px 60px rgba(0,0,0,.34), 0 0 42px rgba(16,185,129,.17);
+  font: 700 40px/1 var(--font-display, Georgia, serif);
+}
+.jsave-loading-mark::before {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 17px;
+}
+.jsave-loading-mark span { transform: translateY(-1px); }
+.jsave-loading-mark i {
+  position: absolute;
+  inset: -9px;
+  border: 1px solid transparent;
+  border-top-color: rgba(105,215,173,.82);
+  border-right-color: rgba(105,215,173,.18);
+  border-radius: 29px;
+  animation: jsave-loading-orbit 1.8s linear infinite;
+}
+.jsave-loading-brand {
+  margin: 24px 0 0;
+  color: #69d7ad;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .28em;
+  text-transform: uppercase;
+}
+.jsave-loading-content h1 {
+  margin: 10px 0 0;
+  color: #f1f5f9;
+  font: 400 clamp(25px, 7vw, 32px)/1.1 var(--font-display, Georgia, serif);
+  letter-spacing: -.035em;
+}
+.jsave-loading-progress {
+  width: min(100%, 210px);
+  height: 2px;
+  margin-top: 32px;
+  overflow: hidden;
+  background: rgba(241,245,249,.08);
+}
+.jsave-loading-progress i {
+  display: block;
+  width: 42%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, #69d7ad 50%, transparent);
+  animation: jsave-loading-progress 1.55s cubic-bezier(.45,0,.2,1) infinite;
+}
+.jsave-loading-status {
+  min-height: 20px;
+  margin: 14px 0 0;
+  color: rgba(241,245,249,.56);
+  font-size: 12px;
+  letter-spacing: .02em;
+}
+.jsave-loading-note {
+  margin: 48px 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(241,245,249,.3);
+  font-family: var(--font-mono, monospace);
+  font-size: 8px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.jsave-loading-note i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 10px rgba(16,185,129,.75);
+}
+
+@keyframes jsave-loading-orbit { to { transform: rotate(360deg); } }
+@keyframes jsave-loading-progress {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(350%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jsave-loading-mark i,
+  .jsave-loading-progress i { animation: none; }
+  .jsave-loading-mark i { transform: rotate(28deg); }
+  .jsave-loading-progress i { transform: translateX(70%); opacity: .72; }
 }
 
 .jsave-page-header {

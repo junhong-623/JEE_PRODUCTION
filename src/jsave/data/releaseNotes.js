@@ -1,8 +1,23 @@
 export const RELEASE_NOTES = [
   {
+    version: '3.2.3',
+    date: '2026-09-06',
+    isLatest: true,
+    items: [
+      'Replaced the plain initial loading text with a polished JSave startup screen',
+      'Unified the full viewport and phone safe-area background to remove visible color seams',
+      'Added a calm branded progress animation with reduced-motion support',
+    ],
+    itemsZh: [
+      '以完整的 JSave 品牌启动画面取代初始纯文字 Loading',
+      '统一全屏及手机安全区域背景，移除上下颜色断层',
+      '新增克制的品牌进度动效，并支持减少动态效果偏好',
+    ],
+  },
+  {
     version: '3.2.2',
     date: '2026-09-05',
-    isLatest: true,
+    isLatest: false,
     items: [
       'Opening Goals now starts on Things when there are item records but no savings goals',
       'The default waits for local or remote records, while respecting a tab the user selected manually',

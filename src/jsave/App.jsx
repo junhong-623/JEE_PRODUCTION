@@ -5,6 +5,7 @@ import { JSaveProvider } from './contexts/JSaveContext'
 import { useLang } from './contexts/LangContext'
 import BottomNav from './components/BottomNav'
 import OfflineBanner from './components/OfflineBanner'
+import LoadingScreen from './components/LoadingScreen'
 import { installState, isStandalone, setupPwaInstall, doInstall } from './installPrompt'
 import { db } from '../lib/firebase'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
@@ -23,8 +24,7 @@ const AdminPage = lazy(() => import('./pages/AdminPage'))
 const TransactionForm = lazy(() => import('./components/TransactionForm'))
 
 function PageFallback() {
-  const { t } = useLang()
-  return <div className="jsave-center-msg">{t('loading')}</div>
+  return <LoadingScreen />
 }
 
 const APP_PAGES = new Set(['dashboard', 'calendar', 'reports', 'goals', 'settings'])
@@ -185,11 +185,7 @@ function JSaveShell() {
   }
 
   if (loading) {
-    return (
-      <div className="jsave-root jsave-center-msg">
-        Loading…
-      </div>
-    )
+    return <LoadingScreen />
   }
 
   if (!user) {
