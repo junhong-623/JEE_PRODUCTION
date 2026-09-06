@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useEffect, useCallback } from 'react'
+import { lazy, Suspense, useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { LangProvider, languageFromPath } from './contexts/LangContext'
 import { JSaveProvider } from './contexts/JSaveContext'
@@ -11,6 +11,8 @@ import { db } from '../lib/firebase'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 import { toLocalDateString } from './utils/date'
 import { articleRoute, guidesRoute } from './data/articleRoutes'
+import { useJSave } from './hooks/useJSave'
+import { SUPPORTED_CURRENCIES, currencyName, currencySymbol } from './utils/currency'
 import './design-system.css'
 import './App.css'
 
@@ -129,9 +131,97 @@ function PaymentResultModal({ onClose, amount }) {
   )
 }
 
+function OnboardingDialog() {
+  const { lang, setLanguage } = useLang()
+  const { settings, updateSettings } = useJSave()
+  const [currency, setCurrency] = useState(settings?.currency || 'MYR')
+  const [dailyBudget, setDailyBudget] = useState(
+    Number(settings?.dailyBudget) > 0 ? String(settings.dailyBudget) : '',
+  )
+  const [saving, setSaving] = useState(false)
+  const zh = lang === 'zh'
+
+  async function finishSetup(event) {
+    event.preventDefault()
+    setSaving(true)
+    try {
+      await updateSettings({
+        currency,
+        dailyBudget: Math.max(0, Number(dailyBudget) || 0),
+        language: lang,
+        onboardingCompleted: true,
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="jsave-modal-overlay centered jsave-onboarding-overlay">
+      <div className="jsave-modal glass-card jsave-onboarding-dialog" role="dialog" aria-modal="true" aria-labelledby="jsave-onboarding-title">
+        <div className="jsave-onboarding-mark" aria-hidden="true">JS <span>/ 01</span></div>
+        <p className="jsave-onboarding-eyebrow">{zh ? '开始之前' : 'Before you begin'}</p>
+        <h2 id="jsave-onboarding-title">{zh ? '让 JSave 符合你的生活。' : 'Make JSave feel like yours.'}</h2>
+        <p className="jsave-onboarding-copy">
+          {zh
+            ? '先选择主要货币。之后所有预算、目标、分账和报告都会使用同一套金额格式。'
+            : 'Choose your main currency first. Budgets, goals, splits and reports will use the same money format.'}
+        </p>
+
+        <form onSubmit={finishSetup} className="jsave-onboarding-form">
+          <fieldset className="jsave-onboarding-fieldset">
+            <legend>{zh ? '界面语言' : 'Interface language'}</legend>
+            <div className="jsave-lang-toggle jsave-onboarding-language">
+              <button type="button" className={lang === 'en' ? 'active' : ''} onClick={() => setLanguage('en')}>English</button>
+              <button type="button" className={lang === 'zh' ? 'active' : ''} onClick={() => setLanguage('zh')}>中文</button>
+            </div>
+          </fieldset>
+
+          <label className="jsave-onboarding-field">
+            <span>{zh ? '主要货币' : 'Main currency'}</span>
+            <div className="jsave-onboarding-select-wrap">
+              <b>{currencySymbol(currency, lang)}</b>
+              <select value={currency} onChange={event => setCurrency(event.target.value)} autoFocus>
+                {SUPPORTED_CURRENCIES.map(code => (
+                  <option key={code} value={code}>{code} — {currencyName(code, lang)}</option>
+                ))}
+              </select>
+            </div>
+          </label>
+
+          <label className="jsave-onboarding-field">
+            <span>{zh ? '每日预算' : 'Daily budget'} <small>{zh ? '选填' : 'Optional'}</small></span>
+            <div className="jsave-onboarding-budget-wrap">
+              <b>{currencySymbol(currency, lang)}</b>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                placeholder="0.00"
+                value={dailyBudget}
+                onChange={event => setDailyBudget(event.target.value)}
+              />
+            </div>
+            <small>{zh ? '留空也可以，之后能在设置中修改。' : 'You can leave this blank and change it later in Settings.'}</small>
+          </label>
+
+          <button type="submit" className="jsave-btn-primary jsave-btn-full" disabled={saving}>
+            {saving ? (zh ? '正在保存…' : 'Saving…') : (zh ? '开始使用 JSave →' : 'Start using JSave →')}
+          </button>
+          <p className="jsave-onboarding-footnote">
+            {zh ? '更换货币只会改变显示方式，不会自动换算金额。' : 'Changing currency affects display only; amounts are not converted.'}
+          </p>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 function JSaveShell() {
   const { user, loading, admin } = useAuth()
   const { lang } = useLang()
+  const { settings, preferencesReady } = useJSave()
   const [page, setPage] = useState(pageFromLocation)
   const [showLogin, setShowLogin] = useState(false)
   const [showInstallDialog, setShowInstallDialog] = useState(false)
@@ -142,6 +232,14 @@ function JSaveShell() {
     return p.has('status_id') ? p.get('status_id') : null
   })
   const [pendingCoffeeAmt] = useState(() => Number(localStorage.getItem('jsave-coffee-pending') || 0))
+  const onboardingWasShown = useRef(false)
+  const needsOnboarding = Boolean(user && preferencesReady && !settings?.onboardingCompleted)
+
+  useEffect(() => {
+    if (!needsOnboarding) return
+    onboardingWasShown.current = true
+    setShowInstallDialog(false)
+  }, [needsOnboarding])
 
   useEffect(() => {
     if (paymentResult === '1' && pendingCoffeeAmt > 0 && user?.uid) {
@@ -228,7 +326,7 @@ function JSaveShell() {
 
   return (
     <div className="jsave-root jsave-shell">
-      {showInstallDialog && user && <InstallDialog onClose={closeInstallDialog} />}
+      {showInstallDialog && user && !needsOnboarding && !onboardingWasShown.current && <InstallDialog onClose={closeInstallDialog} />}
       {paymentResult && user && <PaymentResultModal onClose={closePaymentResult} amount={pendingCoffeeAmt} />}
       {showAdmin && admin && (
         <Suspense fallback={<PageFallback />}>
@@ -253,6 +351,7 @@ function JSaveShell() {
           else navigatePage(p)
         }}
       />
+      {needsOnboarding && <OnboardingDialog />}
     </div>
   )
 }

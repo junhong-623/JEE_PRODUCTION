@@ -3,6 +3,7 @@ import { useLang } from '../contexts/LangContext'
 import { useJSave } from '../hooks/useJSave'
 import { toLocalDateString } from '../utils/date'
 import { allocateEqualShares, customSplitRemaining, fillSplitRemainder, isCustomSplitValid } from '../utils/split'
+import { currencySymbol, formatCurrency } from '../utils/currency'
 
 const INCOME_CATS  = ['catSalary', 'catFreelance', 'catInvestment', 'catGift', 'catOtherIncome']
 const EXPENSE_CATS = ['catFood', 'catTransport', 'catBills', 'catEntertainment', 'catHealth', 'catShopping', 'catOther']
@@ -32,7 +33,7 @@ function monthPrefix(lang) {
 }
 
 function fmt(amount, currency = 'MYR') {
-  return new Intl.NumberFormat('en-MY', { style: 'currency', currency, minimumFractionDigits: 2 }).format(amount)
+  return formatCurrency(amount, currency)
 }
 
 function SplitModeControl({ mode, onChange, t }) {
@@ -414,7 +415,7 @@ function StandardTransactionForm({ initial, onClose }) {
             <FieldLabel>{type === 'split' ? t('txBillAmount') : t('txAmount')} ({cur})</FieldLabel>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4 }}>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 16, color: 'rgba(241,245,249,0.5)' }}>
-                {type === 'income' ? '+' : type === 'expense' || type === 'split' ? '−' : '⇄'} RM
+                {type === 'income' ? '+' : type === 'expense' || type === 'split' ? '−' : '⇄'} {currencySymbol(cur, lang)}
               </span>
               <input
                 type="number" min="0" step="0.01" placeholder="0.00"

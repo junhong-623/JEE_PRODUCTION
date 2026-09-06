@@ -18,8 +18,8 @@ import { db } from '../../lib/firebase'
 import { collection, query, orderBy, getDocs } from 'firebase/firestore'
 import { localMonthKey, toLocalDateString } from '../utils/date'
 import { downloadTransactionsCsv } from '../services/export'
+import { SUPPORTED_CURRENCIES, currencyName } from '../utils/currency'
 
-const CURRENCIES = ['MYR', 'USD', 'SGD', 'CNY', 'EUR', 'GBP']
 const ACC_TYPES  = ['accCash', 'accBank', 'accEwallet', 'accCredit']
 const ACC_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6']
 
@@ -504,6 +504,7 @@ export default function SettingsPage({ onOpenAdmin }) {
     await updateSettings({
       monthlyIncome: Number(monthlyIncome),
       currency, dailyBudget: Number(dailyBudget), language: lang,
+      onboardingCompleted: true,
       autoSalary, salaryAccountId, salaryDay: nextSalaryDay,
       ...salaryOverrides,
     })
@@ -560,8 +561,13 @@ export default function SettingsPage({ onOpenAdmin }) {
         <div className="jsave-setting-row">
           <label className="jsave-label">{t('currencyLabel')}</label>
           <select className="jsave-input jsave-input-sm" value={currency} onChange={e => setCurrency(e.target.value)}>
-            {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+            {SUPPORTED_CURRENCIES.map(c => <option key={c} value={c}>{c} — {currencyName(c, lang)}</option>)}
           </select>
+          {currency !== (settings?.currency ?? 'MYR') && (
+            <small className="jsave-currency-note">
+              {lang === 'zh' ? '只更改显示货币，不会换算已有金额。' : 'Changes the display currency only; existing amounts are not converted.'}
+            </small>
+          )}
         </div>
         <div className="jsave-setting-row">
           <label className="jsave-label">{t('monthlyIncomeLabel')} ({currency})</label>

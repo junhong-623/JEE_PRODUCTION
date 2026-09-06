@@ -11,6 +11,7 @@ import ItemThumbnail from '../components/ItemThumbnail'
 import { deleteGoalCover, deleteItemCover, MAX_COVER_SOURCE_MB, uploadGoalCover, uploadItemCover, validateCoverSource } from '../services/goalCover'
 import { isSingleEmoji, singleEmoji } from '../utils/emoji'
 import { buildItemEntries, isItemGroup } from '../utils/itemGroups'
+import { currencySymbol, formatCurrency } from '../utils/currency'
 
 /* ──────────────────────────────────────────────────────────────────────
    Helpers
@@ -55,7 +56,7 @@ const todayStr = () => toLocalDateString()
 /* ──────────────────────────────────────────────────────────────────────
    Quick Deposit Modal — click a goal to deposit + "More settings" link
    ────────────────────────────────────────────────────────────────────── */
-function QuickDepositModal({ goal, onDeposit, onMoreSettings, onClose, t, lang }) {
+function QuickDepositModal({ goal, onDeposit, onMoreSettings, onClose, t, lang, cur }) {
   const [amount, setAmount] = useState('')
   const [saving, setSaving] = useState(false)
   const pct = Math.min(1, (goal.currentAmount || 0) / (goal.targetAmount || 1))
@@ -91,18 +92,18 @@ function QuickDepositModal({ goal, onDeposit, onMoreSettings, onClose, t, lang }
           <div style={{ position: 'absolute', inset: 0, width: `${pct * 100}%`, background: 'linear-gradient(90deg, #f5d570, #10b981)', borderRadius: 999, boxShadow: '0 0 12px rgba(16,185,129,0.5)' }}></div>
         </div>
         <div style={{ margin: '8px 20px 0', display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'rgba(241,245,249,0.5)' }}>
-          <span style={{ color: '#10b981' }}>RM {fmtAmt(goal.currentAmount || 0)}</span>
-          <span>/ RM {fmtAmt(goal.targetAmount || 0)}</span>
+          <span style={{ color: '#10b981' }}>{formatCurrency(goal.currentAmount || 0, cur, lang, { maximumFractionDigits: 0 })}</span>
+          <span>/ {formatCurrency(goal.targetAmount || 0, cur, lang, { maximumFractionDigits: 0 })}</span>
         </div>
 
         {/* Amount input */}
         <form onSubmit={handleDeposit}>
           <div style={{ margin: '20px 20px 0', padding: '18px 16px', borderRadius: 18, background: 'radial-gradient(120% 80% at 50% 0%, rgba(16,185,129,0.18), transparent 60%), rgba(255,255,255,0.025)', border: '1px solid rgba(16,185,129,0.24)', textAlign: 'center' }}>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: 1.5, color: 'rgba(241,245,249,0.4)', textTransform: 'uppercase', marginBottom: 10 }}>
-              {lang === 'zh' ? '存入金额 (RM)' : 'Add amount (RM)'}
+              {lang === 'zh' ? `存入金额 (${cur})` : `Add amount (${cur})`}
             </div>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 6 }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 18, color: 'rgba(241,245,249,0.5)' }}>+RM</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 18, color: 'rgba(241,245,249,0.5)' }}>+{currencySymbol(cur, lang)}</span>
               <input
                 type="number" min="0.01" step="0.01" placeholder="0.00"
                 value={amount} onChange={e => setAmount(e.target.value)}
@@ -154,7 +155,7 @@ function QuickDepositModal({ goal, onDeposit, onMoreSettings, onClose, t, lang }
 /* ──────────────────────────────────────────────────────────────────────
    Goal Settings Modal — full edit (name, emoji, target, deadline, etc.)
    ────────────────────────────────────────────────────────────────────── */
-function GoalSettingsModal({ initial, onSave, onDelete, onClose, t }) {
+function GoalSettingsModal({ initial, onSave, onDelete, onClose, t, cur }) {
   const [name, setName]       = useState(initial?.name || '')
   const [emoji, setEmoji]     = useState(initial?.emoji || '🎯')
   const [target, setTarget]   = useState(initial?.targetAmount?.toString() || '')
@@ -252,9 +253,9 @@ function GoalSettingsModal({ initial, onSave, onDelete, onClose, t }) {
         <div className="jsave-form">
           <div><label className="jsave-label">{t('goalName')}</label>
             <input className="jsave-input" value={name} onChange={e => setName(e.target.value)} placeholder={t('goalNamePh')} /></div>
-          <div><label className="jsave-label">{t('goalTarget')} (RM)</label>
+          <div><label className="jsave-label">{t('goalTarget')} ({cur})</label>
             <input className="jsave-input" type="number" min="0" step="0.01" value={target} onChange={e => setTarget(e.target.value)} placeholder="10000" /></div>
-          <div><label className="jsave-label">{t('goalCurrent')} (RM)</label>
+          <div><label className="jsave-label">{t('goalCurrent')} ({cur})</label>
             <input className="jsave-input" type="number" min="0" step="0.01" value={current} onChange={e => setCurrent(e.target.value)} placeholder="0" /></div>
           <div><label className="jsave-label">{t('goalDeadline')}</label>
             <input className="jsave-input" type="date" value={deadline} onChange={e => setDeadline(e.target.value)} /></div>
@@ -457,6 +458,7 @@ function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null })
   const [pendingParentId, setPendingParentId] = useState(null)
   const openedInitialItem = useRef(null)
   const cur = settings?.currency ?? 'MYR'
+  const symbol = currencySymbol(cur, lang)
 
   const regularItems = useMemo(() => items.filter(item => !isItemGroup(item)), [items])
   const itemEntries = useMemo(() => buildItemEntries(items), [items])
@@ -566,14 +568,14 @@ function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null })
               <div>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: 1.8, color: 'rgba(241,245,249,0.5)', textTransform: 'uppercase' }}>{t('itemsTotalAssets')}</div>
                 <div style={{ marginTop: 6, display: 'flex', alignItems: 'baseline', gap: 5 }}>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 14, color: 'rgba(241,245,249,0.5)' }}>RM</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 14, color: 'rgba(241,245,249,0.5)' }}>{symbol}</span>
                   <span style={{ fontFamily: 'var(--font-display)', fontSize: 34, letterSpacing: -1.4, color: '#f1f5f9', lineHeight: 1 }}>{fmtAmt(totalAssets)}</span>
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: 1.5, color: 'rgba(241,245,249,0.4)', textTransform: 'uppercase' }}>{t('itemsTotalCPD')}</div>
                 <div style={{ marginTop: 4, fontFamily: 'var(--font-display)', fontSize: 24, letterSpacing: -0.8, color: '#10b981' }}>
-                  RM {totalCPD.toFixed(2)}
+                  {symbol} {totalCPD.toFixed(2)}
                 </div>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#10b981' }}>▼ {lang === 'zh' ? '持续下降' : 'dropping'}</div>
               </div>
@@ -595,7 +597,7 @@ function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null })
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9', marginBottom: 4 }}>{best.name}</div>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: '#10b981' }}>
-                  RM {best.cpd.toFixed(2)}<span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(241,245,249,0.4)' }}> / {lang === 'zh' ? '天' : 'day'}</span>
+                  {symbol} {best.cpd.toFixed(2)}<span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(241,245,249,0.4)' }}> / {lang === 'zh' ? '天' : 'day'}</span>
                 </div>
               </div>
               <div style={{ padding: 14, borderRadius: 16, background: 'rgba(245,213,112,0.07)', border: '1px solid rgba(245,213,112,0.22)' }}>
@@ -605,7 +607,7 @@ function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null })
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9', marginBottom: 4 }}>{worst.name}</div>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: '#f5d570' }}>
-                  RM {worst.cpd.toFixed(2)}<span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(241,245,249,0.4)' }}> / {lang === 'zh' ? '天' : 'day'}</span>
+                  {symbol} {worst.cpd.toFixed(2)}<span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(241,245,249,0.4)' }}> / {lang === 'zh' ? '天' : 'day'}</span>
                 </div>
               </div>
             </div>
@@ -653,7 +655,7 @@ function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null })
                           <span>{t('itemGroupActiveCost')} {cur} {fmtAmt(item.activeTotalCost)}</span>
                           <span>{item.members.length} {t('itemGroupParts')}</span>
                         </span>
-                      : `RM ${fmtAmt(item.cost)} · ${days} ${lang === 'zh' ? '天' : 'd'}`}
+                      : `${symbol} ${fmtAmt(item.cost)} · ${days} ${lang === 'zh' ? '天' : 'd'}`}
                   </div>
                   {/* amortization bar */}
                   <div style={{ marginTop: 6, height: 4, borderRadius: 999, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
@@ -665,7 +667,7 @@ function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null })
                     {cpd.toFixed(2)}
                   </div>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, letterSpacing: 0.5, color: 'rgba(241,245,249,0.4)' }}>
-                    RM / {lang === 'zh' ? '天' : 'day'}
+                    {symbol} / {lang === 'zh' ? '天' : 'day'}
                   </div>
                 </div>
               </div>
@@ -702,7 +704,7 @@ function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null })
 /* ──────────────────────────────────────────────────────────────────────
    Goal Hero Card
    ────────────────────────────────────────────────────────────────────── */
-function HeroGoalCard({ goal, onClick, t, lang }) {
+function HeroGoalCard({ goal, onClick, t, lang, cur }) {
   const pct = Math.min(1, (goal.currentAmount || 0) / (goal.targetAmount || 1))
   const daysLeft = goal.deadline ? Math.max(0, calendarDayDifference(goal.deadline, new Date())) : null
   const monthsLeft = daysLeft != null ? Math.max(1, daysLeft / 30) : null
@@ -727,14 +729,14 @@ function HeroGoalCard({ goal, onClick, t, lang }) {
       </div>
       <div style={{ marginTop: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <div>
-          <span style={{ fontFamily: 'var(--font-display)', fontSize: 24, letterSpacing: -0.8, color: '#f1f5f9' }}>RM {fmtAmt(goal.currentAmount || 0)}</span>
+          <span style={{ fontFamily: 'var(--font-display)', fontSize: 24, letterSpacing: -0.8, color: '#f1f5f9' }}>{formatCurrency(goal.currentAmount || 0, cur, lang, { maximumFractionDigits: 0 })}</span>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'rgba(241,245,249,0.5)' }}> / {fmtAmt(goal.targetAmount || 0)}</span>
         </div>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#10b981', fontWeight: 600 }}>{Math.round(pct * 100)}%</div>
       </div>
       <div style={{ marginTop: 8, display: 'flex', gap: 14, fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(241,245,249,0.5)' }}>
         {daysLeft != null && <span className="jsave-goal-meta">{daysLeft} {t('goalDaysLeft')}</span>}
-        {monthlyNeeded && <span className="jsave-goal-meta">RM {monthlyNeeded} {t('goalMonthly')}</span>}
+        {monthlyNeeded && <span className="jsave-goal-meta">{formatCurrency(monthlyNeeded, cur, lang, { maximumFractionDigits: 0 })} {t('goalMonthly')}</span>}
       </div>
       <i className="js-tick" style={{ position: 'absolute', top: 10, right: 10, width: 12, height: 12, color: '#f5d570', opacity: 0.5 }}></i>
     </button>
@@ -746,7 +748,7 @@ function HeroGoalCard({ goal, onClick, t, lang }) {
    ────────────────────────────────────────────────────────────────────── */
 export default function GoalsPage({ onOpenSettings, initialItemId = null }) {
   const { t, lang } = useLang()
-  const { goals, items, addGoal, updateGoal, deleteGoal } = useJSave()
+  const { goals, items, settings, addGoal, updateGoal, deleteGoal } = useJSave()
   const { user } = useAuth()
 
   const userSelectedTab = useRef(Boolean(initialItemId))
@@ -755,6 +757,7 @@ export default function GoalsPage({ onOpenSettings, initialItemId = null }) {
   const [settingsGoal, setSettingsGoal] = useState(null)        // goal for full settings
   const [showAddGoal, setShowAddGoal]   = useState(false)
   const [showAddItem, setShowAddItem]   = useState(false)
+  const cur = settings?.currency ?? 'MYR'
 
   useEffect(() => {
     if (!userSelectedTab.current) setTab(preferredGoalsTab(goals, items))
@@ -847,7 +850,7 @@ export default function GoalsPage({ onOpenSettings, initialItemId = null }) {
           ) : (
             <>
               {/* Hero goal — click to quick deposit */}
-              {heroGoal && <HeroGoalCard goal={heroGoal} onClick={() => setQuickGoal(heroGoal)} t={t} lang={lang} />}
+              {heroGoal && <HeroGoalCard goal={heroGoal} onClick={() => setQuickGoal(heroGoal)} t={t} lang={lang} cur={cur} />}
 
               {/* Other goals */}
               {otherGoals.length > 0 && (
@@ -870,7 +873,7 @@ export default function GoalsPage({ onOpenSettings, initialItemId = null }) {
                               <span style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{goal.name}</span>
                             </div>
                             <div style={{ marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'rgba(241,245,249,0.5)' }}>
-                              RM {fmtAmt(goal.currentAmount || 0)} / {fmtAmt(goal.targetAmount || 0)}
+                              {formatCurrency(goal.currentAmount || 0, cur, lang, { maximumFractionDigits: 0 })} / {formatCurrency(goal.targetAmount || 0, cur, lang, { maximumFractionDigits: 0 })}
                               {goal.deadline && ` · ${Math.max(0, calendarDayDifference(goal.deadline, new Date()))}d`}
                             </div>
                           </div>
@@ -905,6 +908,7 @@ export default function GoalsPage({ onOpenSettings, initialItemId = null }) {
           onClose={() => setQuickGoal(null)}
           t={t}
           lang={lang}
+          cur={cur}
         />
       )}
 
@@ -916,6 +920,7 @@ export default function GoalsPage({ onOpenSettings, initialItemId = null }) {
           onDelete={handleDeleteGoal}
           onClose={() => { setSettingsGoal(null); setShowAddGoal(false) }}
           t={t}
+          cur={cur}
         />
       )}
     </div>

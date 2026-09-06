@@ -19,6 +19,7 @@ export const DEFAULT_SETTINGS = {
   defaultAccountId: null,
   homeItemId: null,
   language: 'en',
+  onboardingCompleted: false,
 }
 
 const EMPTY_REMOTE_READY = {
@@ -79,7 +80,13 @@ export function JSaveProvider({ children, onLanguageChange }) {
         setGoals(cachedGoals)
         const cachedConfig = cachedSettings.find(value => value.id === 'config')
         if (cachedConfig) {
-          const nextSettings = { ...DEFAULT_SETTINGS, ...cachedConfig }
+          const nextSettings = {
+            ...DEFAULT_SETTINGS,
+            ...cachedConfig,
+            // Older saved preferences predate the onboarding flag. A stored
+            // currency means that user has already configured JSave.
+            onboardingCompleted: cachedConfig.onboardingCompleted ?? Boolean(cachedConfig.currency),
+          }
           setSettings(nextSettings)
           onLanguageChange?.(nextSettings.language)
         }
@@ -131,7 +138,12 @@ export function JSaveProvider({ children, onLanguageChange }) {
         const nextSettings = { ...DEFAULT_SETTINGS, ...(data[0] || {}) }
         setSettings(nextSettings)
         onLanguageChange?.(nextSettings.language)
-      }, data => [{ ...DEFAULT_SETTINGS, ...data, userId: uid }]), onError('settings')),
+      }, data => [{
+        ...DEFAULT_SETTINGS,
+        ...data,
+        onboardingCompleted: data.onboardingCompleted ?? Boolean(data.currency),
+        userId: uid,
+      }]), onError('settings')),
     ]
 
     return () => {
@@ -320,6 +332,9 @@ export function JSaveProvider({ children, onLanguageChange }) {
   [accounts, getAccountBalance])
 
   const dataLoading = Boolean(uid) && (loading || hydratedUid !== uid)
+  const preferencesReady = Boolean(
+    uid && hydratedUid === uid && (!online || remoteReady.settings)
+  )
 
   return (
     <JSaveContext.Provider value={{
@@ -329,6 +344,7 @@ export function JSaveProvider({ children, onLanguageChange }) {
       goals: dataLoading ? [] : goals,
       settings: dataLoading ? DEFAULT_SETTINGS : settings,
       loading: dataLoading,
+      preferencesReady,
       online,
       syncReady: automationReady, syncError,
       addTransaction, updateTransaction, deleteTransaction,

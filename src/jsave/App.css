@@ -524,6 +524,67 @@ body.jsave-body {
 .jsave-install-dialog-desc { font-size: 14px; color: var(--jsave-muted, #94a3b8); margin: 0 0 20px; line-height: 1.6; }
 .jsave-install-guide-steps { text-align: left; padding-left: 20px; margin: 0 0 4px; }
 .jsave-install-guide-steps li { font-size: 14px; color: var(--jsave-muted, #94a3b8); line-height: 2; }
+.jsave-currency-note { display: block; margin-top: 7px; color: #f5d570; font-size: 11px; line-height: 1.45; }
+
+/* ── First-run setup ── */
+.jsave-onboarding-overlay { background: rgba(2, 8, 18, 0.82); backdrop-filter: blur(14px); }
+.jsave-onboarding-dialog {
+  max-width: 430px;
+  padding: 28px;
+  border: 1px solid rgba(16,185,129,0.24);
+  background:
+    radial-gradient(100% 65% at 100% 0%, rgba(16,185,129,0.17), transparent 58%),
+    linear-gradient(155deg, rgba(10,24,40,0.98), rgba(5,13,26,0.98));
+  box-shadow: 0 28px 80px rgba(0,0,0,0.55);
+}
+.jsave-onboarding-mark {
+  display: inline-flex; align-items: baseline; gap: 4px; margin-bottom: 24px;
+  color: #10b981; font-family: var(--font-mono); font-size: 13px; font-weight: 700; letter-spacing: 0.12em;
+}
+.jsave-onboarding-mark span { color: rgba(241,245,249,0.34); font-size: 9px; }
+.jsave-onboarding-eyebrow {
+  margin: 0 0 8px; color: #f5d570; font-family: var(--font-mono); font-size: 9px;
+  font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase;
+}
+.jsave-onboarding-dialog h2 {
+  margin: 0; color: #f1f5f9; font-family: var(--font-display); font-size: 30px;
+  font-weight: 400; line-height: 1.06; letter-spacing: -0.8px;
+}
+.jsave-onboarding-copy { margin: 12px 0 22px; color: rgba(241,245,249,0.6); font-size: 13px; line-height: 1.65; }
+.jsave-onboarding-form { display: flex; flex-direction: column; gap: 17px; }
+.jsave-onboarding-fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.jsave-onboarding-fieldset legend,
+.jsave-onboarding-field > span {
+  display: block; margin-bottom: 8px; color: rgba(241,245,249,0.48); font-family: var(--font-mono);
+  font-size: 9px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+}
+.jsave-onboarding-field > span small { color: rgba(241,245,249,0.28); font-size: 8px; }
+.jsave-onboarding-language { width: 100%; }
+.jsave-onboarding-language button { flex: 1; padding: 10px 16px; }
+.jsave-onboarding-select-wrap,
+.jsave-onboarding-budget-wrap {
+  display: flex; align-items: center; min-width: 0; overflow: hidden; border: 1px solid rgba(241,245,249,0.11);
+  border-radius: 14px; background: rgba(255,255,255,0.035); transition: border-color 0.18s, box-shadow 0.18s;
+}
+.jsave-onboarding-select-wrap:focus-within,
+.jsave-onboarding-budget-wrap:focus-within { border-color: rgba(16,185,129,0.52); box-shadow: 0 0 0 3px rgba(16,185,129,0.1); }
+.jsave-onboarding-select-wrap b,
+.jsave-onboarding-budget-wrap b {
+  min-width: 54px; padding: 0 14px; color: #10b981; font-family: var(--font-mono); font-size: 13px; text-align: center;
+}
+.jsave-onboarding-select-wrap select,
+.jsave-onboarding-budget-wrap input {
+  width: 100%; min-width: 0; padding: 13px 14px; border: 0; border-left: 1px solid rgba(241,245,249,0.08);
+  outline: 0; background: transparent; color: #f1f5f9; font: 14px var(--font-sans); appearance: none;
+}
+.jsave-onboarding-select-wrap option { background: #0a1828; color: #f1f5f9; }
+.jsave-onboarding-field > small { display: block; margin-top: 7px; color: rgba(241,245,249,0.34); font-size: 10px; line-height: 1.45; }
+.jsave-onboarding-footnote { margin: -6px 0 0; color: rgba(241,245,249,0.3); font-size: 10px; line-height: 1.5; text-align: center; }
+
+@media (max-width: 480px) {
+  .jsave-onboarding-dialog { padding: 24px 20px; }
+  .jsave-onboarding-dialog h2 { font-size: 27px; }
+}
 .jsave-coffee-history { background: rgba(16,185,129,0.07); border: 1px solid rgba(16,185,129,0.18); border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; }
 .jsave-coffee-total { font-size: 13px; font-weight: 600; color: #10b981; margin-bottom: 6px; }
 .jsave-coffee-entries { display: flex; flex-direction: column; gap: 4px; }

@@ -1,8 +1,23 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.4.0',
+    version: '3.5.0',
     date: '2026-09-06',
     isLatest: true,
+    items: [
+      'Added a friendly first-run setup for language, main currency and an optional daily budget',
+      'Expanded currency choices across Asia and major international markets, including CNY',
+      'Applied the selected currency consistently across transactions, goals, items, budgets and reports',
+    ],
+    itemsZh: [
+      '新增首次登录引导，可先设置语言、主要货币及选填的每日预算',
+      '扩展亚洲及主要国际货币选项，包括人民币 CNY',
+      '交易、目标、物品、预算及报告现会统一使用所选货币',
+    ],
+  },
+  {
+    version: '3.4.0',
+    date: '2026-09-06',
+    isLatest: false,
     items: [
       'Home now shows useful item details automatically when there are no savings goals',
       'Any item, group or grouped component can be selected as the featured home item',

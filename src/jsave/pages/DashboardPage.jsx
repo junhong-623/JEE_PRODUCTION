@@ -8,16 +8,15 @@ import GoalThumbnail from '../components/GoalThumbnail'
 import ItemThumbnail from '../components/ItemThumbnail'
 import { localDateDaysAgo, toLocalDateString } from '../utils/date'
 import { getDashboardItem, itemDaysOwned, itemStatus } from '../utils/itemGroups'
+import { currencyFractionDigits, currencyLocale, currencySymbol, formatCurrency } from '../utils/currency'
 
 function fmt(amount, currency = 'MYR') {
-  return new Intl.NumberFormat('en-MY', { style: 'currency', currency, minimumFractionDigits: 2 }).format(amount)
+  return formatCurrency(amount, currency)
 }
 
 function fmtShort(amount, currency = 'MYR') {
   if (Math.abs(amount) >= 1000) {
-    return currency === 'MYR'
-      ? `RM ${(amount / 1000).toFixed(1)}k`
-      : `${(amount / 1000).toFixed(1)}k`
+    return `${currencySymbol(currency)} ${(amount / 1000).toFixed(1)}k`
   }
   return fmt(amount, currency)
 }
@@ -83,7 +82,7 @@ function TxRow({ tx, accounts, cur, t, onClick }) {
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(241,245,249,0.4)', marginTop: 2 }}>{note}</div>
       </div>
       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600, color: amtColor, flexShrink: 0 }}>
-        <span style={{ color: 'rgba(241,245,249,0.4)' }}>RM </span>{sign}{Math.abs(amount).toFixed(2)}
+        <span style={{ color: 'rgba(241,245,249,0.4)' }}>{sign}</span>{fmt(Math.abs(amount), cur)}
       </div>
     </div>
   )
@@ -139,6 +138,7 @@ export default function DashboardPage({ onOpenSettings, onNavigate }) {
   const [showForm, setShowForm] = useState(false)
 
   const cur = settings?.currency ?? 'MYR'
+  const currencyDigits = currencyFractionDigits(cur)
   const { start, end } = monthRange()
   const today = todayStr()
   const yesterday = yesterdayStr()
@@ -249,9 +249,9 @@ export default function DashboardPage({ onOpenSettings, onNavigate }) {
       }}>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: 1.8, color: 'rgba(241,245,249,0.5)', textTransform: 'uppercase' }}>{t('totalBalance')}</div>
         <div style={{ marginTop: 6, display: 'flex', alignItems: 'baseline', gap: 6 }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 14, color: 'rgba(241,245,249,0.5)' }}>{cur === 'MYR' ? 'RM' : cur}</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 14, color: 'rgba(241,245,249,0.5)' }}>{currencySymbol(cur, lang)}</span>
           <span style={{ fontFamily: 'var(--font-display)', fontSize: 38, letterSpacing: -1.5, color: '#f1f5f9', lineHeight: 1 }}>
-            {Math.abs(totalBalance).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            {Math.abs(totalBalance).toLocaleString(currencyLocale(lang), { minimumFractionDigits: currencyDigits, maximumFractionDigits: currencyDigits })}
           </span>
         </div>
         <div style={{ marginTop: 8, display: 'flex', gap: 16, fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: 1, color: 'rgba(241,245,249,0.5)' }}>
@@ -285,7 +285,7 @@ export default function DashboardPage({ onOpenSettings, onNavigate }) {
         <div onClick={() => onNavigate?.('calendar')} style={{ padding: 14, borderRadius: 18, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(241,245,249,0.07)', cursor: 'pointer' }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8.5, letterSpacing: 1.4, color: 'rgba(241,245,249,0.4)', textTransform: 'uppercase' }}>{t('spendToday')}</div>
           <div style={{ marginTop: 5, fontFamily: 'var(--font-display)', fontSize: 24, letterSpacing: -0.8, color: '#f1f5f9' }}>
-            {cur === 'MYR' ? 'RM' : cur} {todayExpense.toFixed(2)}
+            {fmt(todayExpense, cur)}
           </div>
           {yesterdayExpense > 0 && (
             <div style={{ marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: 9, color: vsColor }}>
@@ -299,8 +299,8 @@ export default function DashboardPage({ onOpenSettings, onNavigate }) {
               </div>
               <div style={{ marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: 8.5, color: budgetRemaining >= 0 ? '#10b981' : '#f43f5e' }}>
                 {budgetRemaining >= 0
-                  ? t('budgetRemaining').replace('{amount}', Math.abs(budgetRemaining).toFixed(0))
-                  : t('budgetOver').replace('{amount}', Math.abs(budgetRemaining).toFixed(0))}
+                  ? t('budgetRemaining').replace('{amount}', formatCurrency(Math.abs(budgetRemaining), cur, lang, { maximumFractionDigits: 0 }))
+                  : t('budgetOver').replace('{amount}', formatCurrency(Math.abs(budgetRemaining), cur, lang, { maximumFractionDigits: 0 }))}
               </div>
             </>
           )}

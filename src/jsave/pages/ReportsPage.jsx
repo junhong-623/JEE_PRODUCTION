@@ -4,12 +4,13 @@ import { useJSave } from '../hooks/useJSave'
 import { Donut, BarChart as JSBarChart, AreaChart } from '../components/JSaveCharts'
 import PageHeader from '../components/PageHeader'
 import { localDateDaysAgo, toLocalDateString } from '../utils/date'
+import { formatCurrency } from '../utils/currency'
 
 function fmt(amount, currency = 'MYR') {
   return new Intl.NumberFormat('en-MY', { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount)
 }
 function fmtFull(amount, currency = 'MYR') {
-  return new Intl.NumberFormat('en-MY', { style: 'currency', currency, minimumFractionDigits: 2 }).format(amount)
+  return formatCurrency(amount, currency)
 }
 function subtractDays(n) { return localDateDaysAgo(n) }
 function startOfYear() { return `${new Date().getFullYear()}-01-01` }
@@ -106,8 +107,8 @@ function InsightsView({ filtered, cur, t, lang }) {
   const topCat = byCategory[0]
   const aiTip = topCat
     ? (lang === 'zh'
-      ? `本期在「${t(topCat.cat)}」花费 RM ${topCat.amount.toFixed(0)}，占总支出 ${totalExpense > 0 ? Math.round((topCat.amount / totalExpense) * 100) : 0}%。尝试设置预算目标来控制这项支出。`
-      : `You spent RM ${topCat.amount.toFixed(0)} on ${t(topCat.cat)} this period — ${totalExpense > 0 ? Math.round((topCat.amount / totalExpense) * 100) : 0}% of your total expenses. Consider setting a budget to manage this category.`)
+      ? `本期在「${t(topCat.cat)}」花费 ${formatCurrency(topCat.amount, cur, lang, { maximumFractionDigits: 0 })}，占总支出 ${totalExpense > 0 ? Math.round((topCat.amount / totalExpense) * 100) : 0}%。尝试设置预算目标来控制这项支出。`
+      : `You spent ${formatCurrency(topCat.amount, cur, lang, { maximumFractionDigits: 0 })} on ${t(topCat.cat)} this period — ${totalExpense > 0 ? Math.round((topCat.amount / totalExpense) * 100) : 0}% of your total expenses. Consider setting a budget to manage this category.`)
     : (lang === 'zh' ? '暂无支出记录。' : 'No expenses recorded yet.')
 
   if (filtered.length === 0) return <p className="jsave-empty-msg">{t('noData')}</p>
@@ -160,7 +161,7 @@ function InsightsView({ filtered, cur, t, lang }) {
             {lang === 'zh' ? '七日支出' : '7-Day Spending'}
           </div>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#10b981' }}>
-            RM {weekData.reduce((s, d) => s + d.value, 0)}
+            {formatCurrency(weekData.reduce((s, d) => s + d.value, 0), cur, lang, { maximumFractionDigits: 0 })}
           </div>
         </div>
         <div style={{ width: '100%', minWidth: 0, overflow: 'hidden' }}>
