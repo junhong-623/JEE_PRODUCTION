@@ -1,8 +1,23 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.3.2',
+    version: '3.4.0',
     date: '2026-09-06',
     isLatest: true,
+    items: [
+      'Home now shows useful item details automatically when there are no savings goals',
+      'Any item, group or grouped component can be selected as the featured home item',
+      'Opening the home item takes you directly to that exact item editor',
+    ],
+    itemsZh: [
+      '没有储蓄目标时，首页会自动显示有用的物品详情',
+      '任何物品、组合或组合部件都可以指定为首页展示项目',
+      '点击首页物品会直接打开该物品的正确编辑页面',
+    ],
+  },
+  {
+    version: '3.3.2',
+    date: '2026-09-06',
+    isLatest: false,
     items: [
       'Condensed the homepage guide showcase so the product remains the visual priority',
       'Changed the desktop layout to three balanced cards and mobile to a compact swipeable row',

@@ -5,7 +5,9 @@ import TransactionForm from '../components/TransactionForm'
 import { Sparkline, ProgressRing } from '../components/JSaveCharts'
 import PageHeader from '../components/PageHeader'
 import GoalThumbnail from '../components/GoalThumbnail'
+import ItemThumbnail from '../components/ItemThumbnail'
 import { localDateDaysAgo, toLocalDateString } from '../utils/date'
+import { getDashboardItem, itemDaysOwned, itemStatus } from '../utils/itemGroups'
 
 function fmt(amount, currency = 'MYR') {
   return new Intl.NumberFormat('en-MY', { style: 'currency', currency, minimumFractionDigits: 2 }).format(amount)
@@ -87,10 +89,52 @@ function TxRow({ tx, accounts, cur, t, onClick }) {
   )
 }
 
+function HomeItemCard({ item, cur, lang, onClick, expanded = false, automatic = false }) {
+  const status = item.isGroup
+    ? (item.activeMembers.length > 0 ? 'active' : 'retired')
+    : itemStatus(item)
+  const statusLabel = status === 'sold'
+    ? (lang === 'zh' ? '已出售' : 'Sold')
+    : status === 'retired'
+      ? (lang === 'zh' ? '已退役' : 'Retired')
+      : (lang === 'zh' ? '使用中' : 'Active')
+  const cost = item.isGroup ? item.activeTotalCost : Number(item.cost || 0)
+  const detail = item.isGroup
+    ? (lang === 'zh'
+        ? `${item.activeMembers.length} / ${item.members.length} 个部件在用`
+        : `${item.activeMembers.length} / ${item.members.length} parts active`)
+    : (lang === 'zh' ? `已使用 ${itemDaysOwned(item)} 天` : `${itemDaysOwned(item)} days owned`)
+
+  return (
+    <button type="button" onClick={onClick} style={{
+      width: '100%', minWidth: 0, padding: expanded ? '14px 16px' : 14,
+      borderRadius: 18, border: '1px solid rgba(16,185,129,0.2)',
+      background: 'linear-gradient(135deg, rgba(16,185,129,0.09), rgba(255,255,255,0.025))',
+      display: 'flex', alignItems: 'center', gap: 11, color: 'inherit', textAlign: 'left', cursor: 'pointer',
+    }} aria-label={`${lang === 'zh' ? '打开物品' : 'Open item'} ${item.name}`}>
+      <ItemThumbnail item={item} size={expanded ? 48 : 42} />
+      <span style={{ minWidth: 0, flex: 1 }}>
+        <small style={{ display: 'block', color: 'rgba(241,245,249,0.42)', fontFamily: 'var(--font-mono)', fontSize: 8, letterSpacing: 1.2, textTransform: 'uppercase' }}>
+          {automatic ? (lang === 'zh' ? '物品详情' : 'Item details') : (lang === 'zh' ? '首页物品' : 'Featured item')}
+        </small>
+        <strong style={{ marginTop: 3, display: 'block', overflow: 'hidden', color: '#f1f5f9', fontSize: expanded ? 14 : 12, textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</strong>
+        <small style={{ marginTop: 3, display: 'block', overflow: 'hidden', color: 'rgba(241,245,249,0.44)', fontFamily: 'var(--font-mono)', fontSize: 8.5, textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {detail} · {statusLabel}
+        </small>
+      </span>
+      <span style={{ flexShrink: 0, textAlign: 'right' }}>
+        <strong style={{ display: 'block', color: '#10b981', fontFamily: 'var(--font-display)', fontSize: expanded ? 20 : 17, letterSpacing: -0.4 }}>{Number(item.cpd || 0).toFixed(2)}</strong>
+        <small style={{ display: 'block', color: 'rgba(241,245,249,0.38)', fontFamily: 'var(--font-mono)', fontSize: 7.5 }}>{cur} / {lang === 'zh' ? '天' : 'day'}</small>
+        {expanded && <small style={{ marginTop: 3, display: 'block', color: 'rgba(241,245,249,0.42)', fontFamily: 'var(--font-mono)', fontSize: 8 }}>{cur} {cost.toFixed(2)}</small>}
+      </span>
+    </button>
+  )
+}
+
 // ── Main ─────────────────────────────────────────────────────────────────────
 export default function DashboardPage({ onOpenSettings, onNavigate }) {
   const { t, lang } = useLang()
-  const { transactions, accounts, goals, settings, getTotalBalance, loading } = useJSave()
+  const { transactions, accounts, goals, items, settings, getTotalBalance, loading } = useJSave()
   const [editTx, setEditTx] = useState(null)
   const [showForm, setShowForm] = useState(false)
 
@@ -177,6 +221,11 @@ export default function DashboardPage({ onOpenSettings, onNavigate }) {
   const goalPct = topGoal
     ? Math.min(1, (topGoal.currentAmount || 0) / (topGoal.targetAmount || 1))
     : 0
+  const homeItem = useMemo(
+    () => getDashboardItem(items, settings?.homeItemId, !topGoal),
+    [items, settings?.homeItemId, topGoal]
+  )
+  const manuallyFeaturedItem = Boolean(homeItem && settings?.homeItemId === homeItem.id)
 
   const vsYesterday = todayExpense - yesterdayExpense
   const vsColor = vsYesterday > 0 ? '#f43f5e' : '#10b981'
@@ -256,10 +305,9 @@ export default function DashboardPage({ onOpenSettings, onNavigate }) {
             </>
           )}
         </div>
-        {/* Top goal */}
-        <div onClick={() => onNavigate?.('goals')} style={{ padding: 14, borderRadius: 18, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(241,245,249,0.07)', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-          {topGoal ? (
-            <>
+        {/* Top goal, or an item when there are no goals */}
+        {topGoal ? (
+          <div onClick={() => onNavigate?.('goals')} style={{ padding: 14, borderRadius: 18, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(241,245,249,0.07)', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
               <ProgressRing value={goalPct} size={52} thickness={5} color="#f5d570">
                 {Math.round(goalPct * 100)}%
               </ProgressRing>
@@ -269,15 +317,24 @@ export default function DashboardPage({ onOpenSettings, onNavigate }) {
                   <GoalThumbnail goal={topGoal} size={22} /> <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{topGoal.name}</span>
                 </div>
               </div>
-            </>
-          ) : (
+          </div>
+        ) : homeItem ? (
+          <HomeItemCard item={homeItem} cur={cur} lang={lang} automatic={!manuallyFeaturedItem} onClick={() => onNavigate?.('goals', { itemId: homeItem.id })} />
+        ) : (
+          <div onClick={() => onNavigate?.('goals')} style={{ padding: 14, borderRadius: 18, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(241,245,249,0.07)', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
             <div style={{ flex: 1, textAlign: 'center' }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8.5, letterSpacing: 1.4, color: 'rgba(241,245,249,0.4)', textTransform: 'uppercase', marginBottom: 4 }}>{t('topGoal')}</div>
               <div style={{ fontSize: 12, color: 'rgba(241,245,249,0.3)' }}>{t('noGoals')}</div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
+
+      {topGoal && manuallyFeaturedItem && (
+        <div style={{ marginBottom: 12 }}>
+          <HomeItemCard item={homeItem} cur={cur} lang={lang} expanded onClick={() => onNavigate?.('goals', { itemId: homeItem.id })} />
+        </div>
+      )}
 
       {/* ── Categories grid ── */}
       <div style={{ marginBottom: 14 }}>

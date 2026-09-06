@@ -17,6 +17,7 @@ export const DEFAULT_SETTINGS = {
   dailyBudget: 0,
   categoryBudgets: {},
   defaultAccountId: null,
+  homeItemId: null,
   language: 'en',
 }
 

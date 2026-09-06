@@ -171,6 +171,11 @@ export default {
   itemGroupTotalCost: 'Lifetime cost',
   itemGroupActiveCost: 'Active cost',
   itemGroupParts: 'parts',
+  itemShowOnHome: 'Show on home',
+  itemShowOnHomeHint: 'Feature this item or group on the JSave home screen.',
+  itemFeaturedOnHome: 'On home',
+  itemHomeFeature: 'Featured item',
+  itemHomeAutomatic: 'Item details',
 
   // Reports
   reportsTitle: 'Reports',

@@ -58,3 +58,37 @@ export function buildItemEntries(items, now = new Date()) {
 
   return [...groupEntries, ...ungroupedEntries]
 }
+
+function regularItemEntry(item, now) {
+  const active = itemStatus(item) === 'active'
+  return {
+    ...item,
+    isGroup: false,
+    members: [],
+    activeMembers: active ? [item] : [],
+    totalCost: Number(item.cost) || 0,
+    activeTotalCost: active ? (Number(item.cost) || 0) : 0,
+    cpd: itemCostPerDay(item, now),
+  }
+}
+
+export function getDashboardItem(items = [], featuredItemId = null, allowFallback = false, now = new Date()) {
+  const entries = buildItemEntries(items, now)
+
+  if (featuredItemId) {
+    const topLevelEntry = entries.find(item => item.id === featuredItemId)
+    if (topLevelEntry) return topLevelEntry
+
+    const groupedItem = items.find(item => item.id === featuredItemId && !isItemGroup(item))
+    if (groupedItem) return regularItemEntry(groupedItem, now)
+  }
+
+  if (!allowFallback || entries.length === 0) return null
+
+  const newestFirst = (left, right) => Number(right.createdAt || 0) - Number(left.createdAt || 0)
+  const activeEntries = entries.filter(item => item.isGroup
+    ? item.activeMembers.length > 0
+    : itemStatus(item) === 'active')
+
+  return [...(activeEntries.length ? activeEntries : entries)].sort(newestFirst)[0] || null
+}

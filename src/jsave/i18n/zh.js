@@ -171,6 +171,11 @@ export default {
   itemGroupTotalCost: '累计成本',
   itemGroupActiveCost: '在用成本',
   itemGroupParts: '个部件',
+  itemShowOnHome: '显示在首页',
+  itemShowOnHomeHint: '把这个物品或组合固定在 JSave 首页。',
+  itemFeaturedOnHome: '首页展示',
+  itemHomeFeature: '首页物品',
+  itemHomeAutomatic: '物品详情',
 
   // Reports
   reportsTitle: '报告',

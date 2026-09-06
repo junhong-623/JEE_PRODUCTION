@@ -181,9 +181,9 @@ function JSaveShell() {
     }
   }, [])
 
-  const navigatePage = nextPage => {
+  const navigatePage = (nextPage, options = {}) => {
     if (!APP_PAGES.has(nextPage)) return
-    window.history.pushState({}, '', `${window.location.pathname}${window.location.search}#${nextPage}`)
+    window.history.pushState({ jsavePage: nextPage, ...options }, '', `${window.location.pathname}${window.location.search}#${nextPage}`)
     setPage(nextPage)
   }
 
@@ -212,7 +212,7 @@ function JSaveShell() {
     dashboard: <DashboardPage onOpenSettings={() => navigatePage('settings')} onNavigate={navigatePage} />,
     calendar:  <CalendarPage onOpenSettings={() => navigatePage('settings')} />,
     reports:   <ReportsPage onOpenSettings={() => navigatePage('settings')} />,
-    goals:     <GoalsPage onOpenSettings={() => navigatePage('settings')} />,
+    goals:     <GoalsPage onOpenSettings={() => navigatePage('settings')} initialItemId={window.history.state?.itemId || null} />,
     settings:  <SettingsPage onOpenAdmin={admin ? () => setShowAdmin(true) : null} />,
   }
 

@@ -276,7 +276,7 @@ function GoalSettingsModal({ initial, onSave, onDelete, onClose, t }) {
 /* ──────────────────────────────────────────────────────────────────────
    Things view — Cost Per Day (uses existing items from JSaveContext)
    ────────────────────────────────────────────────────────────────────── */
-function ItemForm({ initial, cur, t, onSave, onDelete, onClose, groupMode = false, availableItems = [], initialMemberIds = [], onAddComponent, onEditComponent }) {
+function ItemForm({ initial, cur, t, onSave, onDelete, onClose, groupMode = false, availableItems = [], initialMemberIds = [], initiallyFeatured = false, onAddComponent, onEditComponent }) {
   const initStatus = itemStatus(initial ?? {})
   const initialEmoji = initial?.emoji ?? '📦'
   const [emoji,        setEmoji]       = useState(initialEmoji)
@@ -297,6 +297,7 @@ function ItemForm({ initial, cur, t, onSave, onDelete, onClose, groupMode = fals
   const [saving,       setSaving]      = useState(false)
   const [saveError,    setSaveError]   = useState(null)
   const [memberIds,    setMemberIds]   = useState(initialMemberIds)
+  const [featured,     setFeatured]    = useState(initiallyFeatured)
   const customEmojiValid = !customEmoji || isSingleEmoji(customEmoji)
 
   useEffect(() => () => {
@@ -326,12 +327,14 @@ function ItemForm({ initial, cur, t, onSave, onDelete, onClose, groupMode = fals
     if (!customEmojiValid) { setSaving(false); return }
     try {
       if (groupMode) {
-        await onSave({ kind: 'group', name: name.trim(), emoji, note, status: 'active' }, { file: coverFile, remove: removeCover }, memberIds)
+        await onSave({ kind: 'group', name: name.trim(), emoji, note, status: 'active' }, { file: coverFile, remove: removeCover }, memberIds, featured)
       } else {
         const status = retired ? 'retired' : sold ? 'sold' : 'active'
         await onSave(
           { name: name.trim(), emoji, cost: Number(cost), purchaseDate, status, retiredDate: retired ? (retiredDate || todayStr()) : null, salePrice: sold ? Number(salePrice) : null, saleDate: sold ? (saleDate || todayStr()) : null, disposeDate: retired ? (retiredDate || todayStr()) : null, note },
           { file: coverFile, remove: removeCover },
+          [],
+          featured,
         )
       }
     } catch (error) {
@@ -398,6 +401,10 @@ function ItemForm({ initial, cur, t, onSave, onDelete, onClose, groupMode = fals
           </>}
           <div><label className="jsave-label">{t('itemNote')}</label>
             <input className="jsave-input" value={note} onChange={e => setNote(e.target.value)} /></div>
+          <div className="jsave-setting-row jsave-item-home-setting">
+            <span><strong>{t('itemShowOnHome')}</strong><small>{t('itemShowOnHomeHint')}</small></span>
+            <label className="jsave-toggle"><input type="checkbox" checked={featured} onChange={e => setFeatured(e.target.checked)} /><span className="jsave-toggle-track" /></label>
+          </div>
           {groupMode && (
             <div className="jsave-group-members-field">
               <div className="jsave-label">{t('itemGroupMembers')}</div>
@@ -443,11 +450,12 @@ function ItemForm({ initial, cur, t, onSave, onDelete, onClose, groupMode = fals
   )
 }
 
-function ThingsView({ t, lang, showAdd, onShowAddChange }) {
-  const { items, addItem, updateItem, deleteItem, settings } = useJSave()
+function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null }) {
+  const { items, addItem, updateItem, deleteItem, settings, updateSettings } = useJSave()
   const { user } = useAuth()
   const [editing, setEditing] = useState(null)
   const [pendingParentId, setPendingParentId] = useState(null)
+  const openedInitialItem = useRef(null)
   const cur = settings?.currency ?? 'MYR'
 
   const regularItems = useMemo(() => items.filter(item => !isItemGroup(item)), [items])
@@ -463,6 +471,16 @@ function ThingsView({ t, lang, showAdd, onShowAddChange }) {
   const worst  = sortedItems[sortedItems.length - 1]
   const groupMode = isItemGroup(editing)
   const availableGroupItems = regularItems.filter(item => !item.parentItemId || item.parentItemId === editing?.id)
+
+  useEffect(() => {
+    if (!initialItemId || openedInitialItem.current === initialItemId || items.length === 0) return
+    const target = itemEntries.find(item => item.id === initialItemId) || items.find(item => item.id === initialItemId)
+    if (!target) return
+    openedInitialItem.current = initialItemId
+    setEditing(target)
+    setPendingParentId(target.parentItemId || null)
+    onShowAddChange(false)
+  }, [initialItemId, itemEntries, items, onShowAddChange])
 
   function closeForm() {
     setEditing(null)
@@ -481,13 +499,19 @@ function ThingsView({ t, lang, showAdd, onShowAddChange }) {
     })))
   }
 
-  async function saveItem(data, coverChange, memberIds = []) {
+  async function syncHomeFeature(itemId, featured) {
+    const nextItemId = featured ? itemId : settings?.homeItemId === itemId ? null : settings?.homeItemId
+    if (nextItemId !== settings?.homeItemId) await updateSettings({ homeItemId: nextItemId })
+  }
+
+  async function saveItem(data, coverChange, memberIds = [], featured = false) {
     if (editing?.id) {
       let coverUpdate = {}
       if (coverChange.file) coverUpdate = await uploadItemCover(user.uid, editing.id, coverChange.file)
       else if (coverChange.remove) coverUpdate = { coverPath: null, coverUrl: null }
       await updateItem(editing.id, { ...data, ...coverUpdate })
       if (data.kind === 'group') await syncGroupMembers(editing.id, memberIds)
+      await syncHomeFeature(editing.id, featured)
       if (coverChange.remove && editing.coverPath) await deleteItemCover(editing.coverPath)
       if (coverChange.file && editing.coverPath && editing.coverPath !== coverUpdate.coverPath) await deleteItemCover(editing.coverPath)
       closeForm()
@@ -499,6 +523,7 @@ function ThingsView({ t, lang, showAdd, onShowAddChange }) {
     try {
       await addItem({ ...data, ...coverUpdate, id: itemId, ...(data.kind !== 'group' && { parentItemId: pendingParentId || null }) })
       if (data.kind === 'group') await syncGroupMembers(itemId, memberIds)
+      await syncHomeFeature(itemId, featured)
       closeForm()
     } catch (error) {
       if (coverUpdate.coverPath) await deleteItemCover(coverUpdate.coverPath).catch(() => {})
@@ -513,6 +538,7 @@ function ThingsView({ t, lang, showAdd, onShowAddChange }) {
       await Promise.all(regularItems.filter(item => item.parentItemId === editing.id).map(item => updateItem(item.id, { parentItemId: null })))
     }
     await deleteItem(editing.id)
+    if (settings?.homeItemId === editing.id) await updateSettings({ homeItemId: null })
     if (coverPath) await deleteItemCover(coverPath).catch(() => {})
     closeForm()
   }
@@ -617,6 +643,7 @@ function ThingsView({ t, lang, showAdd, onShowAddChange }) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
                     <span style={{ fontSize: 12.5, fontWeight: 600, color: '#f1f5f9' }}>{item.name}</span>
                     {item.isGroup && <span className="jsave-item-group-badge">{t('itemGroup')}</span>}
+                    {settings?.homeItemId === item.id && <span className="jsave-item-home-badge">{t('itemFeaturedOnHome')}</span>}
                     {status !== 'active' && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'rgba(241,245,249,0.4)', letterSpacing: 1, textTransform: 'uppercase', background: 'rgba(241,245,249,0.06)', padding: '1px 6px', borderRadius: 4 }}>{t(status === 'sold' ? 'itemSold' : 'itemRetired')}</span>}
                   </div>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(241,245,249,0.45)' }}>
@@ -663,6 +690,7 @@ function ThingsView({ t, lang, showAdd, onShowAddChange }) {
           groupMode={groupMode}
           availableItems={availableGroupItems}
           initialMemberIds={groupMode ? (editing.members?.map(item => item.id) || []) : []}
+          initiallyFeatured={Boolean(editing?.id && settings?.homeItemId === editing.id)}
           onAddComponent={addComponentToGroup}
           onEditComponent={editGroupComponent}
         />
@@ -716,13 +744,13 @@ function HeroGoalCard({ goal, onClick, t, lang }) {
 /* ──────────────────────────────────────────────────────────────────────
    Main component
    ────────────────────────────────────────────────────────────────────── */
-export default function GoalsPage({ onOpenSettings }) {
+export default function GoalsPage({ onOpenSettings, initialItemId = null }) {
   const { t, lang } = useLang()
   const { goals, items, addGoal, updateGoal, deleteGoal } = useJSave()
   const { user } = useAuth()
 
-  const userSelectedTab = useRef(false)
-  const [tab, setTab]               = useState(() => preferredGoalsTab(goals, items))
+  const userSelectedTab = useRef(Boolean(initialItemId))
+  const [tab, setTab]               = useState(() => initialItemId ? 'things' : preferredGoalsTab(goals, items))
   const [quickGoal, setQuickGoal]   = useState(null)            // goal for quick deposit
   const [settingsGoal, setSettingsGoal] = useState(null)        // goal for full settings
   const [showAddGoal, setShowAddGoal]   = useState(false)
@@ -866,7 +894,7 @@ export default function GoalsPage({ onOpenSettings }) {
       )}
 
       {/* ── Things tab ── */}
-      {tab === 'things' && <ThingsView t={t} lang={lang} showAdd={showAddItem} onShowAddChange={setShowAddItem} />}
+      {tab === 'things' && <ThingsView t={t} lang={lang} showAdd={showAddItem} onShowAddChange={setShowAddItem} initialItemId={initialItemId} />}
 
       {/* ── Quick Deposit Modal ── */}
       {quickGoal && (
