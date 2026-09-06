@@ -13,6 +13,7 @@ import { toLocalDateString } from './utils/date'
 import { articleRoute, guidesRoute } from './data/articleRoutes'
 import { useJSave } from './hooks/useJSave'
 import { SUPPORTED_CURRENCIES, currencyName, currencySymbol } from './utils/currency'
+import { needsCurrencyOnboarding } from './utils/onboarding'
 import './design-system.css'
 import './App.css'
 
@@ -131,7 +132,7 @@ function PaymentResultModal({ onClose, amount }) {
   )
 }
 
-function OnboardingDialog() {
+function OnboardingDialog({ onComplete }) {
   const { lang, setLanguage } = useLang()
   const { settings, updateSettings } = useJSave()
   const [currency, setCurrency] = useState(settings?.currency || 'MYR')
@@ -151,6 +152,7 @@ function OnboardingDialog() {
         language: lang,
         onboardingCompleted: true,
       })
+      onComplete?.()
     } finally {
       setSaving(false)
     }
@@ -232,8 +234,14 @@ function JSaveShell() {
     return p.has('status_id') ? p.get('status_id') : null
   })
   const [pendingCoffeeAmt] = useState(() => Number(localStorage.getItem('jsave-coffee-pending') || 0))
+  const [newUserUid, setNewUserUid] = useState(null)
   const onboardingWasShown = useRef(false)
-  const needsOnboarding = Boolean(user && preferencesReady && !settings?.onboardingCompleted)
+  const needsOnboarding = needsCurrencyOnboarding({
+    uid: user?.uid,
+    newUserUid,
+    preferencesReady,
+    onboardingCompleted: settings?.onboardingCompleted,
+  })
 
   useEffect(() => {
     if (!needsOnboarding) return
@@ -294,7 +302,12 @@ function JSaveShell() {
       return (
         <div className="jsave-root">
           <Suspense fallback={<PageFallback />}>
-            <LoginPage onBack={() => setShowLogin(false)} />
+            <LoginPage
+              onBack={() => setShowLogin(false)}
+              onAuthenticated={({ user: authenticatedUser, isNewUser }) => {
+                if (isNewUser) setNewUserUid(authenticatedUser.uid)
+              }}
+            />
           </Suspense>
         </div>
       )
@@ -351,7 +364,7 @@ function JSaveShell() {
           else navigatePage(p)
         }}
       />
-      {needsOnboarding && <OnboardingDialog />}
+      {needsOnboarding && <OnboardingDialog onComplete={() => setNewUserUid(null)} />}
     </div>
   )
 }

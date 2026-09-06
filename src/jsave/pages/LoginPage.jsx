@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
+import { GoogleAuthProvider, getAdditionalUserInfo, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '../../lib/firebase'
 import { useLang } from '../contexts/LangContext'
 import { JSAVE_BASE } from '../utils/basePath'
 
-export default function LoginPage({ onBack }) {
+export default function LoginPage({ onBack, onAuthenticated }) {
   const { t, lang, setLanguage } = useLang()
   const [showEmail, setShowEmail] = useState(false)
   const [isSignUp, setIsSignUp] = useState(false)
@@ -15,7 +15,13 @@ export default function LoginPage({ onBack }) {
 
   async function loginGoogle() {
     setLoading(true); setError('')
-    try { await signInWithPopup(auth, new GoogleAuthProvider()) }
+    try {
+      const credential = await signInWithPopup(auth, new GoogleAuthProvider())
+      onAuthenticated?.({
+        user: credential.user,
+        isNewUser: Boolean(getAdditionalUserInfo(credential)?.isNewUser),
+      })
+    }
     catch { setError(t('loginError')) }
     finally { setLoading(false) }
   }
@@ -24,9 +30,11 @@ export default function LoginPage({ onBack }) {
     e.preventDefault(); setLoading(true); setError('')
     try {
       if (isSignUp) {
-        await createUserWithEmailAndPassword(auth, email, password)
+        const credential = await createUserWithEmailAndPassword(auth, email, password)
+        onAuthenticated?.({ user: credential.user, isNewUser: true })
       } else {
-        await signInWithEmailAndPassword(auth, email, password)
+        const credential = await signInWithEmailAndPassword(auth, email, password)
+        onAuthenticated?.({ user: credential.user, isNewUser: false })
       }
     } catch {
       setError(isSignUp ? t('loginSignUpError') : t('loginError'))

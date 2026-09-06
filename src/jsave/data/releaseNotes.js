@@ -1,8 +1,23 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.5.1',
+    version: '3.5.2',
     date: '2026-09-06',
     isLatest: true,
+    items: [
+      'First-run setup now opens immediately after email or Google account creation',
+      'Removed the need to refresh or reopen the installed PWA before choosing a currency',
+      'Returning users still wait for synced preferences so completed setup never reappears unnecessarily',
+    ],
+    itemsZh: [
+      '使用邮箱或 Google 创建账号后，现在会立即显示首次设置引导',
+      '无需刷新页面或重新打开已安装的 PWA 才能选择货币',
+      '回访用户仍会先读取同步设置，避免不必要地重复显示引导',
+    ],
+  },
+  {
+    version: '3.5.1',
+    date: '2026-09-06',
+    isLatest: false,
     items: [
       'Stopped iOS and installed PWA screens from zooming when compact form fields receive focus',
       'Covered setup, settings, goals, items, bill splits, account forms, login and report filters',
