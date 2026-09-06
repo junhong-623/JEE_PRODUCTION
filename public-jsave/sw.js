@@ -1,4 +1,4 @@
-const CACHE = 'jsave-v18'
+const CACHE = 'jsave-v19'
 
 self.addEventListener('install', e => {
   self.skipWaiting()

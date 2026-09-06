@@ -1,8 +1,23 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.3.1',
+    version: '3.3.2',
     date: '2026-09-06',
     isLatest: true,
+    items: [
+      'Condensed the homepage guide showcase so the product remains the visual priority',
+      'Changed the desktop layout to three balanced cards and mobile to a compact swipeable row',
+      'Kept the full guide collection easy to discover without adding unnecessary page length',
+    ],
+    itemsZh: [
+      '缩小首页指南展示，让产品内容继续保持视觉重点',
+      '桌面改为三张平衡卡片，手机改为紧凑的横向滑动排列',
+      '保留完整指南入口和搜索发现价值，同时减少不必要的页面长度',
+    ],
+  },
+  {
+    version: '3.3.1',
+    date: '2026-09-06',
+    isLatest: false,
     items: [
       'Added a dedicated bilingual JSave Guides index that stays accessible whether signed in or not',
       'Back to JSave Guides now returns to the guide collection instead of the product homepage',
