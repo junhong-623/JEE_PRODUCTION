@@ -65,11 +65,9 @@ class handler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
 
-        if not num or len(num) > 4:
-            self._write({"error": "请输入 0000 至 9999 的号码"})
+        if len(num) != 4:
+            self._write({"error": "请输入完整的 4 位号码"})
             return
-
-        num = num.zfill(4)
 
         url = f"https://4d2ulive.com/search/{num}"
 

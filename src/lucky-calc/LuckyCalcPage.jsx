@@ -373,8 +373,8 @@ function QianziTab() {
 
   const lookup = async () => {
     const digits = String(num).replace(/\D/g, '')
-    if (!digits) { setError('请输入号码'); return }
-    const n = digits.padStart(4, '0')
+    if (digits.length !== 4) { setError('请输入完整的 4 位号码'); return }
+    const n = digits
     setLoading(true); setError(''); setResult(null)
     try {
       const res = await fetch(`${PROXY_URL}?num=${n}`, { signal: AbortSignal.timeout(12000) })
