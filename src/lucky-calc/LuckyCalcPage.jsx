@@ -1,7 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 
-const PROXY_URL         = 'https://vercel-proxy-chi-coral.vercel.app/api/search'
-const HISTORY_PROXY_URL = 'https://vercel-proxy-chi-coral.vercel.app/api/history'
+const PROXY_URL = 'https://vercel-proxy-chi-coral.vercel.app/api/search'
 
 const TABS = [
   { id: 'calc',     label: '计算机',   icon: '🧮' },
@@ -365,192 +364,6 @@ function Lucky4DTab() {
 }
 
 // ─── Qianzi Tab ─────────────────────────────────────────────────────────────────
-function parseMeanings(cn) {
-  if (!cn) return []
-  return cn.split(/[\/、；;，,]/).map(s => s.trim()).filter(Boolean)
-}
-
-const PRIZE_STYLE = {
-  '1st':         { color: '#ffd700', bg: 'rgba(255,215,0,0.15)',  border: 'rgba(255,215,0,0.35)'  },
-  '2nd':         { color: '#e0e0e0', bg: 'rgba(200,200,200,0.1)', border: 'rgba(200,200,200,0.25)' },
-  '3rd':         { color: '#cd7f32', bg: 'rgba(205,127,50,0.12)', border: 'rgba(205,127,50,0.3)'  },
-  'Special':     { color: '#ff9800', bg: 'rgba(255,152,0,0.1)',   border: 'rgba(255,152,0,0.25)'  },
-  'Consolation': { color: '#90caf9', bg: 'rgba(144,202,249,0.08)',border: 'rgba(144,202,249,0.2)' },
-}
-
-const PRIZE_ORDER = { '1st': 1, '2nd': 2, '3rd': 3, 'Special': 4, 'Consolation': 5 }
-const PRIZE_LABEL = { '1st': '头奖', '2nd': '二奖', '3rd': '三奖', 'Special': '特别奖', 'Consolation': '安慰奖' }
-
-function parseDate(str) {
-  // handles dd/mm/yyyy, yyyy-mm-dd, d-m-yyyy etc.
-  const parts = str.split(/[-\/]/)
-  if (parts.length !== 3) return 0
-  const [a, b, c] = parts.map(Number)
-  // if first part is 4-digit year → yyyy-mm-dd
-  if (parts[0].length === 4) return new Date(a, b - 1, c).getTime()
-  // else dd/mm/yyyy
-  return new Date(c, b - 1, a).getTime()
-}
-
-function FilterChip({ label, active, color, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className="lc-btn rounded-full px-2.5 py-1 text-xs font-mono"
-      style={{
-        background: active ? (color || 'rgba(255,215,0,0.2)') : 'rgba(255,255,255,0.04)',
-        border: `1px solid ${active ? (color || 'rgba(255,215,0,0.5)') : 'rgba(255,255,255,0.1)'}`,
-        color: active ? '#fff' : 'rgba(245,230,200,0.45)',
-        fontWeight: active ? 600 : 400,
-      }}
-    >
-      {label}
-    </button>
-  )
-}
-
-function DrawHistory({ queriedNum }) {
-  const [history, setHistory]   = useState(null)
-  const [loading, setLoading]   = useState(false)
-  const [error, setError]       = useState('')
-  const [expanded, setExpanded] = useState(false)
-  const [selectedPrizes, setSelectedPrizes]       = useState(new Set())
-  const [selectedCompanies, setSelectedCompanies] = useState(new Set())
-  const [sortDir, setSortDir]   = useState('desc')
-
-  const load = async () => {
-    if (history) { setExpanded(e => !e); return }
-    setLoading(true); setError('')
-    try {
-      const res  = await fetch(`${HISTORY_PROXY_URL}?num=${queriedNum}`, { signal: AbortSignal.timeout(15000) })
-      const data = await res.json()
-      if (data.error) { setError(data.error) } else { setHistory(data.records); setExpanded(true) }
-    } catch (e) {
-      setError(e.name === 'TimeoutError' ? '查询超时，请重试' : '加载失败')
-    }
-    setLoading(false)
-  }
-
-  const togglePrize = (p) => setSelectedPrizes(prev => {
-    const next = new Set(prev)
-    next.has(p) ? next.delete(p) : next.add(p)
-    return next
-  })
-
-  const toggleCompany = (c) => setSelectedCompanies(prev => {
-    const next = new Set(prev)
-    next.has(c) ? next.delete(c) : next.add(c)
-    return next
-  })
-
-  const allPrizes    = history ? [...new Set(history.map(r => r.prize))].sort((a,b) => (PRIZE_ORDER[a]||9) - (PRIZE_ORDER[b]||9)) : []
-  const allCompanies = history ? [...new Set(history.map(r => r.company))].sort() : []
-
-  const filtered = (history || [])
-    .filter(r => selectedPrizes.size === 0 || selectedPrizes.has(r.prize))
-    .filter(r => selectedCompanies.size === 0 || selectedCompanies.has(r.company))
-    .sort((a, b) => {
-      const diff = parseDate(a.date) - parseDate(b.date)
-      return sortDir === 'desc' ? -diff : diff
-    })
-
-  const prizeChipColor = {
-    '1st': 'rgba(180,140,0,0.75)', '2nd': 'rgba(110,110,110,0.65)',
-    '3rd': 'rgba(140,80,20,0.75)', 'Special': 'rgba(180,100,0,0.7)',
-    'Consolation': 'rgba(30,80,150,0.7)',
-  }
-
-  return (
-    <div>
-      <button
-        onClick={load}
-        disabled={loading}
-        className="lc-btn w-full rounded-full py-2.5 text-xs font-semibold disabled:opacity-60"
-        style={{ background: 'rgba(255,215,0,0.08)', border: '1px solid rgba(255,215,0,0.2)', color: '#ffd700' }}
-      >
-        {loading ? '载入中...' : expanded ? '▲ 收起过往记录' : '📋 查看过往中奖记录'}
-      </button>
-
-      {error && <p className="mt-2 text-center text-xs text-red-400">{error}</p>}
-
-      {expanded && history && (
-        <div className="mt-3 space-y-3">
-          {/* Number header */}
-          <div className="flex items-center justify-between rounded-xl px-3 py-2.5" style={{ background: 'rgba(255,215,0,0.06)', border: '1px solid rgba(255,215,0,0.15)' }}>
-            <span className="font-mono text-xs" style={{ color: 'rgba(255,215,0,0.5)' }}>号码</span>
-            <span className="font-mono text-2xl font-bold tracking-widest" style={{ color: '#ffd700' }}>{queriedNum}</span>
-            <span className="font-mono text-xs" style={{ color: 'rgba(255,215,0,0.5)' }}>过往记录</span>
-          </div>
-
-          {/* Stats + sort */}
-          <div className="flex items-center justify-between">
-            <p className="font-mono text-xs" style={{ color: 'rgba(255,215,0,0.45)' }}>
-              共 {history.length} 次 · 显示 {filtered.length} 条
-            </p>
-            <button
-              onClick={() => setSortDir(d => d === 'desc' ? 'asc' : 'desc')}
-              className="lc-btn rounded-full px-2.5 py-1 font-mono text-xs"
-              style={{ background: 'rgba(255,215,0,0.07)', border: '1px solid rgba(255,215,0,0.18)', color: 'rgba(255,215,0,0.7)' }}
-            >
-              {sortDir === 'desc' ? '↓ 最新' : '↑ 最旧'}
-            </button>
-          </div>
-
-          {/* Prize filter */}
-          {allPrizes.length > 1 && (
-            <div className="flex flex-wrap gap-1.5">
-              {allPrizes.map(p => (
-                <FilterChip key={p} label={PRIZE_LABEL[p] || p} active={selectedPrizes.has(p)} color={prizeChipColor[p]} onClick={() => togglePrize(p)} />
-              ))}
-              {selectedPrizes.size > 0 && (
-                <FilterChip label="✕ 清除" active={false} onClick={() => setSelectedPrizes(new Set())} />
-              )}
-            </div>
-          )}
-
-          {/* Company multi-select */}
-          {allCompanies.length > 1 && (
-            <div className="flex flex-wrap gap-1.5">
-              {allCompanies.map(c => (
-                <FilterChip key={c} label={c} active={selectedCompanies.has(c)} onClick={() => toggleCompany(c)} />
-              ))}
-              {selectedCompanies.size > 0 && (
-                <FilterChip label="✕ 清除" active={false} onClick={() => setSelectedCompanies(new Set())} />
-              )}
-            </div>
-          )}
-
-          {/* List */}
-          {filtered.length === 0 ? (
-            <p className="text-center text-xs" style={{ color: 'rgba(245,230,200,0.35)' }}>没有符合条件的记录</p>
-          ) : (
-            <div className="space-y-1.5">
-              {filtered.map((r, i) => {
-                const ps = PRIZE_STYLE[r.prize] || { color: '#f5e6c8', bg: 'rgba(255,255,255,0.05)', border: 'rgba(255,255,255,0.1)' }
-                return (
-                  <div key={i} className="rounded-xl px-3 py-2.5"
-                    style={{ background: ps.bg, border: `1px solid ${ps.border}` }}>
-                    <div className="flex items-center justify-between">
-                      {r.number
-                        ? <span className="font-mono text-lg font-bold tracking-widest" style={{ color: '#ffd700' }}>{r.number}</span>
-                        : <span />}
-                      <span className="font-mono text-xs font-bold px-2 py-0.5 rounded-full" style={{ color: ps.color, background: ps.bg, border: `1px solid ${ps.border}` }}>{PRIZE_LABEL[r.prize] || r.prize}</span>
-                    </div>
-                    <div className="mt-1 flex items-center justify-between">
-                      <span className="font-mono text-xs" style={{ color: 'rgba(245,230,200,0.45)' }}>{r.date}</span>
-                      <span className="text-xs" style={{ color: 'rgba(245,230,200,0.4)' }}>{r.company}</span>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
 function QianziTab() {
   const [num, setNum] = useState('')
   const [queriedNum, setQueriedNum] = useState('')
@@ -559,9 +372,10 @@ function QianziTab() {
   const [error, setError] = useState('')
 
   const lookup = async () => {
-    const n = String(num).replace(/\D/g, '')
-    if (!n) { setError('请输入号码'); return }
-    setLoading(true); setError('')
+    const digits = String(num).replace(/\D/g, '')
+    if (!digits) { setError('请输入号码'); return }
+    const n = digits.padStart(4, '0')
+    setLoading(true); setError(''); setResult(null)
     try {
       const res = await fetch(`${PROXY_URL}?num=${n}`, { signal: AbortSignal.timeout(12000) })
       const data = await res.json()
@@ -571,9 +385,6 @@ function QianziTab() {
     }
     setLoading(false)
   }
-
-  const meanings = result ? parseMeanings(result.cn) : []
-  const enMeanings = result?.en ? parseMeanings(result.en) : []
 
   return (
     <div className="mx-auto max-w-sm space-y-5">
@@ -586,7 +397,7 @@ function QianziTab() {
       <div className="lc-card">
         <label className="block">
           <span className="mb-2 block font-mono text-xs" style={{ color: 'rgba(255,215,0,0.6)' }}>4D 号码</span>
-          <input type="number" min={0} max={9999} value={num} onChange={e=>setNum(e.target.value)} onKeyDown={e=>e.key==='Enter'&&lookup()} placeholder="0000 - 9999" className="lc-input text-center text-xl tracking-widest" style={{ fontSize: 16 }} />
+          <input type="text" inputMode="numeric" maxLength={4} value={num} onChange={e=>setNum(e.target.value.replace(/\D/g, '').slice(0, 4))} onKeyDown={e=>e.key==='Enter'&&lookup()} placeholder="0000 - 9999" className="lc-input text-center text-xl tracking-widest" style={{ fontSize: 16 }} />
         </label>
         <button onClick={lookup} disabled={loading} className="lc-btn mt-4 w-full rounded-full py-3 text-sm font-semibold text-white disabled:opacity-60" style={{ background: 'linear-gradient(135deg, #cc0000, #e53935)' }}>
           {loading ? '查询中...' : '🔍 查询'}
@@ -604,40 +415,23 @@ function QianziTab() {
 
           <div style={{ height: 1, background: 'rgba(255,215,0,0.12)' }} />
 
-          {/* Chinese meanings */}
-          <div>
-            <p className="mb-3 font-mono text-xs" style={{ color: 'rgba(255,215,0,0.5)' }}>含义 · {meanings.length} 个结果</p>
-            {meanings.length > 1 ? (
-              <div className="grid grid-cols-2 gap-2">
-                {meanings.map((m, i) => (
-                  <div key={i} className="rounded-xl px-3 py-3 text-center" style={{ background: 'rgba(255,215,0,0.07)', border: '1px solid rgba(255,215,0,0.18)' }}>
-                    <p className="text-xl font-bold" style={{ color: '#ffd700' }}>{m}</p>
-                    {enMeanings[i] && <p className="mt-1 text-xs leading-4" style={{ color: 'rgba(245,230,200,0.45)' }}>{enMeanings[i]}</p>}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-xl px-4 py-5 text-center" style={{ background: 'rgba(255,215,0,0.08)', border: '1px solid rgba(255,215,0,0.2)' }}>
-                <p className="text-3xl font-bold" style={{ color: '#ffd700' }}>{meanings[0]}</p>
-                {enMeanings[0] && <p className="mt-2 text-sm" style={{ color: 'rgba(245,230,200,0.5)' }}>{enMeanings[0]}</p>}
-              </div>
-            )}
-          </div>
+          <figure className="overflow-hidden rounded-2xl p-3 text-center" style={{ background: '#fff', border: '1px solid rgba(255,215,0,0.25)' }}>
+            <img
+              src={result.image}
+              alt={`${queriedNum} ${result.cn || '千字图'}`}
+              className="mx-auto aspect-square w-full max-w-[280px] object-contain"
+              referrerPolicy="no-referrer"
+            />
+          </figure>
 
-          {enMeanings.length > 0 && enMeanings.length !== meanings.length && (
-            <>
-              <div style={{ height: 1, background: 'rgba(255,215,0,0.08)' }} />
-              <div>
-                <p className="mb-2 font-mono text-xs" style={{ color: 'rgba(255,215,0,0.4)' }}>English</p>
-                <p className="text-sm leading-6" style={{ color: 'rgba(245,230,200,0.55)' }}>{result.en}</p>
-              </div>
-            </>
+          {(result.cn || result.en) && (
+            <div className="rounded-xl px-4 py-5 text-center" style={{ background: 'rgba(255,215,0,0.08)', border: '1px solid rgba(255,215,0,0.2)' }}>
+              {result.cn && <p className="text-3xl font-bold" style={{ color: '#ffd700' }}>{result.cn}</p>}
+              {result.en && <p className="mt-2 text-sm" style={{ color: 'rgba(245,230,200,0.5)' }}>{result.en}</p>}
+            </div>
           )}
 
-          <div style={{ height: 1, background: 'rgba(255,215,0,0.08)' }} />
-
-          {/* Draw history */}
-          <DrawHistory key={queriedNum} queriedNum={queriedNum} />
+          <p className="text-center text-[11px]" style={{ color: 'rgba(245,230,200,0.35)' }}>图片与释义来源：4D2U Live</p>
         </div>
       )}
     </div>

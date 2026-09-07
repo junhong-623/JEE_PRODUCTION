@@ -1,9 +1,53 @@
 from http.server import BaseHTTPRequestHandler
+from html.parser import HTMLParser
 from urllib.parse import urlparse, parse_qs
 import urllib.request
 import urllib.error
 import re
 import json
+
+
+class DreambookParser(HTMLParser):
+    """Extract the first dreambook card from a 4D2U Live search page."""
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.cn = ""
+        self.en = ""
+        self.image = ""
+        self._capture = None
+        self._buffer = []
+
+    def handle_starttag(self, tag, attrs):
+        attributes = dict(attrs)
+        classes = set(attributes.get("class", "").split())
+
+        if tag == "img" and "img-dreambook" in classes and not self.image:
+            self.image = attributes.get("src", "").strip()
+        elif tag == "h5" and "card-title" in classes and not self.cn:
+            self._capture = "cn"
+            self._buffer = []
+        elif tag == "p" and "card-text" in classes and not self.en:
+            self._capture = "en"
+            self._buffer = []
+
+    def handle_data(self, data):
+        if self._capture:
+            self._buffer.append(data)
+
+    def handle_endtag(self, tag):
+        expected_tag = "h5" if self._capture == "cn" else "p"
+        if self._capture and tag == expected_tag:
+            value = re.sub(r"\s+", " ", "".join(self._buffer)).strip()
+            setattr(self, self._capture, value)
+            self._capture = None
+            self._buffer = []
+
+
+def parse_dreambook(page):
+    parser = DreambookParser()
+    parser.feed(page)
+    return parser.cn, parser.en, parser.image
 
 
 class handler(BaseHTTPRequestHandler):
@@ -21,11 +65,13 @@ class handler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
 
-        if not num:
-            self._write({"error": "请输入号码"})
+        if not num or len(num) > 4:
+            self._write({"error": "请输入 0000 至 9999 的号码"})
             return
 
-        url = f"https://4dmanager.net/search/{num}"
+        num = num.zfill(4)
+
+        url = f"https://4d2ulive.com/search/{num}"
 
         try:
             req = urllib.request.Request(
@@ -33,7 +79,7 @@ class handler(BaseHTTPRequestHandler):
                 headers={
                     "User-Agent": (
                         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                        "AppleWebKit/537.36 Chrome/120.0 Safari/537.36"
+                        "AppleWebKit/537.36 Chrome/140.0 Safari/537.36"
                     ),
                     "Accept": "text/html,application/xhtml+xml",
                     "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
@@ -49,24 +95,12 @@ class handler(BaseHTTPRequestHandler):
             self._write({"error": f"未知错误: {str(e)}"})
             return
 
-        # Extract keywords meta tag content
-        pattern = (
-            r'<meta\s+name=["\']keywords["\']\s+content=["\']([^"\']+)["\']'
-            r'|<meta\s+content=["\']([^"\']+)["\']\s+name=["\']keywords["\']'
-        )
-        match = re.search(pattern, html, re.IGNORECASE)
+        cn, en, image = parse_dreambook(html)
+        if not image:
+            self._write({"error": "未找到对应的千字图"})
+            return
 
-        cn, en = "", ""
-        if match:
-            content = match.group(1) or match.group(2) or ""
-            parts = [p.strip() for p in content.split(",") if p.strip()]
-            cn = parts[0] if parts else ""
-            en = parts[1] if len(parts) > 1 else ""
-            # Ignore if keywords match the number itself
-            if cn == num:
-                cn, en = "", ""
-
-        self._write({"num": num, "cn": cn, "en": en})
+        self._write({"num": num, "cn": cn, "en": en, "image": image})
 
     def _write(self, data: dict):
         body = json.dumps(data, ensure_ascii=False).encode("utf-8")
