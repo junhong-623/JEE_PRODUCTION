@@ -14,6 +14,7 @@ const VAPID_PUBLIC = 'BMGKdp8QNMH0CXUHEcJc3PVSw6MXe45_ZafygoAZZF_fiFsG5Ufq3oCQrz
 
 const CLOUDINARY_KEY    = defineSecret('CLOUDINARY_API_KEY')
 const CLOUDINARY_SECRET = defineSecret('CLOUDINARY_API_SECRET')
+const INSTAGRAM_ACCESS_TOKEN = defineSecret('INSTAGRAM_ACCESS_TOKEN')
 
 const ADMIN_UIDS = [
   'QVLyCaNT5FgDDxXA95ZpHAiSCvy2',
@@ -168,6 +169,135 @@ exports.deleteCloudinaryImage = onCall(
       throw new HttpsError('internal', `Cloudinary delete failed: ${err.message}`)
     }
   }
+)
+
+function instagramPostTitle(caption = '') {
+  const firstLine = String(caption).split('\n').map(line => line.trim()).find(Boolean) || 'Instagram 动态'
+  return firstLine.length > 72 ? `${firstLine.slice(0, 69)}…` : firstLine
+}
+
+/**
+ * Callable: syncHAgencyInstagram
+ * Imports the latest media owned by @h_agency21 through Meta's official API.
+ * The website displays a stable Cloudinary copy of the cover and links back to
+ * Instagram for the original post/Reel. Admin-only and safe to call repeatedly.
+ */
+exports.syncHAgencyInstagram = onCall(
+  {
+    secrets: [INSTAGRAM_ACCESS_TOKEN, CLOUDINARY_KEY, CLOUDINARY_SECRET],
+    invoker: 'public',
+    timeoutSeconds: 120,
+    memory: '512MiB',
+  },
+  async (req) => {
+    if (!req.auth) throw new HttpsError('unauthenticated', 'You must be signed in.')
+    if (!ADMIN_UIDS.includes(req.auth.uid)) throw new HttpsError('permission-denied', 'Admin only.')
+
+    const token = INSTAGRAM_ACCESS_TOKEN.value().trim()
+    if (!token || token === 'not-configured') {
+      throw new HttpsError('failed-precondition', 'Instagram 尚未连接，请先配置官方 Access Token。')
+    }
+
+    const fields = [
+      'id', 'caption', 'media_type', 'media_url', 'thumbnail_url', 'permalink',
+      'timestamp', 'username', 'children{id,media_type,media_url,thumbnail_url}',
+    ].join(',')
+    const endpoint = new URL('https://graph.instagram.com/v23.0/me/media')
+    endpoint.searchParams.set('fields', fields)
+    endpoint.searchParams.set('limit', '24')
+    endpoint.searchParams.set('access_token', token)
+
+    const response = await fetch(endpoint)
+    const body = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      console.error('[hagency-instagram] Meta API failed', response.status, body?.error?.type, body?.error?.code)
+      const expired = body?.error?.code === 190
+      throw new HttpsError(
+        expired ? 'failed-precondition' : 'unavailable',
+        expired ? 'Instagram 授权已失效，请重新连接。' : 'Instagram 暂时无法同步，请稍后再试。',
+      )
+    }
+
+    cloudinary.config({
+      cloud_name: 'db2ixn8zh',
+      api_key: CLOUDINARY_KEY.value(),
+      api_secret: CLOUDINARY_SECRET.value(),
+    })
+
+    const db = getFirestore()
+    let added = 0
+    let updated = 0
+    const failures = []
+
+    for (const item of Array.isArray(body.data) ? body.data : []) {
+      try {
+        if (!item?.id || !item?.permalink) continue
+        const permalink = String(item.permalink)
+        const shortcode = new URL(permalink).pathname.split('/').filter(Boolean).at(-1) || String(item.id)
+        const documentId = `ig_${shortcode}`
+        const ref = db.collection('hagency_posts').doc(documentId)
+        const existing = await ref.get()
+        const coverUrl = item.thumbnail_url || item.media_url || item.children?.data?.[0]?.thumbnail_url || item.children?.data?.[0]?.media_url || ''
+        let mediaUrl = existing.data()?.mediaUrl || ''
+        let mediaPublicId = existing.data()?.mediaPublicId || ''
+
+        // An Instagram CDN URL can rotate even when the post cover has not
+        // changed. Keep the stable Cloudinary copy once it exists so each
+        // manual refresh does not create unnecessary transformations/storage.
+        if (coverUrl && (!existing.exists || !mediaUrl)) {
+          const uploaded = await cloudinary.uploader.upload(coverUrl, {
+            folder: 'hagency/instagram',
+            public_id: shortcode,
+            overwrite: true,
+            resource_type: 'image',
+          })
+          mediaUrl = uploaded.secure_url
+          mediaPublicId = uploaded.public_id
+        }
+
+        const publishedAt = item.timestamp ? new Date(item.timestamp) : new Date()
+        const caption = String(item.caption || '').trim()
+        const data = {
+          source: 'instagram',
+          instagramMediaId: String(item.id),
+          instagramMediaType: String(item.media_type || 'IMAGE'),
+          instagramUsername: String(item.username || 'h_agency21'),
+          instagramSourceUrl: coverUrl,
+          titleZh: instagramPostTitle(caption),
+          captionZh: caption,
+          mediaUrl,
+          mediaPublicId,
+          // Reels use their stable cover on the site and open Instagram to play.
+          mediaType: 'image',
+          permalink,
+          createdAt: Number.isNaN(publishedAt.getTime()) ? FieldValue.serverTimestamp() : Timestamp.fromDate(publishedAt),
+          instagramPublishedAt: Number.isNaN(publishedAt.getTime()) ? FieldValue.serverTimestamp() : Timestamp.fromDate(publishedAt),
+          syncedAt: FieldValue.serverTimestamp(),
+        }
+        if (!existing.exists) {
+          data.visible = true
+          data.importedAt = FieldValue.serverTimestamp()
+          added += 1
+        } else {
+          updated += 1
+        }
+        await ref.set(data, { merge: true })
+      } catch (error) {
+        console.error('[hagency-instagram] item failed', item?.id, error.message)
+        failures.push(String(item?.id || 'unknown'))
+      }
+    }
+
+    const syncRecord = {
+      username: 'h_agency21',
+      lastSyncAt: FieldValue.serverTimestamp(),
+      lastSyncBy: req.auth.uid,
+      lastResult: { added, updated, failed: failures.length },
+      connected: true,
+    }
+    await db.collection('hagency_integrations').doc('instagram').set(syncRecord, { merge: true })
+    return { added, updated, failed: failures.length, total: added + updated }
+  },
 )
 
 // ── JSave reminder helpers ────────────────────────────────────────────────────

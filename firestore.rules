@@ -47,6 +47,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /hagency_integrations/{document=**} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
     match /usernames/{uid} {
       allow read: if true;
       allow create, update, delete: if (signedIn() && request.auth.uid == uid) || isAdmin();

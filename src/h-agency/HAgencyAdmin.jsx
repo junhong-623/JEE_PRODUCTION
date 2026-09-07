@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, serverTimestamp } from 'firebase/firestore'
+import { collection, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc, query, orderBy, serverTimestamp } from 'firebase/firestore'
 import { httpsCallable } from 'firebase/functions'
 import { db, functions } from '../lib/firebase'
 import { logout } from '../lib/auth'
@@ -81,6 +81,8 @@ export default function HAgencyAdmin() {
   const [submissions, setSubmissions] = useState([])
   const [leaderboard, setLeaderboard] = useState([])
   const [posts, setPosts] = useState([])
+  const [instagramSync, setInstagramSync] = useState(null)
+  const [syncingInstagram, setSyncingInstagram] = useState(false)
   const [loading, setLoading] = useState(false)
   const [notice, setNotice] = useState(null)
   const [darkTheme, setDarkTheme] = useState(() => window.localStorage.getItem('hagency-admin-theme') !== 'light')
@@ -150,14 +152,16 @@ export default function HAgencyAdmin() {
   const loadAll = async () => {
     setLoading(true)
     try {
-      const [subSnap, lbSnap, postSnap] = await Promise.all([
+      const [subSnap, lbSnap, postSnap, instagramSnap] = await Promise.all([
         getDocs(query(collection(db, 'hagency_submissions'), orderBy('submittedAt', 'desc'))),
         getDocs(query(collection(db, 'hagency_leaderboard'), orderBy('order', 'asc'))),
         getDocs(query(collection(db, 'hagency_posts'), orderBy('createdAt', 'desc'))),
+        getDoc(doc(db, 'hagency_integrations', 'instagram')),
       ])
       setSubmissions(subSnap.docs.map(d => ({ id: d.id, ...d.data() })))
       setLeaderboard(lbSnap.docs.map(d => ({ id: d.id, ...d.data() })))
       setPosts(postSnap.docs.map(d => ({ id: d.id, ...d.data() })))
+      setInstagramSync(instagramSnap.exists() ? instagramSnap.data() : null)
     } catch (e) {
       setNotice({ ok: false, msg: '加载失败: ' + e.message })
     }
@@ -520,6 +524,31 @@ export default function HAgencyAdmin() {
       setNotice({ ok: true, msg: '删除成功' })
     } catch (e) {
       setNotice({ ok: false, msg: e.message })
+    }
+  }
+
+  const syncInstagram = async () => {
+    setSyncingInstagram(true)
+    try {
+      const sync = httpsCallable(functions, 'syncHAgencyInstagram')
+      const result = await sync()
+      const { added = 0, updated = 0, failed = 0 } = result.data || {}
+      await loadAll()
+      setNotice({
+        ok: failed === 0,
+        msg: `Instagram 同步完成：新增 ${added} 篇，更新 ${updated} 篇${failed ? `，${failed} 篇失败` : ''}`,
+        duration: 6000,
+      })
+    } catch (e) {
+      const message = String(e?.message || '')
+      const notConnected = e?.code === 'functions/failed-precondition' || message.includes('尚未连接') || message.includes('授权已失效')
+      setNotice({
+        ok: false,
+        msg: notConnected ? message.replace(/^FirebaseError:\s*/i, '') : `Instagram 同步失败：${message || '请稍后再试'}`,
+        duration: 7000,
+      })
+    } finally {
+      setSyncingInstagram(false)
     }
   }
 
@@ -961,6 +990,30 @@ export default function HAgencyAdmin() {
         {tab === 'posts' && (
           <div>
             <h3 className="mb-4 font-display text-2xl text-gray-900 dark:text-gray-100">动态管理</h3>
+            <div className="mb-6 overflow-hidden rounded-2xl border border-fuchsia-200 bg-gradient-to-br from-fuchsia-50 to-white p-5 dark:border-fuchsia-900/40 dark:from-fuchsia-950/25 dark:to-gray-900">
+              <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h4 className="font-semibold text-gray-900 dark:text-gray-100">Instagram 自动导入</h4>
+                    <span className={`rounded-full px-2 py-0.5 font-mono text-[9px] uppercase tracking-[.14em] ${instagramSync?.connected ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300'}`}>
+                      {instagramSync?.connected ? '已连接' : '待连接'}
+                    </span>
+                  </div>
+                  <p className="mt-2 max-w-2xl text-xs leading-6 text-gray-500 dark:text-gray-400">
+                    从 @h_agency21 读取最新 24 篇动态。重复内容会更新，不会重复建立；Instagram 原文、发布日期、封面与链接会自动保存。
+                  </p>
+                  {instagramSync?.lastSyncAt?.toDate && (
+                    <p className="mt-1 font-mono text-[10px] text-gray-400">
+                      上次同步：{instagramSync.lastSyncAt.toDate().toLocaleString('zh-CN')}
+                      {instagramSync.lastResult ? ` · 新增 ${instagramSync.lastResult.added || 0} / 更新 ${instagramSync.lastResult.updated || 0}` : ''}
+                    </p>
+                  )}
+                </div>
+                <button onClick={syncInstagram} disabled={syncingInstagram} className="shrink-0 rounded-full bg-gradient-to-r from-fuchsia-500 to-pink-500 px-5 py-2.5 text-sm font-medium text-white shadow-lg shadow-fuchsia-500/15 transition hover:-translate-y-0.5 disabled:cursor-wait disabled:opacity-60">
+                  {syncingInstagram ? '正在同步…' : '↻ 从 Instagram 刷新'}
+                </button>
+              </div>
+            </div>
             <div className="mb-8 rounded-2xl border border-pink-200 bg-pink-50/50 p-6 dark:border-pink-900/30 dark:bg-pink-950/20">
               <h4 className="mb-4 font-semibold text-gray-900 dark:text-gray-100">发布新动态</h4>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -1021,6 +1074,13 @@ export default function HAgencyAdmin() {
                       </div>
                     )}
                     <div className="p-3">
+                      {p.source === 'instagram' && (
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <span className="rounded-full bg-fuchsia-50 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[.12em] text-fuchsia-600 dark:bg-fuchsia-950/40 dark:text-fuchsia-300">Instagram</span>
+                          {p.permalink && <a href={p.permalink} target="_blank" rel="noopener noreferrer" className="text-[10px] text-gray-400 hover:text-fuchsia-500">查看原帖 ↗</a>}
+                        </div>
+                      )}
+                      {p.titleZh && <p className="mb-1 text-sm font-medium text-gray-800 dark:text-gray-100">{p.titleZh}</p>}
                       {p.captionZh && <p className="text-sm text-gray-600 dark:text-gray-300">{p.captionZh}</p>}
                       {p.captionEn && <p className="text-xs text-gray-400">{p.captionEn}</p>}
                       {p.createdAt?.toDate && <p className="mt-1 font-mono text-[10px] text-gray-300">{p.createdAt.toDate().toLocaleDateString('zh-CN')}</p>}

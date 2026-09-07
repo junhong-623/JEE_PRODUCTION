@@ -30,6 +30,13 @@ export default function UpdateDetailPage() {
           <h1 className="mt-5 max-w-3xl font-display text-5xl leading-tight sm:text-7xl">{title || (zh ? 'ℋ Agency 动态' : 'ℋ Agency update')}</h1>
           {media && <div className="mt-12 overflow-hidden bg-[#1a1116]">{post.mediaType === 'video' ? <video src={media} className="max-h-[78vh] w-full object-contain" controls playsInline /> : <img src={media} alt="" className="max-h-[82vh] w-full object-contain" />}</div>}
           {caption && caption !== title && <p className="mx-auto mt-10 max-w-2xl whitespace-pre-line text-base leading-8 text-gray-600">{caption}</p>}
+          {post.source === 'instagram' && post.permalink && (
+            <div className="mx-auto mt-9 max-w-2xl border-t border-[#decbd0] pt-7">
+              <a href={post.permalink} target="_blank" rel="noopener noreferrer" className="inline-flex rounded-full bg-[#24171c] px-6 py-3 text-sm font-semibold text-[#f2d8df] transition hover:-translate-y-0.5 hover:bg-[#3a222d]">
+                {zh ? '在 Instagram 查看原帖' : 'View original on Instagram'} ↗
+              </a>
+            </div>
+          )}
         </div>
       </article>
     </>

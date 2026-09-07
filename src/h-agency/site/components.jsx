@@ -177,7 +177,8 @@ export function RankingGrid({ compact = false, talents = CURRENT_RANKING }) {
 
 export function UpdateGrid({ posts, limit }) {
   const { lang, path, t } = useHAgencySite()
-  const shown = typeof limit === 'number' ? posts.slice(0, limit) : posts
+  const visiblePosts = posts.filter(post => post.visible !== false)
+  const shown = typeof limit === 'number' ? visiblePosts.slice(0, limit) : visiblePosts
   if (!shown.length) return <div className="mt-10 border border-[#eadde0] bg-white py-16 text-center text-sm text-[#a66b7c]">{t.updatesEmpty}</div>
   return (
     <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -190,7 +191,7 @@ export function UpdateGrid({ posts, limit }) {
           <Reveal key={post.id} delay={index * 80} direction="scale">
             <Link to={path(`/updates/${post.slug || post.id}`)} className="group block overflow-hidden border border-[#eadde0] bg-[#fbf8f7]">
             {media && <div className="relative aspect-[4/5] overflow-hidden">{isVideo ? <video src={media} className="h-full w-full object-cover" muted playsInline /> : <img src={media} alt="" className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.025]" loading="lazy" />}{isVideo && <span className="absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm">▶</span>}</div>}
-            <div className="p-5"><p className="font-mono text-[9px] uppercase tracking-[0.18em] text-[#b66b81]">Journal · {String(index + 1).padStart(2, '0')}</p><h3 className="mt-3 line-clamp-2 font-display text-2xl text-[#24171c]">{title}</h3>{caption && caption !== title && <p className="mt-3 line-clamp-2 text-sm leading-6 text-gray-500">{caption}</p>}</div>
+            <div className="p-5"><div className="flex items-center justify-between gap-3"><p className="font-mono text-[9px] uppercase tracking-[0.18em] text-[#b66b81]">Journal · {String(index + 1).padStart(2, '0')}</p>{post.source === 'instagram' && <span className="rounded-full bg-[#f3e5e9] px-2 py-0.5 font-mono text-[8px] uppercase tracking-[.13em] text-[#a6556d]">Instagram</span>}</div><h3 className="mt-3 line-clamp-2 font-display text-2xl text-[#24171c]">{title}</h3>{caption && caption !== title && <p className="mt-3 line-clamp-2 text-sm leading-6 text-gray-500">{caption}</p>}</div>
             </Link>
           </Reveal>
         )
