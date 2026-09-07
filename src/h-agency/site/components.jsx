@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { CURRENT_RANKING, MILLION_HONORS } from './content'
 import { useHAgencySite } from './SiteContext'
+import { resolvePostCopy } from './postCopy'
 import Reveal from './Reveal'
 
 export function Seo({ title, description, image = 'https://agency.jeeprod.com/hagency/og.png' }) {
@@ -184,14 +185,18 @@ export function UpdateGrid({ posts, limit }) {
     <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       {shown.map((post, index) => {
         const media = post.mediaUrl || post.imageUrl || ''
-        const caption = lang === 'zh' ? (post.captionZh || post.captionEn) : (post.captionEn || post.captionZh)
-        const title = post.titleZh || post.titleEn || caption || (lang === 'zh' ? 'ℋ Agency 动态' : 'ℋ Agency update')
+        const { title, content: caption } = resolvePostCopy(post, lang)
         const isVideo = post.mediaType === 'video'
         return (
           <Reveal key={post.id} delay={index * 80} direction="scale">
-            <Link to={path(`/updates/${post.slug || post.id}`)} className="group block overflow-hidden border border-[#eadde0] bg-[#fbf8f7]">
-            {media && <div className="relative aspect-[4/5] overflow-hidden">{isVideo ? <video src={media} className="h-full w-full object-cover" muted playsInline /> : <img src={media} alt="" className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.025]" loading="lazy" />}{isVideo && <span className="absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm">▶</span>}</div>}
-            <div className="p-5"><div className="flex items-center justify-between gap-3"><p className="font-mono text-[9px] uppercase tracking-[0.18em] text-[#b66b81]">Journal · {String(index + 1).padStart(2, '0')}</p>{post.source === 'instagram' && <span className="rounded-full bg-[#f3e5e9] px-2 py-0.5 font-mono text-[8px] uppercase tracking-[.13em] text-[#a6556d]">Instagram</span>}</div><h3 className="mt-3 line-clamp-2 font-display text-2xl text-[#24171c]">{title}</h3>{caption && caption !== title && <p className="mt-3 line-clamp-2 text-sm leading-6 text-gray-500">{caption}</p>}</div>
+            <Link to={path(`/updates/${post.slug || post.id}`)} className="group block overflow-hidden rounded-[20px] border border-[#e7dadd] bg-white shadow-[0_15px_45px_rgba(75,39,52,0.07)] transition duration-500 hover:-translate-y-1 hover:shadow-[0_22px_55px_rgba(75,39,52,0.12)]">
+              <div className="flex items-center gap-2.5 border-b border-[#f0e7e9] px-4 py-3">
+                <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-[#f2dce2] p-[1px]"><img src="/hagency/logo.jpg" alt="" className="h-full w-full rounded-full object-cover" /></span>
+                <span className="min-w-0 flex-1"><span className="block text-xs font-semibold text-[#35262b]">{post.instagramUsername || 'h_agency21'}</span><span className="block text-[9px] uppercase tracking-[.12em] text-[#b28e99]">ℋ Agency Journal</span></span>
+                {post.source === 'instagram' && <span className="rounded-full bg-[#f3e5e9] px-2 py-0.5 font-mono text-[8px] uppercase tracking-[.13em] text-[#a6556d]">Instagram</span>}
+              </div>
+              {media && <div className="relative aspect-[4/5] overflow-hidden bg-[#1a1116]">{isVideo ? <video src={media} className="h-full w-full object-cover" muted playsInline /> : <img src={media} alt={title} className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.025]" loading="lazy" />}{isVideo && <span className="absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm">▶</span>}</div>}
+              <div className="p-4 sm:p-5"><p className="font-mono text-[9px] uppercase tracking-[0.18em] text-[#b66b81]">Journal · {String(index + 1).padStart(2, '0')}</p><h3 className="mt-2 line-clamp-2 font-display text-[1.65rem] leading-tight text-[#24171c]">{title}</h3>{caption && <p className="mt-2 line-clamp-2 whitespace-pre-line text-[13px] leading-5 text-[#75666b]">{caption}</p>}<p className="mt-4 text-[11px] font-semibold text-[#a6556d]">{lang === 'zh' ? '查看完整动态' : 'View full update'} →</p></div>
             </Link>
           </Reveal>
         )

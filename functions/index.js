@@ -176,6 +176,13 @@ function instagramPostTitle(caption = '') {
   return firstLine.length > 72 ? `${firstLine.slice(0, 69)}…` : firstLine
 }
 
+function instagramPostContent(caption = '') {
+  const lines = String(caption).split('\n')
+  const firstContentLine = lines.findIndex(line => line.trim())
+  if (firstContentLine < 0) return ''
+  return lines.slice(firstContentLine + 1).join('\n').trim()
+}
+
 /**
  * Callable: syncHAgencyInstagram
  * Imports the latest media owned by @h_agency21 through Meta's official API.
@@ -237,9 +244,10 @@ exports.syncHAgencyInstagram = onCall(
         const documentId = `ig_${shortcode}`
         const ref = db.collection('hagency_posts').doc(documentId)
         const existing = await ref.get()
+        const existingData = existing.data() || {}
         const coverUrl = item.thumbnail_url || item.media_url || item.children?.data?.[0]?.thumbnail_url || item.children?.data?.[0]?.media_url || ''
-        let mediaUrl = existing.data()?.mediaUrl || ''
-        let mediaPublicId = existing.data()?.mediaPublicId || ''
+        let mediaUrl = existingData.mediaUrl || ''
+        let mediaPublicId = existingData.mediaPublicId || ''
 
         // An Instagram CDN URL can rotate even when the post cover has not
         // changed. Keep the stable Cloudinary copy once it exists so each
@@ -263,8 +271,7 @@ exports.syncHAgencyInstagram = onCall(
           instagramMediaType: String(item.media_type || 'IMAGE'),
           instagramUsername: String(item.username || 'h_agency21'),
           instagramSourceUrl: coverUrl,
-          titleZh: instagramPostTitle(caption),
-          captionZh: caption,
+          instagramCaption: caption,
           mediaUrl,
           mediaPublicId,
           // Reels use their stable cover on the site and open Instagram to play.
@@ -273,6 +280,13 @@ exports.syncHAgencyInstagram = onCall(
           createdAt: Number.isNaN(publishedAt.getTime()) ? FieldValue.serverTimestamp() : Timestamp.fromDate(publishedAt),
           instagramPublishedAt: Number.isNaN(publishedAt.getTime()) ? FieldValue.serverTimestamp() : Timestamp.fromDate(publishedAt),
           syncedAt: FieldValue.serverTimestamp(),
+        }
+        // Keep editorial copy written in Admin. Otherwise split the first
+        // Instagram line into a short title and save the remaining copy as the
+        // body so mobile cards and detail pages do not repeat themselves.
+        if (!existing.exists || !existingData.copyEdited) {
+          data.titleZh = instagramPostTitle(caption)
+          data.captionZh = instagramPostContent(caption)
         }
         if (!existing.exists) {
           data.visible = true

@@ -117,9 +117,13 @@ export default function HAgencyAdmin() {
   const [postFile, setPostFile] = useState(null)
   const [postPreview, setPostPreview] = useState(null)
   const [postFileType, setPostFileType] = useState('image') // 'image' | 'video'
+  const [postTitleZh, setPostTitleZh] = useState('')
+  const [postTitleEn, setPostTitleEn] = useState('')
   const [postCaptionZh, setPostCaptionZh] = useState('')
   const [postCaptionEn, setPostCaptionEn] = useState('')
   const [uploadingPost, setUploadingPost] = useState(false)
+  const [editingPost, setEditingPost] = useState(null)
+  const [savingPostCopy, setSavingPostCopy] = useState(false)
   const fileInputRef = useRef(null)
 
   const [statusFilter, setStatusFilter] = useState('all')
@@ -488,7 +492,7 @@ export default function HAgencyAdmin() {
 
   // ── Posts ────────────────────────────────────────────────
   const uploadPost = async () => {
-    if (!postFile && !postCaptionZh && !postCaptionEn) { setNotice({ ok: false, msg: '请上传图片/视频或填写说明文字' }); return }
+    if (!postTitleZh.trim() && !postTitleEn.trim()) { setNotice({ ok: false, msg: '请先填写动态标题' }); return }
     setUploadingPost(true)
     try {
       let mediaUrl = '', mediaType = 'image'
@@ -504,16 +508,63 @@ export default function HAgencyAdmin() {
         mediaUrl = (await res.json()).secure_url
         mediaType = isVid ? 'video' : 'image'
       }
-      const data = { mediaUrl, mediaType, captionZh: postCaptionZh, captionEn: postCaptionEn, createdAt: serverTimestamp() }
+      const data = {
+        mediaUrl,
+        mediaType,
+        titleZh: postTitleZh.trim(),
+        titleEn: postTitleEn.trim(),
+        captionZh: postCaptionZh.trim(),
+        captionEn: postCaptionEn.trim(),
+        visible: true,
+        createdAt: serverTimestamp(),
+      }
       const ref = await addDoc(collection(db, 'hagency_posts'), data)
       setPosts(p => [{ id: ref.id, ...data, createdAt: { toDate: () => new Date() } }, ...p])
       setNotice({ ok: true, msg: '动态已发布' })
-      setPostFile(null); setPostPreview(null); setPostFileType('image'); setPostCaptionZh(''); setPostCaptionEn('')
+      setPostFile(null); setPostPreview(null); setPostFileType('image'); setPostTitleZh(''); setPostTitleEn(''); setPostCaptionZh(''); setPostCaptionEn('')
       if (fileInputRef.current) fileInputRef.current.value = ''
     } catch (e) {
       setNotice({ ok: false, msg: '上传失败: ' + e.message })
     }
     setUploadingPost(false)
+  }
+
+  const startEditingPost = (post) => {
+    setEditingPost({
+      id: post.id,
+      source: post.source || '',
+      titleZh: post.titleZh || '',
+      titleEn: post.titleEn || '',
+      captionZh: post.captionZh || '',
+      captionEn: post.captionEn || '',
+    })
+  }
+
+  const savePostCopy = async () => {
+    if (!editingPost?.id) return
+    if (!editingPost.titleZh.trim() && !editingPost.titleEn.trim()) {
+      setNotice({ ok: false, msg: '动态标题不能留空' })
+      return
+    }
+    setSavingPostCopy(true)
+    try {
+      const copy = {
+        titleZh: editingPost.titleZh.trim(),
+        titleEn: editingPost.titleEn.trim(),
+        captionZh: editingPost.captionZh.trim(),
+        captionEn: editingPost.captionEn.trim(),
+        copyEdited: true,
+        copyUpdatedAt: serverTimestamp(),
+      }
+      await updateDoc(doc(db, 'hagency_posts', editingPost.id), copy)
+      setPosts(current => current.map(post => post.id === editingPost.id ? { ...post, ...copy } : post))
+      setEditingPost(null)
+      setNotice({ ok: true, msg: '动态标题与内容已更新' })
+    } catch (e) {
+      setNotice({ ok: false, msg: `保存失败：${e.message}` })
+    } finally {
+      setSavingPostCopy(false)
+    }
   }
 
   const deletePost = async (id) => {
@@ -1044,13 +1095,21 @@ export default function HAgencyAdmin() {
                 </div>
                 <div className="space-y-3">
                   <label className="block">
-                    <span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-gray-400">说明文字（中文）</span>
-                    <textarea rows={3} value={postCaptionZh} onChange={e => setPostCaptionZh(e.target.value)} placeholder="输入中文说明..." className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
+                    <span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-gray-400">标题（中文）*</span>
+                    <input value={postTitleZh} onChange={e => setPostTitleZh(e.target.value)} placeholder="一句话说清楚这篇动态" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
                   </label>
                   <label className="block">
-                    <span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-gray-400">Caption (English)</span>
-                    <textarea rows={3} value={postCaptionEn} onChange={e => setPostCaptionEn(e.target.value)} placeholder="Enter English caption..." className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
+                    <span className="mb-1 block font-mono text-[10px] uppercase tracking-[0.2em] text-gray-400">内容（中文）</span>
+                    <textarea rows={4} value={postCaptionZh} onChange={e => setPostCaptionZh(e.target.value)} placeholder="补充正文、活动时间、主播资料或标签…" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
                   </label>
+                  <details className="rounded-xl border border-gray-200 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800">
+                    <summary className="cursor-pointer text-xs text-gray-500 dark:text-gray-300">填写英文版本（可选）</summary>
+                    <div className="mt-3 space-y-3">
+                      <input value={postTitleEn} onChange={e => setPostTitleEn(e.target.value)} placeholder="English title" className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
+                      <textarea rows={3} value={postCaptionEn} onChange={e => setPostCaptionEn(e.target.value)} placeholder="English content" className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100" />
+                    </div>
+                  </details>
+                  <p className="text-[11px] leading-5 text-gray-400">手机列表会优先显示短标题，内容只显示两行摘要；点进后才显示完整正文。</p>
                 </div>
               </div>
               <button onClick={uploadPost} disabled={uploadingPost} className="mt-4 rounded-full bg-pink-500 px-6 py-2 text-sm font-medium text-white hover:bg-pink-600 disabled:opacity-60">
@@ -1062,6 +1121,7 @@ export default function HAgencyAdmin() {
               {posts.map(p => {
                 const url = p.mediaUrl || p.imageUrl || ''
                 const isVid = p.mediaType === 'video'
+                const isEditing = editingPost?.id === p.id
                 return (
                   <div key={p.id} className="overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-900">
                     {url && (
@@ -1080,11 +1140,34 @@ export default function HAgencyAdmin() {
                           {p.permalink && <a href={p.permalink} target="_blank" rel="noopener noreferrer" className="text-[10px] text-gray-400 hover:text-fuchsia-500">查看原帖 ↗</a>}
                         </div>
                       )}
-                      {p.titleZh && <p className="mb-1 text-sm font-medium text-gray-800 dark:text-gray-100">{p.titleZh}</p>}
-                      {p.captionZh && <p className="text-sm text-gray-600 dark:text-gray-300">{p.captionZh}</p>}
-                      {p.captionEn && <p className="text-xs text-gray-400">{p.captionEn}</p>}
-                      {p.createdAt?.toDate && <p className="mt-1 font-mono text-[10px] text-gray-300">{p.createdAt.toDate().toLocaleDateString('zh-CN')}</p>}
-                      <button onClick={() => deletePost(p.id)} className="mt-2 rounded-xl border border-red-100 px-3 py-1 text-xs text-red-400 hover:border-red-300 hover:text-red-600 dark:border-red-900/30">删除</button>
+                      {isEditing ? (
+                        <div className="space-y-2">
+                          <input value={editingPost.titleZh} onChange={e => setEditingPost(current => ({ ...current, titleZh: e.target.value }))} placeholder="中文标题" className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
+                          <textarea rows={5} value={editingPost.captionZh} onChange={e => setEditingPost(current => ({ ...current, captionZh: e.target.value }))} placeholder="中文内容" className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs leading-5 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
+                          <details className="rounded-lg border border-gray-100 px-2 py-1 dark:border-gray-800">
+                            <summary className="cursor-pointer text-[11px] text-gray-400">英文版本</summary>
+                            <div className="mt-2 space-y-2">
+                              <input value={editingPost.titleEn} onChange={e => setEditingPost(current => ({ ...current, titleEn: e.target.value }))} placeholder="English title" className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
+                              <textarea rows={3} value={editingPost.captionEn} onChange={e => setEditingPost(current => ({ ...current, captionEn: e.target.value }))} placeholder="English content" className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
+                            </div>
+                          </details>
+                          <div className="flex gap-2">
+                            <button onClick={savePostCopy} disabled={savingPostCopy} className="rounded-lg bg-pink-500 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-60">{savingPostCopy ? '保存中…' : '保存文字'}</button>
+                            <button onClick={() => setEditingPost(null)} disabled={savingPostCopy} className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-500 dark:border-gray-700">取消</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          {p.titleZh && <p className="mb-1 line-clamp-2 text-sm font-medium text-gray-800 dark:text-gray-100">{p.titleZh}</p>}
+                          {p.captionZh && <p className="line-clamp-3 whitespace-pre-line text-xs leading-5 text-gray-500 dark:text-gray-400">{p.captionZh}</p>}
+                          {p.captionEn && <p className="mt-1 line-clamp-2 text-xs text-gray-400">{p.captionEn}</p>}
+                          {p.createdAt?.toDate && <p className="mt-2 font-mono text-[10px] text-gray-300">{p.createdAt.toDate().toLocaleDateString('zh-CN')}</p>}
+                          <div className="mt-3 flex gap-2">
+                            <button onClick={() => startEditingPost(p)} className="rounded-xl border border-pink-100 px-3 py-1 text-xs text-pink-500 hover:border-pink-300 dark:border-pink-900/30">编辑文字</button>
+                            <button onClick={() => deletePost(p.id)} className="rounded-xl border border-red-100 px-3 py-1 text-xs text-red-400 hover:border-red-300 hover:text-red-600 dark:border-red-900/30">删除</button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 )
