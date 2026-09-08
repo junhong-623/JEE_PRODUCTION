@@ -778,7 +778,9 @@
 }
 .lc-qianzi-figure img { display: block; object-fit: contain; background: white; }
 .lc-image-fallback { display: grid; place-items: center; border: 1px dashed var(--lc-border); color: var(--lc-muted); background: rgba(255,255,255,.025); font-size: 12px; }
+.lc-meaning-list { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
 .lc-meaning-card { display: flex; flex-direction: column; gap: 5px; padding: 18px; border: 1px solid var(--lc-border); border-radius: 15px; background: rgba(246, 201, 69, 0.07); }
+.lc-meaning-card small { color: var(--lc-muted); font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
 .lc-meaning-card strong { color: var(--lc-gold-bright); font-family: Georgia, serif; font-size: 28px; }
 .lc-meaning-card span { color: var(--lc-muted); font-size: 13px; }
 
@@ -927,6 +929,7 @@
 
 @media (max-width: 860px) {
   .lc-history-layout,.lc-tool-split,.lc-tools-layout { grid-template-columns: 1fr; }
+  .lc-meaning-list { grid-template-columns: 1fr; }
   .lc-search-panel,.lc-tool-picker { position: static; }
   .lc-tool-picker { display: grid; grid-template-columns: repeat(4,1fr); }
   .lc-tool-picker button { flex-direction: column; justify-content: center; gap: 5px; text-align: center; }
@@ -1004,4 +1007,3 @@
   .lc-page,.lc-spinner,.lc-random-grid.is-rolling strong { animation: none; }
   .lc-shell *, .lc-shell *::before, .lc-shell *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }
-

@@ -84,17 +84,29 @@ export default function QianziLookup() {
               <p className="lc-eyebrow">查询号码</p>
               <NumberDigits value={number} size="hero" />
               <figure className="lc-qianzi-figure">
-                {!imageFailed && result.image ? (
+                {result.image && !imageFailed ? (
                   <img src={result.image} alt={`${number} ${result.cn || '千字图'}`} referrerPolicy="no-referrer" onError={() => setImageFailed(true)} />
                 ) : (
-                  <div className="lc-image-fallback"><span>图像暂时无法载入</span></div>
+                  <div className="lc-image-fallback"><span>{result.image ? '图像暂时无法载入' : '此资料源提供文字释义'}</span></div>
                 )}
               </figure>
-              <div className="lc-meaning-card">
-                <strong>{result.cn || '暂无中文释义'}</strong>
-                {result.en && <span>{result.en}</span>}
-              </div>
-              <p className="lc-source-note">图片与释义来源：4D2U Live</p>
+              {result.meanings?.length ? (
+                <div className="lc-meaning-list">
+                  {result.meanings.map(meaning => (
+                    <article key={meaning.operator} className="lc-meaning-card">
+                      <small>{meaning.operator}</small>
+                      <strong>{meaning.cn || '暂无中文释义'}</strong>
+                      {meaning.en && <span>{meaning.en}</span>}
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="lc-meaning-card">
+                  <strong>{result.cn || '暂无中文释义'}</strong>
+                  {result.en && <span>{result.en}</span>}
+                </div>
+              )}
+              <p className="lc-source-note">文字释义来源：Fast4DKing · 不同运营商版本可能有所不同。</p>
             </div>
           )}
         </section>
@@ -102,4 +114,3 @@ export default function QianziLookup() {
     </div>
   )
 }
-
