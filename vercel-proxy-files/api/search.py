@@ -1,10 +1,20 @@
 from http.server import BaseHTTPRequestHandler
 from html.parser import HTMLParser
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urljoin, urlparse, parse_qs
 import urllib.request
 import urllib.error
 import re
 import json
+
+
+ALLOWED_ORIGINS = {
+    "https://www.jeeprod.com",
+    "https://jeeprod.com",
+    "https://jeeprod.web.app",
+    "https://jeeprod.firebaseapp.com",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+}
 
 
 class DreambookParser(HTMLParser):
@@ -59,14 +69,8 @@ class handler(BaseHTTPRequestHandler):
         num_raw = params.get("num", [""])[0]
         num = re.sub(r"\D", "", num_raw)
 
-        # CORS headers (allows GitHub Pages calls)
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.end_headers()
-
         if len(num) != 4:
-            self._write({"error": "请输入完整的 4 位号码"})
+            self._write({"error": "请输入完整的 4 位号码"}, status=400)
             return
 
         url = f"https://4d2ulive.com/search/{num}"
@@ -86,22 +90,38 @@ class handler(BaseHTTPRequestHandler):
             with urllib.request.urlopen(req, timeout=10) as resp:
                 html = resp.read().decode("utf-8", errors="ignore")
 
-        except urllib.error.URLError as e:
-            self._write({"error": f"抓取失败: {e.reason}"})
+        except urllib.error.HTTPError as error:
+            status = 404 if error.code == 404 else 502
+            message = "未找到对应的千字图" if status == 404 else "资料来源暂时无法连接，请稍后再试"
+            self._write({"error": message}, status=status)
             return
-        except Exception as e:
-            self._write({"error": f"未知错误: {str(e)}"})
+        except (urllib.error.URLError, TimeoutError):
+            self._write({"error": "资料来源暂时无法连接，请稍后再试"}, status=502)
+            return
+        except Exception:
+            self._write({"error": "查询服务暂时不可用，请稍后再试"}, status=500)
             return
 
         cn, en, image = parse_dreambook(html)
         if not image:
-            self._write({"error": "未找到对应的千字图"})
+            self._write({"error": "未找到对应的千字图"}, status=404)
             return
 
-        self._write({"num": num, "cn": cn, "en": en, "image": image})
+        self._write(
+            {"num": num, "cn": cn, "en": en, "image": urljoin(url, image)},
+            cache="public, max-age=86400, s-maxage=604800, stale-while-revalidate=2592000",
+        )
 
-    def _write(self, data: dict):
+    def _write(self, data: dict, status=200, cache="no-store"):
         body = json.dumps(data, ensure_ascii=False).encode("utf-8")
+        origin = self.headers.get("Origin", "")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Cache-Control", cache)
+        self.send_header("Vary", "Origin")
+        if origin in ALLOWED_ORIGINS:
+            self.send_header("Access-Control-Allow-Origin", origin)
+        self.end_headers()
         self.wfile.write(body)
 
     def log_message(self, format, *args):
