@@ -10,6 +10,8 @@ import json
 ALLOWED_ORIGINS = {
     "https://www.jeeprod.com",
     "https://jeeprod.com",
+    "https://jee-production.web.app",
+    "https://jee-production.firebaseapp.com",
     "https://jeeprod.web.app",
     "https://jeeprod.firebaseapp.com",
     "http://localhost:3000",
