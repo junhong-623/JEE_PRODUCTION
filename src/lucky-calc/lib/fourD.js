@@ -58,6 +58,10 @@ export function isValidFourD(value) {
   return /^\d{4}$/.test(String(value ?? ''))
 }
 
+export function isValidQianziNumber(value) {
+  return /^\d{1,4}$/.test(String(value ?? ''))
+}
+
 export function getPayout({ betType, prize, amount }) {
   const stake = Number(amount)
   if (!['big', 'small'].includes(betType)) return { error: '请选择投注方式' }
@@ -72,6 +76,16 @@ export function getPayout({ betType, prize, amount }) {
 
 export function decodeHistoryRows(rows = []) {
   return rows.map(([date, operatorCode, prizeCode, drawNo]) => ({
+    date,
+    operator: OPERATOR_CODES[operatorCode] || operatorCode,
+    prize: PRIZE_CODES[prizeCode] || prizeCode,
+    drawNo: String(drawNo ?? ''),
+  }))
+}
+
+export function decodeSuffixRows(rows = []) {
+  return rows.map(([number, date, operatorCode, prizeCode, drawNo]) => ({
+    number,
     date,
     operator: OPERATOR_CODES[operatorCode] || operatorCode,
     prize: PRIZE_CODES[prizeCode] || prizeCode,
@@ -99,6 +113,11 @@ export function summarizeHistory(records = []) {
 export function historyShardUrl(number) {
   if (!isValidFourD(number)) return null
   return `/luck-calc/data/history/${number.slice(0, 2)}.json`
+}
+
+export function suffixShardUrl(number) {
+  if (!isValidFourD(number)) return null
+  return `/luck-calc/data/suffix/${number.slice(-2)}.json`
 }
 
 export function formatMYR(value, maximumFractionDigits = 2) {

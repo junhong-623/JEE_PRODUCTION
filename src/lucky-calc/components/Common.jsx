@@ -33,8 +33,9 @@ export function ErrorState({ message, onRetry }) {
   )
 }
 
-export function NumberDigits({ value, size = 'normal' }) {
-  const digits = String(value || '————').padStart(4, '—').slice(0, 4)
+export function NumberDigits({ value, size = 'normal', fixedLength = true }) {
+  const rawValue = String(value ?? '')
+  const digits = fixedLength ? (rawValue || '————').padStart(4, '—').slice(0, 4) : (rawValue || '—')
   return (
     <span className={`lc-number-digits lc-number-digits-${size}`} aria-label={`号码 ${value}`}>
       {[...digits].map((digit, index) => <span key={`${index}-${digit}`}>{digit}</span>)}

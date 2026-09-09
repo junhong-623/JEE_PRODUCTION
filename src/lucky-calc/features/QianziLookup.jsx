@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { ErrorState, NumberDigits, SectionIntro } from '../components/Common'
-import { isValidFourD, sanitizeFourDInput } from '../lib/fourD'
+import { isValidQianziNumber, sanitizeFourDInput } from '../lib/fourD'
 
 const QIANZI_API_URL = import.meta.env.VITE_LUCKY_QIANZI_API_URL || 'https://vercel-proxy-chi-coral.vercel.app/api/search'
 
@@ -10,25 +10,23 @@ export default function QianziLookup() {
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [imageFailed, setImageFailed] = useState(false)
   const resultRef = useRef(null)
 
   const lookup = async event => {
     event?.preventDefault()
-    if (!isValidFourD(input)) {
-      setError('请输入完整的 4 位号码')
+    if (!isValidQianziNumber(input)) {
+      setError('请输入 1–4 位号码')
       return
     }
     setLoading(true)
     setError('')
     setResult(null)
-    setImageFailed(false)
     try {
-      const response = await fetch(`${QIANZI_API_URL}?num=${input}`, { signal: AbortSignal.timeout(12_000) })
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
-      const data = await response.json()
+      const response = await fetch(`${QIANZI_API_URL}?num=${encodeURIComponent(input)}`, { signal: AbortSignal.timeout(12_000) })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`)
       if (data.error) throw new Error(data.error)
-      if (!data.image && !data.cn) throw new Error('没有找到对应的千字图')
+      if (!data.cn && !data.meanings?.length) throw new Error('这个号码暂时没有收录释义')
       setNumber(input)
       setResult(data)
       window.setTimeout(() => resultRef.current?.focus(), 0)
@@ -42,9 +40,8 @@ export default function QianziLookup() {
   return (
     <div className="lc-page">
       <SectionIntro
-        eyebrow="NUMBER DICTIONARY"
         title="千字图查询"
-        description="输入 0000–9999 之间的四位号码，查看对应的传统图像与释义。"
+        description="输入 1–4 位号码查询传统释义。系统会保留原始位数，001 与 0001 会分别查询。"
       />
 
       <div className="lc-tool-split">
@@ -53,14 +50,14 @@ export default function QianziLookup() {
             <img src="/luck-calc/caishen.gif" alt="" aria-hidden="true" />
           </div>
           <form onSubmit={lookup}>
-            <label htmlFor="lc-qianzi-number">4D 号码</label>
+            <label htmlFor="lc-qianzi-number">号码（1–4 位）</label>
             <input
               id="lc-qianzi-number"
               className="lc-input lc-input-number"
               inputMode="numeric"
               maxLength={4}
               autoComplete="off"
-              placeholder="0000"
+              placeholder="例如 001 或 0001"
               value={input}
               onChange={event => setInput(sanitizeFourDInput(event.target.value))}
             />
@@ -68,28 +65,22 @@ export default function QianziLookup() {
               {loading ? '查询中…' : '查询千字图'}
             </button>
           </form>
-          {error && <ErrorState message={error} onRetry={isValidFourD(input) ? lookup : undefined} />}
+          <p className="lc-field-hint">不会自动补零：1、001、0001 会被视为不同号码。</p>
+          {error && <ErrorState message={error} onRetry={isValidQianziNumber(input) ? lookup : undefined} />}
         </section>
 
         <section className="lc-panel lc-qianzi-result" aria-live="polite">
           {!result && !loading && (
             <div className="lc-empty-state">
               <span aria-hidden="true">▧</span>
-              <h3>千字图会显示在这里</h3>
-              <p>结果包括传统图像、中文名称与英文释义。</p>
+              <h3>号码释义会显示在这里</h3>
+              <p>同一个号码在不同运营商的千字图中可能有不同解释。</p>
             </div>
           )}
           {result && (
             <div ref={resultRef} tabIndex={-1}>
               <p className="lc-eyebrow">查询号码</p>
-              <NumberDigits value={number} size="hero" />
-              <figure className="lc-qianzi-figure">
-                {result.image && !imageFailed ? (
-                  <img src={result.image} alt={`${number} ${result.cn || '千字图'}`} referrerPolicy="no-referrer" onError={() => setImageFailed(true)} />
-                ) : (
-                  <div className="lc-image-fallback"><span>{result.image ? '图像暂时无法载入' : '此资料源提供文字释义'}</span></div>
-                )}
-              </figure>
+              <NumberDigits value={number} size="hero" fixedLength={false} />
               {result.meanings?.length ? (
                 <div className="lc-meaning-list">
                   {result.meanings.map(meaning => (

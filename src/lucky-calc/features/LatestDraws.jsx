@@ -3,9 +3,32 @@ import { DataFreshness, ErrorState, LoadingState, NumberDigits, SectionIntro } f
 import { formatDrawDate, OPERATOR_LABELS } from '../lib/fourD'
 
 const OPERATOR_META = {
-  magnum: { mark: 'M', className: 'magnum' },
-  sportstoto: { mark: 'T', className: 'toto' },
-  damacai: { mark: 'D', className: 'damacai' },
+  magnum: {
+    mark: 'M',
+    className: 'magnum',
+    logo: 'https://storage-prod.magnum4d.my/assets/assets/contentitems/8f/8fef530c-ee6f-4c56-97b6-244bd221994f/2b73325c-4f0e-4071-add7-3757fbec7fdb/6c9802d5-d4d6-46db-abf1-0cd94374b6ee.png',
+  },
+  sportstoto: {
+    mark: 'T',
+    className: 'toto',
+    logo: 'https://cdn.fast4dking.com/mobile/v2/img/logo_sportstoto.png',
+  },
+  damacai: {
+    mark: 'D',
+    className: 'damacai',
+    logo: 'https://cdn.fast4dking.com/mobile/v2/img/logo_damacai.png',
+  },
+}
+
+function OperatorLogo({ meta, label }) {
+  const [failed, setFailed] = useState(false)
+  return (
+    <span className={`lc-operator-logo ${failed ? 'is-fallback' : ''}`} aria-hidden="true">
+      {!failed && <img src={meta.logo} alt="" referrerPolicy="no-referrer" onError={() => setFailed(true)} />}
+      {failed && meta.mark}
+      <span className="lc-sr-only">{label}</span>
+    </span>
+  )
 }
 
 function PrizeGroup({ label, numbers, onLookup }) {
@@ -28,7 +51,7 @@ function DrawCard({ operator, draw, onLookup }) {
   return (
     <article className={`lc-draw-card lc-operator-${meta.className}`}>
       <header>
-        <span className="lc-operator-mark" aria-hidden="true">{meta.mark}</span>
+        <OperatorLogo meta={meta} label={OPERATOR_LABELS[operator]} />
         <div>
           <h3>{OPERATOR_LABELS[operator]}</h3>
           <p>{formatDrawDate(draw.date)} · Draw {draw.drawNo}</p>
@@ -48,11 +71,10 @@ function DrawCard({ operator, draw, onLookup }) {
         ))}
       </div>
 
-      <details className="lc-prize-details">
-        <summary>展开特别奖与安慰奖 <span>{draw.special.length + draw.consolation.length} 个号码</span></summary>
+      <div className="lc-prize-board">
         <PrizeGroup label="特别奖" numbers={draw.special} onLookup={onLookup} />
         <PrizeGroup label="安慰奖" numbers={draw.consolation} onLookup={onLookup} />
-      </details>
+      </div>
     </article>
   )
 }
@@ -78,11 +100,10 @@ export default function LatestDraws({ onLookup }) {
   useEffect(() => { load() }, [load])
 
   return (
-    <div className="lc-page">
+    <div className="lc-page lc-latest-page">
       <SectionIntro
-        eyebrow="LATEST RESULTS"
         title="最新 4D 开奖结果"
-        description="Magnum、Sports Toto 与 Da Ma Cai 的最新资料，点击任何号码即可查看完整历史。"
+        description="三大运营商最新一期结果。特别奖与安慰奖已完整列出；点击任何号码即可查看历史。"
         action={<DataFreshness manifest={state.manifest} />}
       />
 

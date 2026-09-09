@@ -90,14 +90,14 @@ def parse_meanings(page, number):
 class handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
-        # Parse ?num=1234 parameter
+        # Preserve the exact 1-4 digit query. 001 and 0001 are different entries.
         parsed = urlparse(self.path)
         params = parse_qs(parsed.query)
         num_raw = params.get("num", [""])[0]
         num = re.sub(r"\D", "", num_raw)
 
-        if len(num) != 4:
-            self._write({"error": "请输入完整的 4 位号码"}, status=400)
+        if num != num_raw or not 1 <= len(num) <= 4:
+            self._write({"error": "请输入 1–4 位号码"}, status=400)
             return
 
         url = f"https://mobile.fast4dking.com/v2/searchnumber.php?n={num}"

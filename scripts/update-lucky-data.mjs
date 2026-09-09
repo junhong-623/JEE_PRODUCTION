@@ -6,6 +6,7 @@ const SOURCE_REPO = 'deadboy18/malaysia-4d'
 const SOURCE_BRANCH = 'main'
 const OUTPUT_ROOT = path.resolve('public/luck-calc/data')
 const HISTORY_ROOT = path.join(OUTPUT_ROOT, 'history')
+const SUFFIX_ROOT = path.join(OUTPUT_ROOT, 'suffix')
 
 const SOURCES = {
   magnum: 'magnum_draws.csv',
@@ -95,9 +96,11 @@ function serializeDraw(draw) {
 const sourceCommit = await getSourceCommit()
 const sourceRef = sourceCommit === 'unknown' ? SOURCE_BRANCH : sourceCommit
 const history = Object.fromEntries(Array.from({ length: 100 }, (_, index) => [String(index).padStart(2, '0'), {}]))
+const suffix = Object.fromEntries(Array.from({ length: 100 }, (_, index) => [String(index).padStart(2, '0'), {}]))
 const latest = {}
 const coverage = {}
 let totalRecords = 0
+let suffixTopPrizeRecords = 0
 
 for (const [operator, file] of Object.entries(SOURCES)) {
   const url = `https://raw.githubusercontent.com/${SOURCE_REPO}/${sourceRef}/data/${file}`
@@ -117,13 +120,16 @@ for (const [operator, file] of Object.entries(SOURCES)) {
       const shard = history[number.slice(0, 2)]
       if (!shard[number]) shard[number] = []
       shard[number].push([draw.date, OPERATOR_CODES[operator], prizeCode, String(draw.draw_seq)])
+      if (['1', '2', '3'].includes(prizeCode)) {
+        const suffixShard = suffix[number.slice(-2)]
+        const suffixKey = number.slice(-3)
+        if (!suffixShard[suffixKey]) suffixShard[suffixKey] = []
+        suffixShard[suffixKey].push([number, draw.date, OPERATOR_CODES[operator], prizeCode, String(draw.draw_seq)])
+        suffixTopPrizeRecords += 1
+      }
       operatorRecords += 1
       totalRecords += 1
     }
-  }
-
-  for (const shard of Object.values(history)) {
-    for (const records of Object.values(shard)) records.sort((a, b) => b[0].localeCompare(a[0]))
   }
 
   const lastDraw = draws.at(-1)
@@ -136,19 +142,31 @@ for (const [operator, file] of Object.entries(SOURCES)) {
   }
 }
 
+for (const shard of Object.values(history)) {
+  for (const records of Object.values(shard)) records.sort((a, b) => b[0].localeCompare(a[0]))
+}
+for (const shard of Object.values(suffix)) {
+  for (const records of Object.values(shard)) records.sort((a, b) => b[1].localeCompare(a[1]))
+}
+
 const manifest = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   generatedAt: `${Object.values(coverage).map(item => item.to).sort().at(-1)}T21:15:00+08:00`,
   source: `https://github.com/${SOURCE_REPO}`,
   sourceCommit,
   totalRecords,
+  suffixTopPrizeRecords,
   coverage,
 }
 
 await rm(OUTPUT_ROOT, { recursive: true, force: true })
 await mkdir(HISTORY_ROOT, { recursive: true })
+await mkdir(SUFFIX_ROOT, { recursive: true })
 await Promise.all(Object.entries(history).map(([prefix, numbers]) =>
   writeFile(path.join(HISTORY_ROOT, `${prefix}.json`), JSON.stringify(numbers)),
+))
+await Promise.all(Object.entries(suffix).map(([ending, numbers]) =>
+  writeFile(path.join(SUFFIX_ROOT, `${ending}.json`), JSON.stringify(numbers)),
 ))
 await writeFile(path.join(OUTPUT_ROOT, 'latest.json'), JSON.stringify(latest, null, 2) + '\n')
 await writeFile(path.join(OUTPUT_ROOT, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n')
@@ -181,5 +199,5 @@ await writeFile(path.join(OUTPUT_ROOT, 'NOTICE.txt'), [
   '',
 ].join('\n'))
 
-console.log(`Generated ${totalRecords.toLocaleString()} history records across 100 shards.`)
+console.log(`Generated ${totalRecords.toLocaleString()} history records and ${suffixTopPrizeRecords.toLocaleString()} top-prize suffix records.`)
 console.log(`Source commit: ${sourceCommit}`)

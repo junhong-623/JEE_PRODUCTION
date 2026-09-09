@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
   decodeHistoryRows,
+  decodeSuffixRows,
   getPayout,
   historyShardUrl,
   isValidFourD,
+  isValidQianziNumber,
   sanitizeFourDInput,
   STRAIGHT_PAYOUT,
+  suffixShardUrl,
   summarizeHistory,
 } from '../../src/lucky-calc/lib/fourD'
 
@@ -15,6 +18,14 @@ describe('4D input', () => {
     expect(isValidFourD('0063')).toBe(true)
     expect(isValidFourD('63')).toBe(false)
     expect(historyShardUrl('0063')).toBe('/luck-calc/data/history/00.json')
+  })
+
+  it('keeps one-to-four digit dictionary numbers distinct', () => {
+    expect(isValidQianziNumber('1')).toBe(true)
+    expect(isValidQianziNumber('001')).toBe(true)
+    expect(isValidQianziNumber('0001')).toBe(true)
+    expect(isValidQianziNumber('')).toBe(false)
+    expect(isValidQianziNumber('12345')).toBe(false)
   })
 })
 
@@ -52,6 +63,17 @@ describe('history records', () => {
 
   it('decodes the compact data schema', () => {
     expect(decoded[0]).toEqual({ date: '2026-09-06', operator: 'magnum', prize: 'first', drawNo: '419' })
+  })
+
+  it('decodes suffix-match rows with the actual winning number', () => {
+    expect(decodeSuffixRows([['1234', '2026-09-06', 'm', '1', '419']])[0]).toEqual({
+      number: '1234',
+      date: '2026-09-06',
+      operator: 'magnum',
+      prize: 'first',
+      drawNo: '419',
+    })
+    expect(suffixShardUrl('0234')).toBe('/luck-calc/data/suffix/34.json')
   })
 
   it('summarizes records', () => {
