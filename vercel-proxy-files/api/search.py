@@ -7,47 +7,84 @@ import re
 import json
 
 
-class DreambookParser(HTMLParser):
-    """Extract the first dreambook card from a 4D2U Live search page."""
+ALLOWED_ORIGINS = {
+    "https://www.jeeprod.com",
+    "https://jeeprod.com",
+    "https://jee-production.web.app",
+    "https://jee-production.firebaseapp.com",
+    "https://jeeprod.web.app",
+    "https://jeeprod.firebaseapp.com",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+}
 
-    def __init__(self):
+
+class MeaningParser(HTMLParser):
+    """Extract operator-specific meanings from a Fast4DKing result table."""
+
+    def __init__(self, number):
         super().__init__(convert_charrefs=True)
-        self.cn = ""
-        self.en = ""
-        self.image = ""
-        self._capture = None
-        self._buffer = []
+        self.number = number
+        self.meanings = []
+        self._in_row = False
+        self._cell = None
+        self._cells = []
+        self._operator = ""
 
     def handle_starttag(self, tag, attrs):
         attributes = dict(attrs)
-        classes = set(attributes.get("class", "").split())
-
-        if tag == "img" and "img-dreambook" in classes and not self.image:
-            self.image = attributes.get("src", "").strip()
-        elif tag == "h5" and "card-title" in classes and not self.cn:
-            self._capture = "cn"
-            self._buffer = []
-        elif tag == "p" and "card-text" in classes and not self.en:
-            self._capture = "en"
-            self._buffer = []
+        if tag == "tr":
+            self._in_row = True
+            self._cell = None
+            self._cells = []
+            self._operator = ""
+        elif self._in_row and tag == "td":
+            self._cells.append([])
+            self._cell = self._cells[-1]
+        elif self._in_row and tag == "br" and self._cell is not None:
+            self._cell.append("\n")
+        elif self._in_row and tag == "img" and not self._operator:
+            self._operator = attributes.get("alt", "").strip()
 
     def handle_data(self, data):
-        if self._capture:
-            self._buffer.append(data)
+        if self._cell is not None:
+            self._cell.append(data)
 
     def handle_endtag(self, tag):
-        expected_tag = "h5" if self._capture == "cn" else "p"
-        if self._capture and tag == expected_tag:
-            value = re.sub(r"\s+", " ", "".join(self._buffer)).strip()
-            setattr(self, self._capture, value)
-            self._capture = None
-            self._buffer = []
+        if tag == "td":
+            self._cell = None
+        elif tag == "tr" and self._in_row:
+            self._store_row()
+            self._in_row = False
+
+    def _store_row(self):
+        if len(self._cells) != 3:
+            return
+        number = re.sub(r"\D", "", "".join(self._cells[0]))
+        operator = self._operator.lower()
+        labels = {
+            "magnum": "Magnum",
+            "damacai": "Da Ma Cai",
+            "sports toto": "Sports Toto",
+        }
+        label = next((value for key, value in labels.items() if key in operator), "")
+        if number != self.number or not label:
+            return
+        parts = [re.sub(r"\s+", " ", part).strip() for part in "".join(self._cells[2]).split("\n")]
+        parts = [part for part in parts if part]
+        if not parts:
+            return
+        self.meanings.append({
+            "operator": label,
+            "en": parts[0],
+            "cn": parts[1] if len(parts) > 1 else "",
+        })
 
 
-def parse_dreambook(page):
-    parser = DreambookParser()
+def parse_meanings(page, number):
+    parser = MeaningParser(number)
     parser.feed(page)
-    return parser.cn, parser.en, parser.image
+    return parser.meanings
 
 
 class handler(BaseHTTPRequestHandler):
@@ -59,17 +96,11 @@ class handler(BaseHTTPRequestHandler):
         num_raw = params.get("num", [""])[0]
         num = re.sub(r"\D", "", num_raw)
 
-        # CORS headers (allows GitHub Pages calls)
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.end_headers()
-
         if len(num) != 4:
-            self._write({"error": "请输入完整的 4 位号码"})
+            self._write({"error": "请输入完整的 4 位号码"}, status=400)
             return
 
-        url = f"https://4d2ulive.com/search/{num}"
+        url = f"https://mobile.fast4dking.com/v2/searchnumber.php?n={num}"
 
         try:
             req = urllib.request.Request(
@@ -86,22 +117,39 @@ class handler(BaseHTTPRequestHandler):
             with urllib.request.urlopen(req, timeout=10) as resp:
                 html = resp.read().decode("utf-8", errors="ignore")
 
-        except urllib.error.URLError as e:
-            self._write({"error": f"抓取失败: {e.reason}"})
+        except urllib.error.HTTPError as error:
+            status = 404 if error.code == 404 else 502
+            message = "未找到对应的千字图" if status == 404 else "资料来源暂时无法连接，请稍后再试"
+            self._write({"error": message}, status=status)
             return
-        except Exception as e:
-            self._write({"error": f"未知错误: {str(e)}"})
+        except (urllib.error.URLError, TimeoutError):
+            self._write({"error": "资料来源暂时无法连接，请稍后再试"}, status=502)
+            return
+        except Exception:
+            self._write({"error": "查询服务暂时不可用，请稍后再试"}, status=500)
             return
 
-        cn, en, image = parse_dreambook(html)
-        if not image:
-            self._write({"error": "未找到对应的千字图"})
+        meanings = parse_meanings(html, num)
+        if not meanings:
+            self._write({"error": "未找到对应的千字图"}, status=404)
             return
 
-        self._write({"num": num, "cn": cn, "en": en, "image": image})
+        primary = next((item for item in meanings if item["operator"] == "Sports Toto"), meanings[0])
+        self._write(
+            {"num": num, "cn": primary["cn"], "en": primary["en"], "image": "", "meanings": meanings},
+            cache="public, max-age=86400, s-maxage=604800, stale-while-revalidate=2592000",
+        )
 
-    def _write(self, data: dict):
+    def _write(self, data: dict, status=200, cache="no-store"):
         body = json.dumps(data, ensure_ascii=False).encode("utf-8")
+        origin = self.headers.get("Origin", "")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Cache-Control", cache)
+        self.send_header("Vary", "Origin")
+        if origin in ALLOWED_ORIGINS:
+            self.send_header("Access-Control-Allow-Origin", origin)
+        self.end_headers()
         self.wfile.write(body)
 
     def log_message(self, format, *args):

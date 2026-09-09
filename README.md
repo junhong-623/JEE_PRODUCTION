@@ -10,7 +10,7 @@ A personal portfolio hub and collection of mini-apps, all deployed as a single S
 | **JSave** | [www.jeeprod.com/jsave](https://www.jeeprod.com/jsave) | Personal finance tracker — PWA with offline support, push reminders, AA split |
 | **MateTrip** | [www.jeeprod.com/matetrip](https://www.jeeprod.com/matetrip) | Trip expense tracker — split bills, track settlements, shared receipts |
 | H-Agency | [www.jeeprod.com/h-agency](https://www.jeeprod.com/h-agency) | Agency landing page |
-| Lucky Calc | [www.jeeprod.com/lucky-calc](https://www.jeeprod.com/lucky-calc) | Lucky number calculator |
+| Lucky Calc | [www.jeeprod.com/lucky-calc](https://www.jeeprod.com/lucky-calc) | Malaysia 4D results, history, payout and number tools |
 | Calculator | [www.jeeprod.com/calculator](https://www.jeeprod.com/calculator) | General calculator |
 | Unserialize | [www.jeeprod.com/unserialize](https://www.jeeprod.com/unserialize) | PHP unserialize tool |
 
@@ -65,6 +65,21 @@ Copy `.env.example` to `.env.local` and fill in:
 | `VITE_MATETRIP_VAPID_PUBLIC_KEY` | Web Push public key for JSave reminders |
 | `VITE_EMAILJS_*` | EmailJS config for contact form |
 | `VITE_LOCAL_PROJECTS` | `true` to load projects from local JSON instead of Firestore |
+| `VITE_LUCKY_QIANZI_API_URL` | Optional override for the Lucky Calc Qianzi lookup proxy |
+
+## Lucky Calc result data
+
+Historical and latest Magnum, Sports Toto, and Da Ma Cai results are generated from the open-source [deadboy18/malaysia-4d](https://github.com/deadboy18/malaysia-4d) dataset. The site loads one compact shard for the requested number instead of downloading the full archive.
+
+```bash
+# Refresh, validate, and rebuild all result shards
+npm run update:lucky-data
+
+# Run data integrity and calculator tests
+npm test
+```
+
+The scheduled workflow refreshes the static dataset every day and commits only when the upstream results change. See `public/luck-calc/data/NOTICE.txt` for attribution and licensing details.
 
 ## GitHub Secrets Required
 

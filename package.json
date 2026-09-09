@@ -20,6 +20,7 @@
     "dev:hagency": "node scripts/prepare-hagency.mjs && vite --config vite.hagency.config.js",
     "build:hagency": "node scripts/prepare-hagency.mjs && vite build --config vite.hagency.config.js && node scripts/finalize-hagency.mjs",
     "preview:hagency": "vite preview --config vite.hagency.config.js --outDir dist-hagency",
+    "update:lucky-data": "node scripts/update-lucky-data.mjs",
     "test": "vitest run --exclude tests/firestore.rules.test.js",
     "test:watch": "vitest --exclude tests/firestore.rules.test.js",
     "test:rules": "npx --yes firebase-tools@15.29.0 emulators:exec --only firestore \"vitest run tests/firestore.rules.test.js\""

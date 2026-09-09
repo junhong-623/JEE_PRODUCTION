@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-06T21:15:00+08:00",
+  "source": "https://github.com/deadboy18/malaysia-4d",
+  "sourceCommit": "c9aebaa87d364fd47cdc5935643f83062eaa78d6",
+  "totalRecords": 339368,
+  "coverage": {
+    "magnum": {
+      "from": "1985-04-25",
+      "to": "2026-09-06",
+      "drawCount": 6811,
+      "recordCount": 156653
+    },
+    "sportstoto": {
+      "from": "1992-05-06",
+      "to": "2026-09-05",
+      "drawCount": 5665,
+      "recordCount": 98995
+    },
+    "damacai": {
+      "from": "2005-01-01",
+      "to": "2026-09-06",
+      "drawCount": 3640,
+      "recordCount": 83720
+    }
+  }
+}
