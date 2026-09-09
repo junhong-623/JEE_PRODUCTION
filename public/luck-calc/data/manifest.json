@@ -1,9 +1,10 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "generatedAt": "2026-09-06T21:15:00+08:00",
   "source": "https://github.com/deadboy18/malaysia-4d",
   "sourceCommit": "c9aebaa87d364fd47cdc5935643f83062eaa78d6",
   "totalRecords": 339368,
+  "suffixTopPrizeRecords": 48348,
   "coverage": {
     "magnum": {
       "from": "1985-04-25",
