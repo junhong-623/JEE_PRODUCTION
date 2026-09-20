@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest'
 import {
   decodeHistoryRows,
   decodeSuffixRows,
+  drawYearUrl,
   getPayout,
   historyShardUrl,
   isValidFourD,
   isValidQianziNumber,
+  latestCoverageDate,
+  malaysiaDate,
   sanitizeFourDInput,
   STRAIGHT_PAYOUT,
   suffixShardUrl,
@@ -83,6 +86,27 @@ describe('history records', () => {
       byPrize: { first: 1, special: 1 },
       byOperator: { magnum: 1, sportstoto: 1 },
     })
+  })
+})
+
+describe('draw date lookup', () => {
+  it('builds a yearly draw shard URL', () => {
+    expect(drawYearUrl('2026-09-19')).toBe('/luck-calc/data/draws/2026.json')
+    expect(drawYearUrl('2026-9-19')).toBeNull()
+  })
+
+  it('uses the newest operator coverage date', () => {
+    expect(latestCoverageDate({
+      coverage: {
+        magnum: { to: '2026-09-19' },
+        sportstoto: { to: '2026-09-20' },
+        damacai: { to: '2026-09-18' },
+      },
+    })).toBe('2026-09-20')
+  })
+
+  it('formats today in Malaysia regardless of the input timezone', () => {
+    expect(malaysiaDate(new Date('2026-09-19T16:30:00Z'))).toBe('2026-09-20')
   })
 })
 

@@ -120,6 +120,32 @@ export function suffixShardUrl(number) {
   return `/luck-calc/data/suffix/${number.slice(-2)}.json`
 }
 
+export function drawYearUrl(date) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date ?? ''))) return null
+  return `/luck-calc/data/draws/${date.slice(0, 4)}.json`
+}
+
+export function latestCoverageDate(manifest) {
+  return Object.values(manifest?.coverage || {})
+    .map(item => item.to)
+    .filter(Boolean)
+    .sort()
+    .at(-1) || ''
+}
+
+export function malaysiaDate(value = new Date()) {
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  const parts = new Intl.DateTimeFormat('en', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: 'Asia/Kuala_Lumpur',
+  }).formatToParts(date)
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]))
+  return `${values.year}-${values.month}-${values.day}`
+}
+
 export function formatMYR(value, maximumFractionDigits = 2) {
   return new Intl.NumberFormat('en-MY', {
     style: 'currency',

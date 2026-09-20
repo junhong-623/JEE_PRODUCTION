@@ -7,6 +7,7 @@ const SOURCE_BRANCH = 'main'
 const OUTPUT_ROOT = path.resolve('public/luck-calc/data')
 const HISTORY_ROOT = path.join(OUTPUT_ROOT, 'history')
 const SUFFIX_ROOT = path.join(OUTPUT_ROOT, 'suffix')
+const DRAWS_ROOT = path.join(OUTPUT_ROOT, 'draws')
 
 const SOURCES = {
   magnum: 'magnum_draws.csv',
@@ -97,6 +98,7 @@ const sourceCommit = await getSourceCommit()
 const sourceRef = sourceCommit === 'unknown' ? SOURCE_BRANCH : sourceCommit
 const history = Object.fromEntries(Array.from({ length: 100 }, (_, index) => [String(index).padStart(2, '0'), {}]))
 const suffix = Object.fromEntries(Array.from({ length: 100 }, (_, index) => [String(index).padStart(2, '0'), {}]))
+const drawsByYear = {}
 const latest = {}
 const coverage = {}
 let totalRecords = 0
@@ -113,6 +115,14 @@ for (const [operator, file] of Object.entries(SOURCES)) {
     const drawKey = `${draw.date}:${draw.draw_seq}`
     if (seenDraws.has(drawKey)) throw new Error(`${operator}: duplicate draw ${drawKey}`)
     seenDraws.add(drawKey)
+
+    const year = draw.date.slice(0, 4)
+    if (!drawsByYear[year]) drawsByYear[year] = {}
+    if (!drawsByYear[year][draw.date]) drawsByYear[year][draw.date] = {}
+    if (drawsByYear[year][draw.date][operator]) {
+      throw new Error(`${operator}: multiple draws on ${draw.date}`)
+    }
+    drawsByYear[year][draw.date][operator] = serializeDraw(draw)
 
     for (const [column, prizeCode] of PRIZE_COLUMNS) {
       const number = draw[column]
@@ -150,23 +160,30 @@ for (const shard of Object.values(suffix)) {
 }
 
 const manifest = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   generatedAt: `${Object.values(coverage).map(item => item.to).sort().at(-1)}T21:15:00+08:00`,
   source: `https://github.com/${SOURCE_REPO}`,
   sourceCommit,
   totalRecords,
   suffixTopPrizeRecords,
+  drawYears: Object.keys(drawsByYear).sort(),
   coverage,
 }
 
 await rm(OUTPUT_ROOT, { recursive: true, force: true })
 await mkdir(HISTORY_ROOT, { recursive: true })
 await mkdir(SUFFIX_ROOT, { recursive: true })
+await mkdir(DRAWS_ROOT, { recursive: true })
 await Promise.all(Object.entries(history).map(([prefix, numbers]) =>
   writeFile(path.join(HISTORY_ROOT, `${prefix}.json`), JSON.stringify(numbers)),
 ))
 await Promise.all(Object.entries(suffix).map(([ending, numbers]) =>
   writeFile(path.join(SUFFIX_ROOT, `${ending}.json`), JSON.stringify(numbers)),
+))
+await Promise.all(Object.entries(drawsByYear).map(([year, dates]) =>
+  writeFile(path.join(DRAWS_ROOT, `${year}.json`), JSON.stringify(
+    Object.fromEntries(Object.entries(dates).sort(([left], [right]) => left.localeCompare(right))),
+  )),
 ))
 await writeFile(path.join(OUTPUT_ROOT, 'latest.json'), JSON.stringify(latest, null, 2) + '\n')
 await writeFile(path.join(OUTPUT_ROOT, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n')
