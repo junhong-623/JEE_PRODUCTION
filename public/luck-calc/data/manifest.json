@@ -1,28 +1,28 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-06T21:15:00+08:00",
+  "generatedAt": "2026-09-19T21:15:00+08:00",
   "source": "https://github.com/deadboy18/malaysia-4d",
-  "sourceCommit": "c9aebaa87d364fd47cdc5935643f83062eaa78d6",
-  "totalRecords": 339368,
-  "suffixTopPrizeRecords": 48348,
+  "sourceCommit": "0a2965543a31f81e1cfb6307b689e2f87ef4a0ea",
+  "totalRecords": 339736,
+  "suffixTopPrizeRecords": 48396,
   "coverage": {
     "magnum": {
       "from": "1985-04-25",
-      "to": "2026-09-06",
-      "drawCount": 6811,
-      "recordCount": 156653
+      "to": "2026-09-19",
+      "drawCount": 6816,
+      "recordCount": 156768
     },
     "sportstoto": {
       "from": "1992-05-06",
-      "to": "2026-09-05",
-      "drawCount": 5665,
-      "recordCount": 98995
+      "to": "2026-09-19",
+      "drawCount": 5671,
+      "recordCount": 99133
     },
     "damacai": {
       "from": "2005-01-01",
-      "to": "2026-09-06",
-      "drawCount": 3640,
-      "recordCount": 83720
+      "to": "2026-09-19",
+      "drawCount": 3645,
+      "recordCount": 83835
     }
   }
 }

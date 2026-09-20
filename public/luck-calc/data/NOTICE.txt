@@ -1,5 +1,5 @@
 4D history data source: https://github.com/deadboy18/malaysia-4d
-Source commit: c9aebaa87d364fd47cdc5935643f83062eaa78d6
+Source commit: 0a2965543a31f81e1cfb6307b689e2f87ef4a0ea
 Operator names and draw results remain attributable to their respective operators.
 
 MIT License

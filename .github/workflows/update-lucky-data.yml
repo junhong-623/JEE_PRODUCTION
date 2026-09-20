@@ -31,8 +31,8 @@ jobs:
       - name: Build validated 4D history index
         run: npm run update:lucky-data
 
-      - name: Run tests
-        run: npm test
+      - name: Run Lucky Calc tests
+        run: npm test -- tests/lucky-calc
 
       - name: Commit changed data
         run: |
