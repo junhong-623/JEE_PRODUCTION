@@ -2,8 +2,13 @@ name: Update Lucky Calc 4D data
 
 on:
   schedule:
-    # Daily at 10:15pm Malaysia time. Daily coverage also catches special draws.
-    - cron: '15 14 * * *'
+    # Check every 8 minutes from 7:00pm to 7:56pm Malaysia time.
+    # Running daily also catches special draws outside the regular draw days.
+    - cron: '0,8,16,24,32,40,48,56 19 * * *'
+      timezone: 'Asia/Kuala_Lumpur'
+    # Final check at 8:00pm Malaysia time.
+    - cron: '0 20 * * *'
+      timezone: 'Asia/Kuala_Lumpur'
   workflow_dispatch:
 
 permissions:
@@ -20,21 +25,43 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check for new upstream draw data
+        id: upstream
+        shell: bash
+        run: |
+          local_commit="$(node -p "require('./public/luck-calc/data/manifest.json').sourceCommit")"
+          upstream_commit="$(curl --fail --silent --show-error \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'User-Agent: jeeprod-lucky-data-updater' \
+            https://api.github.com/repos/deadboy18/malaysia-4d/commits/main | jq -r '.sha')"
+          if [ "$local_commit" = "$upstream_commit" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No new upstream draw data."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "New upstream data: $local_commit -> $upstream_commit"
+          fi
+
       - uses: actions/setup-node@v4
+        if: steps.upstream.outputs.changed == 'true'
         with:
           node-version: '22'
           cache: npm
 
       - name: Install dependencies
+        if: steps.upstream.outputs.changed == 'true'
         run: npm ci
 
       - name: Build validated 4D history index
+        if: steps.upstream.outputs.changed == 'true'
         run: npm run update:lucky-data
 
       - name: Run Lucky Calc tests
+        if: steps.upstream.outputs.changed == 'true'
         run: npm test -- tests/lucky-calc
 
       - name: Commit changed data
+        if: steps.upstream.outputs.changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
