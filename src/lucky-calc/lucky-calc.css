@@ -78,14 +78,15 @@
   height: 42px;
   display: grid;
   place-items: center;
+  overflow: hidden;
+  padding: 3px;
   border: 1px solid var(--lc-border-strong);
   border-radius: 13px;
-  color: #171007;
-  background: linear-gradient(145deg, var(--lc-gold-bright), #c9951f);
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.4), 0 8px 30px rgba(246, 201, 69, 0.1);
-  font-weight: 900;
-  font-family: Georgia, serif;
+  background: radial-gradient(circle at 50% 42%, rgba(246, 201, 69, 0.13), rgba(111, 24, 23, 0.1));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.08), 0 8px 30px rgba(246, 201, 69, 0.1);
 }
+
+.lc-brand-mark img { width: 100%; height: 100%; display: block; object-fit: contain; }
 
 .lc-brand > span:last-child {
   display: flex;

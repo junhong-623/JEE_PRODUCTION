@@ -99,7 +99,9 @@ export default function LuckyCalcPage() {
       <header className="lc-site-header">
         <div className="lc-header-inner">
           <button type="button" className="lc-brand" onClick={() => navigate('latest')} aria-label="Lucky Calc 首页">
-            <span className="lc-brand-mark">四</span>
+            <span className="lc-brand-mark" aria-hidden="true">
+              <img src="/luck-calc/lucky-ingot-logo.png" alt="" />
+            </span>
             <span><strong>幸运计算器</strong><small>LUCKY CALC · MALAYSIA</small></span>
           </button>
           <PrimaryNav activeTab={activeTab} onChange={navigate} />
