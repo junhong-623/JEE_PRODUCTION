@@ -68,6 +68,13 @@ describe('TNG shortcut import', () => {
       .toBe(parsed.sourceTransactionId)
   })
 
+  it('finds a scan payment date when iPhone OCR separates or reorders its label', () => {
+    const splitDate = scanPayment.replace('日期与时间\n23/09/2026 12:22:42', '日期与时间\n23/09/2026\n12:22:42')
+    const movedLabel = scanPayment.replace('日期与时间\n23/09/2026 12:22:42', '23/09/2026 12:22:42\n日期与时问')
+    expect(parseTngScreenshot(splitDate).date).toBe('2026-09-23')
+    expect(parseTngScreenshot(movedLabel).time).toBe('12:22:42')
+  })
+
   it('rejects incomplete scan payment confirmations', () => {
     expect(() => parseTngScreenshot(scanPayment.replace('已转账', '转账处理中'))).toThrow('missing-amount')
     expect(() => parseTngScreenshot(scanPayment.replace('接收者\nTEST PERSON', '接收者\n备注'))).toThrow('missing-party')

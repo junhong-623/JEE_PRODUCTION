@@ -1,8 +1,19 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.6.4',
+    version: '3.6.5',
     date: '2026-09-23',
     isLatest: true,
+    items: [
+      'Read the TNG scan payment date even when iPhone OCR splits or reorders its label',
+    ],
+    itemsZh: [
+      '修复 iPhone OCR 将 TNG 扫码付款日期拆行或调整读取顺序时无法识别的问题',
+    ],
+  },
+  {
+    version: '3.6.4',
+    date: '2026-09-23',
+    isLatest: false,
     items: [
       'Recognize TNG scan payment confirmation screenshots with a recipient and transaction time',
       'Deduplicate repeated imports of the same confirmation screenshot using its verified payment fields',

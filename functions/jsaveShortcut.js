@@ -34,8 +34,9 @@ function parseTngScreenshot(ocrText) {
   if (type === 'income' && !/(从钱包接收|接收转账)/.test(text)) throw new Error('invalid-type')
   if (!transferSuccess && fieldAfter(text, '状态') !== '成功') throw new Error('not-successful')
 
-  const dateText = transferSuccess ? fieldAfter(text, '日期与时间') : text
-  const dateMatch = dateText.match(/\b(\d{1,2})[/-](\d{1,2})[/-](\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\b/)
+  // iPhone OCR may read the date value before its label or split date and time
+  // across lines. The successful transfer page has one complete transaction date.
+  const dateMatch = text.match(/\b(\d{1,2})[/-](\d{1,2})[/-](\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\b/)
   if (!dateMatch) throw new Error('missing-date')
   const [, dayText, monthText, yearText, hourText, minuteText, secondText = '00'] = dateMatch
   const [day, month, year, hour, minute, second] = [dayText, monthText, yearText, hourText, minuteText, secondText].map(Number)
