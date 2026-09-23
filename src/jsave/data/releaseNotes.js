@@ -1,8 +1,19 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.6.1',
+    version: '3.6.2',
     date: '2026-09-23',
     isLatest: true,
+    items: [
+      'Fixed the iPhone shortcut download opening as an HTML page from the installed JSave app',
+    ],
+    itemsZh: [
+      '修复从已安装的 JSave 下载 iPhone 快捷指令时得到 HTML 页面的问题',
+    ],
+  },
+  {
+    version: '3.6.1',
+    date: '2026-09-23',
+    isLatest: false,
     items: [
       'Added a downloadable signed iPhone shortcut for TNG screenshot imports in Settings',
       'The shortcut asks for your personal key when imported and confirms each transaction before saving',

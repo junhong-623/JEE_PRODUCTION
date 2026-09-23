@@ -104,8 +104,9 @@ function ShortcutImportSettings({ accounts, user, lang }) {
       </p>
       <a
         className="jsave-btn-ghost jsave-btn-full"
-        href="/shortcuts/JSave-TNG-Import.shortcut"
-        download="JSave-TNG-Import.shortcut"
+        href="https://jeeprod-jsave.web.app/shortcuts/JSave-TNG-Import.shortcut"
+        target="_blank"
+        rel="noopener noreferrer"
         style={{ justifyContent: 'center', textDecoration: 'none', marginBottom: 10 }}
       >
         {zh ? '下载 iPhone 快捷指令' : 'Download iPhone shortcut'}

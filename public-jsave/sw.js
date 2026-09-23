@@ -1,4 +1,4 @@
-const CACHE = 'jsave-v20'
+const CACHE = 'jsave-v21'
 
 self.addEventListener('install', e => {
   self.skipWaiting()
@@ -47,6 +47,9 @@ self.addEventListener('fetch', e => {
   const url = new URL(request.url)
 
   if (url.origin !== location.origin) return
+
+  // A shortcut download must never receive the offline HTML app shell.
+  if (url.pathname.startsWith('/shortcuts/') && url.pathname.endsWith('.shortcut')) return
 
   if (request.mode === 'navigate') {
     e.respondWith(

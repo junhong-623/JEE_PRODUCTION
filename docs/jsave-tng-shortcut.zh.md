@@ -11,7 +11,7 @@
 
 ## 2. 下载并在 iPhone 导入
 
-1. 打开 JSave「设置 → TNG 截图快捷指令」，点「下载 iPhone 快捷指令」。也可以直接从 [JSave 站点下载](https://jsave.jeeprod.com/shortcuts/JSave-TNG-Import.shortcut)。
+1. 打开 JSave「设置 → TNG 截图快捷指令」，点「下载 iPhone 快捷指令」。链接会在浏览器打开下载页，以避开已安装 PWA 的旧缓存。也可以直接从 [JSave 下载地址](https://jeeprod-jsave.web.app/shortcuts/JSave-TNG-Import.shortcut)下载。
 2. 在 iPhone 的「文件」App 打开下载的 `JSave-TNG-Import.shortcut`。导入设置会问你要 JSave 密钥，粘贴第 1 节复制的完整密钥。下载文件中没有预置任何用户密钥。
 3. 先从「照片」分享一张 TNG 交易详情截图，选择 `JSave TNG Import` 运行。它会提取文字、请求预览、让你选类别并显示核对提醒；按「取消」不会提交。
 4. 确认导入成功后，再考虑设置截屏自动化。已打开的 JSave PWA 可能需要联网同步或重新打开，才能看到新交易。
