@@ -1,4 +1,5 @@
 #include 'actions/images'
+#include 'actions/photos'
 #include 'actions/web'
 #define name JSave TNG Import
 #define color blue
@@ -98,12 +99,21 @@ confirm("{@direction} RM{@amount}\n日期：{@date} {@time}\n对象：{@note}\n�
 @commitDict = getDictionary(@commit)
 @statusValue = getValue(@commitDict, "status")
 @status = "{@statusValue}"
+@completion = ""
 if @status == "created" {
-    alert("已加入 JSave。", "完成")
+    @completion = "已加入 JSave。"
 } else {
     if @status == "duplicate" {
-        alert("这笔 TNG 交易已导入过，没有重复新增。", "JSave")
+        @completion = "这笔 TNG 交易已导入过，没有重复新增。"
     } else {
         alert("JSave 没有确认保存，请检查网络与密钥。", "未完成")
+        stop()
     }
+}
+menu "{@completion} 要删除这张截图吗？" {
+    item "保留照片":
+        alert("{@completion} 截图已保留。", "JSave")
+    item "删除照片":
+        deletePhotos(ShortcutInput)
+        alert("{@completion} 已请求删除这张截图。", "JSave")
 }
