@@ -75,9 +75,17 @@ describe('TNG shortcut import', () => {
     expect(parseTngScreenshot(movedLabel).time).toBe('12:22:42')
   })
 
+  it('finds the recipient when OCR emits all labels before their values', () => {
+    const columns = scanPayment.replace(
+      '接收者\nTEST PERSON\n备注\nTEST PERSON\n日期与时间',
+      '接收者\n备注\n日期与时间\nTEST PERSON\nDINNER',
+    )
+    expect(parseTngScreenshot(columns).note).toBe('TEST PERSON')
+  })
+
   it('rejects incomplete scan payment confirmations', () => {
     expect(() => parseTngScreenshot(scanPayment.replace('已转账', '转账处理中'))).toThrow('missing-amount')
-    expect(() => parseTngScreenshot(scanPayment.replace('接收者\nTEST PERSON', '接收者\n备注'))).toThrow('missing-party')
+    expect(() => parseTngScreenshot(scanPayment.replaceAll('TEST PERSON', ''))).toThrow('missing-party')
     expect(() => parseTngScreenshot(scanPayment.replace('23/09/2026', '31/02/2026'))).toThrow('invalid-date')
   })
 

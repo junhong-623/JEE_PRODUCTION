@@ -1,8 +1,19 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.6.5',
+    version: '3.6.6',
     date: '2026-09-23',
     isLatest: true,
+    items: [
+      'Recognize scan payment recipients when iPhone OCR reads the page labels and values in separate groups',
+    ],
+    itemsZh: [
+      '修复 iPhone OCR 分别读取扫码付款页面标签与姓名时无法识别接收者的问题',
+    ],
+  },
+  {
+    version: '3.6.5',
+    date: '2026-09-23',
+    isLatest: false,
     items: [
       'Read the TNG scan payment date even when iPhone OCR splits or reorders its label',
     ],

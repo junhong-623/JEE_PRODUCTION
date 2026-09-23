@@ -16,6 +16,18 @@ function fieldAfter(text, label) {
   return inline || lines[index + 1] || ''
 }
 
+function scanPaymentParty(text, dateIndex) {
+  // Vision can emit the three left-column labels before the right-column values.
+  // Only inspect the transaction details above the date; the ad begins below it.
+  const details = text.slice(text.indexOf('已转账') + '已转账'.length, dateIndex)
+  const candidates = details.split('\n').map(line => line.trim()
+    .replace(/^(?:接收者|备注)\s*[:：]?\s*/, '')
+    .replace(/\s*(?:备注|日期与时间)\s*[:：]?$/, '')
+    .trim())
+  return candidates.find(line => line && line.length <= 120 && /[\p{L}]/u.test(line) &&
+    !/^(?:接收|备注|日期|时间|状态|完成|已转账|RM\b)/i.test(line)) || ''
+}
+
 function parseTngScreenshot(ocrText) {
   if (typeof ocrText !== 'string' || !ocrText.trim() || ocrText.length > 8000) {
     throw new Error('invalid-ocr')
@@ -49,7 +61,7 @@ function parseTngScreenshot(ocrText) {
   const date = `${yearText}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
   const time = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:${String(second).padStart(2, '0')}`
 
-  let note = transferSuccess ? fieldAfter(text, '接收者') : type === 'expense' ? fieldAfter(text, '商家') : fieldAfter(text, '接收转账')
+  let note = transferSuccess ? scanPaymentParty(text, dateMatch.index) : type === 'expense' ? fieldAfter(text, '商家') : fieldAfter(text, '接收转账')
   if (type === 'expense' && !note) {
     note = text.match(/支付\s*[-–—]\s*([^\n]+)/)?.[1]?.trim() || ''
   }
