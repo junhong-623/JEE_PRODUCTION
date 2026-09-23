@@ -1,8 +1,21 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.6.3',
+    version: '3.6.4',
     date: '2026-09-23',
     isLatest: true,
+    items: [
+      'Recognize TNG scan payment confirmation screenshots with a recipient and transaction time',
+      'Deduplicate repeated imports of the same confirmation screenshot using its verified payment fields',
+    ],
+    itemsZh: [
+      '支持识别显示接收者与交易时间的 TNG 扫码付款成功页截图',
+      '根据已确认的付款资料避免重复导入同一张成功页截图',
+    ],
+  },
+  {
+    version: '3.6.3',
+    date: '2026-09-23',
+    isLatest: false,
     items: [
       'Updated the TNG shortcut to read preview fields explicitly and show the actual key or screenshot error',
     ],

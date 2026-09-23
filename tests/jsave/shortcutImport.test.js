@@ -27,6 +27,19 @@ const receipt = `详情
 交易编号 aaaaaaaa-1111-4222-a333-
 bbbbbbbbbbbb`
 
+const scanPayment = `12:28
+RM 13.00
+已转账
+接收者
+TEST PERSON
+备注
+TEST PERSON
+日期与时间
+23/09/2026 12:22:42
+ELEVATE YOUR DRIVING EXPERIENCE
+MICHELIN
+Ad Elevate your driving experience with MICHELIN tyres made for every journey.`
+
 describe('TNG shortcut import', () => {
   it('extracts a payment using the transaction date, merchant, and TNG ID', () => {
     expect(parseTngScreenshot(payment)).toEqual({
@@ -42,6 +55,23 @@ describe('TNG shortcut import', () => {
       date: '2026-09-19', time: '22:14:44',
       note: 'TEST PERSON', sourceTransactionId: 'AAAAAAAA-1111-4222-A333-BBBBBBBBBBBB',
     })
+  })
+
+  it('extracts a scan payment confirmation and ignores advertising text', () => {
+    const parsed = parseTngScreenshot(scanPayment)
+    expect(parsed).toMatchObject({
+      type: 'expense', amount: 13, currency: 'MYR',
+      date: '2026-09-23', time: '12:22:42', note: 'TEST PERSON',
+    })
+    expect(parsed.sourceTransactionId).toMatch(/^RECEIPT-[A-F0-9]{40}$/)
+    expect(parseTngScreenshot(scanPayment.replace(/ELEVATE[\s\S]+$/, 'Other ad')).sourceTransactionId)
+      .toBe(parsed.sourceTransactionId)
+  })
+
+  it('rejects incomplete scan payment confirmations', () => {
+    expect(() => parseTngScreenshot(scanPayment.replace('已转账', '转账处理中'))).toThrow('missing-amount')
+    expect(() => parseTngScreenshot(scanPayment.replace('接收者\nTEST PERSON', '接收者\n备注'))).toThrow('missing-party')
+    expect(() => parseTngScreenshot(scanPayment.replace('23/09/2026', '31/02/2026'))).toThrow('invalid-date')
   })
 
   it('rejects failed and incomplete screenshots before they can become transactions', () => {
