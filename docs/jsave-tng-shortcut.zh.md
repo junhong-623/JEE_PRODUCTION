@@ -1,6 +1,6 @@
 # JSave × TNG iPhone 快捷指令
 
-这份设置说明配合 JSave 的 `jsaveShortcutImport` 函数使用。**JSave 网页与 Firebase Functions 都部署后**，才会有可用的接口。此仓库没有可直接导入 iPhone 的已签名 `.shortcut` 文件；以下动作需要在 iPhone「快捷指令」App 中建立并测试。
+这份设置说明配合 JSave 的 `jsaveShortcutImport` 函数使用。已签名的快捷指令位于 [`public-jsave/shortcuts/JSave-TNG-Import.shortcut`](../public-jsave/shortcuts/JSave-TNG-Import.shortcut)，Cherri 源码位于 [`shortcuts/JSave-TNG-Import.cherri`](../shortcuts/JSave-TNG-Import.cherri)。快捷指令已编译并检查请求参数，仍须在 iPhone 上验证导入和运行。
 
 ## 1. 在 JSave 建立密钥
 
@@ -9,7 +9,16 @@
 3. 复制 **接口网址** 和 **密钥**。密钥只显示这一次；重新生成会使旧密钥失效。
 4. 密钥等同于一个仅可向你的 JSave 账户导入 TNG 交易的密码。不要把含有密钥的快捷指令分享给别人。可随时在同一设置页停用。
 
-## 2. 建立「TNG 记账」快捷指令
+## 2. 下载并在 iPhone 导入
+
+1. 打开 JSave「设置 → TNG 截图快捷指令」，点「下载 iPhone 快捷指令」。也可以直接从 [JSave 站点下载](https://jsave.jeeprod.com/shortcuts/JSave-TNG-Import.shortcut)。
+2. 在 iPhone 的「文件」App 打开下载的 `JSave-TNG-Import.shortcut`。导入设置会问你要 JSave 密钥，粘贴第 1 节复制的完整密钥。下载文件中没有预置任何用户密钥。
+3. 先从「照片」分享一张 TNG 交易详情截图，选择 `JSave TNG Import` 运行。它会提取文字、请求预览、让你选类别并显示核对提醒；按「取消」不会提交。
+4. 确认导入成功后，再考虑设置截屏自动化。已打开的 JSave PWA 可能需要联网同步或重新打开，才能看到新交易。
+
+导入文件的 SHA-256：`E4BB79572F64F453279F38C4E6E0C4F3A6BE9C94A888E10F5530493138C6D8A6`。
+
+## 3. 手动建立方式（备用）
 
 先让快捷指令从分享菜单接收**图像**，用一张已保存的 TNG 截图完成测试。随后再添加截屏自动化；这样较容易排查是截图触发还是文字识别的问题。
 
@@ -34,7 +43,7 @@
 
 截图本身不上传；发送到 JSave 的是 iPhone 提取的文字。接口只接受识别为 **TNG 成功交易**、且有金额、交易日期、商家或转账人、交易编号的内容。相同的 TNG 交易编号再次提交会返回 `duplicate`，不会新增第二笔。
 
-## 3. 在 iPhone 添加截屏自动化
+## 4. 在 iPhone 添加截屏自动化
 
 如果你的 iOS「快捷指令 → 自动化」有「截屏」触发器，可在截图保存到「照片」时运行「TNG 记账」。截屏触发器适用于**所有 App**，因此快捷指令会先尝试识别 TNG 详情；其他截图会被 JSave 接口拒绝。自动化需要在每台 iPhone 上设置一次。
 

@@ -1,8 +1,21 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.6.0',
+    version: '3.6.1',
     date: '2026-09-23',
     isLatest: true,
+    items: [
+      'Added a downloadable signed iPhone shortcut for TNG screenshot imports in Settings',
+      'The shortcut asks for your personal key when imported and confirms each transaction before saving',
+    ],
+    itemsZh: [
+      '设置页新增可下载的已签名 TNG 截图 iPhone 快捷指令',
+      '导入时才填写个人密钥，每笔交易须选类别并确认后才保存',
+    ],
+  },
+  {
+    version: '3.6.0',
+    date: '2026-09-23',
+    isLatest: false,
     items: [
       'Added a protected TNG screenshot shortcut import with a preview before saving',
       'Choose an expense or income category in Shortcuts, then confirm the amount, date and merchant or sender',

@@ -1,0 +1,86 @@
+#include 'actions/images'
+#include 'actions/web'
+#define name JSave TNG Import
+#define color blue
+#define inputs image
+#define from sharesheet
+#define noinput askfor image
+#question shortcutKey "粘贴 JSave 设置页生成的快捷指令密钥" ""
+
+const key = text(shortcutKey)
+const ocr = extractImageText(ShortcutInput)
+
+@preview = jsonRequest("https://us-central1-jee-production.cloudfunctions.net/jsaveShortcutImport", "POST", {"action":"preview", "text":"{ocr}"}, {"Authorization":"Bearer {key}"})
+@draft = @preview['draft']
+
+@type = "{@draft['type']}"
+@amount = "{@draft['amount']}"
+@date = "{@draft['date']}"
+@time = "{@draft['time']}"
+@note = "{@draft['note']}"
+@category = ""
+@categoryLabel = ""
+@direction = ""
+if @type == "expense" {
+    @direction = "支出"
+    menu "选择支出类别" {
+        item "餐饮":
+            @category = "catFood"
+            @categoryLabel = "餐饮"
+        item "交通":
+            @category = "catTransport"
+            @categoryLabel = "交通"
+        item "账单":
+            @category = "catBills"
+            @categoryLabel = "账单"
+        item "娱乐":
+            @category = "catEntertainment"
+            @categoryLabel = "娱乐"
+        item "医疗":
+            @category = "catHealth"
+            @categoryLabel = "医疗"
+        item "购物":
+            @category = "catShopping"
+            @categoryLabel = "购物"
+        item "其他支出":
+            @category = "catOther"
+            @categoryLabel = "其他支出"
+    }
+} else {
+    if @type == "income" {
+        @direction = "收入"
+        menu "选择收入类别" {
+            item "薪资":
+                @category = "catSalary"
+                @categoryLabel = "薪资"
+            item "接案":
+                @category = "catFreelance"
+                @categoryLabel = "接案"
+            item "投资":
+                @category = "catInvestment"
+                @categoryLabel = "投资"
+            item "礼物":
+                @category = "catGift"
+                @categoryLabel = "礼物"
+            item "其他收入":
+                @category = "catOtherIncome"
+                @categoryLabel = "其他收入"
+        }
+    } else {
+        alert("交易类型不受支持，未保存交易。", "JSave")
+        stop()
+    }
+}
+
+confirm("{@direction} RM{@amount}\n日期：{@date} {@time}\n对象：{@note}\n类别：{@categoryLabel}\n\n确认加入 JSave？", "核对 TNG 交易")
+@commit = jsonRequest("https://us-central1-jee-production.cloudfunctions.net/jsaveShortcutImport", "POST", {"action":"commit", "text":"{ocr}", "category":"{@category}"}, {"Authorization":"Bearer {key}"})
+@status = "{@commit['status']}"
+if @status == "created" {
+    alert("已加入 JSave。", "完成")
+} else {
+    if @status == "duplicate" {
+        alert("这笔 TNG 交易已导入过，没有重复新增。", "JSave")
+    } else {
+        alert("JSave 没有确认保存，请检查网络与密钥。", "未完成")
+    }
+}

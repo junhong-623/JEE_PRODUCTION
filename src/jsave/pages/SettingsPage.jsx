@@ -102,6 +102,19 @@ function ShortcutImportSettings({ accounts, user, lang }) {
           ? '快捷指令识别截图后先显示预览。你选类别并确认，它才会把交易加入以下账户。'
           : 'The shortcut previews the screenshot first. After you choose a category and confirm, it adds the transaction to this account.'}
       </p>
+      <a
+        className="jsave-btn-ghost jsave-btn-full"
+        href="/shortcuts/JSave-TNG-Import.shortcut"
+        download="JSave-TNG-Import.shortcut"
+        style={{ justifyContent: 'center', textDecoration: 'none', marginBottom: 10 }}
+      >
+        {zh ? '下载 iPhone 快捷指令' : 'Download iPhone shortcut'}
+      </a>
+      <p className="jsave-section-sub" style={{ marginBottom: 12 }}>
+        {zh
+          ? '先生成并复制下方密钥。iPhone 导入快捷指令时会请你粘贴；密钥不会包含在下载文件里。'
+          : 'Create and copy the key below first. Your iPhone will ask for it when importing; the downloaded file does not contain your key.'}
+      </p>
       {accounts.length ? (
         <>
           <label className="jsave-label" htmlFor="jsave-shortcut-account">{zh ? 'TNG 钱包账户' : 'TNG wallet account'}</label>
