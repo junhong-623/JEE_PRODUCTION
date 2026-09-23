@@ -1,8 +1,19 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.6.2',
+    version: '3.6.3',
     date: '2026-09-23',
     isLatest: true,
+    items: [
+      'Updated the TNG shortcut to read preview fields explicitly and show the actual key or screenshot error',
+    ],
+    itemsZh: [
+      '更新 TNG 快捷指令的预览字段读取方式，并明确提示密钥或截图解析错误',
+    ],
+  },
+  {
+    version: '3.6.2',
+    date: '2026-09-23',
+    isLatest: false,
     items: [
       'Fixed the iPhone shortcut download opening as an HTML page from the installed JSave app',
     ],

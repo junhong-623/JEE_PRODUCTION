@@ -8,16 +8,37 @@
 #question shortcutKey "粘贴 JSave 设置页生成的快捷指令密钥" ""
 
 const key = text(shortcutKey)
+@keyText = "{key}"
+if @keyText == "" {
+    alert("请先在 JSave 设置页生成密钥，并在快捷指令的第一个「文本」操作填入密钥。未保存交易。", "JSave")
+    stop()
+}
 const ocr = extractImageText(ShortcutInput)
 
 @preview = jsonRequest("https://us-central1-jee-production.cloudfunctions.net/jsaveShortcutImport", "POST", {"action":"preview", "text":"{ocr}"}, {"Authorization":"Bearer {key}"})
-@draft = @preview['draft']
-
-@type = "{@draft['type']}"
-@amount = "{@draft['amount']}"
-@date = "{@draft['date']}"
-@time = "{@draft['time']}"
-@note = "{@draft['note']}"
+@previewDict = getDictionary(@preview)
+@apiErrorValue = getValue(@previewDict, "error")
+@apiError = "{@apiErrorValue}"
+if @apiError == "unauthorized" {
+    alert("JSave 密钥无效或已停用。请在 JSave 设置页重新生成，并填入快捷指令的第一个「文本」操作。未保存交易。", "JSave")
+    stop()
+}
+if @apiError != "" {
+    alert("截图暂时无法识别（{@apiError}）。请检查是否为 TNG 成功交易详情页。未保存交易。", "JSave")
+    stop()
+}
+@draftValue = getValue(@previewDict, "draft")
+@draft = getDictionary(@draftValue)
+@typeValue = getValue(@draft, "type")
+@type = "{@typeValue}"
+@amountValue = getValue(@draft, "amount")
+@amount = "{@amountValue}"
+@dateValue = getValue(@draft, "date")
+@date = "{@dateValue}"
+@timeValue = getValue(@draft, "time")
+@time = "{@timeValue}"
+@noteValue = getValue(@draft, "note")
+@note = "{@noteValue}"
 @category = ""
 @categoryLabel = ""
 @direction = ""
@@ -67,14 +88,16 @@ if @type == "expense" {
                 @categoryLabel = "其他收入"
         }
     } else {
-        alert("交易类型不受支持，未保存交易。", "JSave")
+        alert("无法读取交易类型（{@type}），未保存交易。请确认已安装最新版快捷指令。", "JSave")
         stop()
     }
 }
 
 confirm("{@direction} RM{@amount}\n日期：{@date} {@time}\n对象：{@note}\n类别：{@categoryLabel}\n\n确认加入 JSave？", "核对 TNG 交易")
 @commit = jsonRequest("https://us-central1-jee-production.cloudfunctions.net/jsaveShortcutImport", "POST", {"action":"commit", "text":"{ocr}", "category":"{@category}"}, {"Authorization":"Bearer {key}"})
-@status = "{@commit['status']}"
+@commitDict = getDictionary(@commit)
+@statusValue = getValue(@commitDict, "status")
+@status = "{@statusValue}"
 if @status == "created" {
     alert("已加入 JSave。", "完成")
 } else {

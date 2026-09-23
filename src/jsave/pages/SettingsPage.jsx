@@ -104,7 +104,7 @@ function ShortcutImportSettings({ accounts, user, lang }) {
       </p>
       <a
         className="jsave-btn-ghost jsave-btn-full"
-        href="https://jeeprod-jsave.web.app/shortcuts/JSave-TNG-Import.shortcut"
+        href="https://jeeprod-jsave.web.app/shortcuts/JSave-TNG-Import.shortcut?v=3.6.3"
         target="_blank"
         rel="noopener noreferrer"
         style={{ justifyContent: 'center', textDecoration: 'none', marginBottom: 10 }}
@@ -113,8 +113,8 @@ function ShortcutImportSettings({ accounts, user, lang }) {
       </a>
       <p className="jsave-section-sub" style={{ marginBottom: 12 }}>
         {zh
-          ? '先生成并复制下方密钥。iPhone 导入快捷指令时会请你粘贴；密钥不会包含在下载文件里。'
-          : 'Create and copy the key below first. Your iPhone will ask for it when importing; the downloaded file does not contain your key.'}
+          ? '先生成并复制下方密钥。导入时粘贴；若没有出现提问，请在「快捷指令」App 编辑 JSave TNG Import，把密钥填入第一个「文本」操作。下载文件不含你的密钥。'
+          : 'Create and copy the key below first. Paste it during import, or edit JSave TNG Import in Shortcuts and fill the first Text action. The download does not contain your key.'}
       </p>
       {accounts.length ? (
         <>
