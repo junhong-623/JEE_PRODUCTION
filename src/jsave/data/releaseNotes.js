@@ -1,8 +1,23 @@
 export const RELEASE_NOTES = [
   {
+    version: '3.6.0',
+    date: '2026-09-23',
+    isLatest: true,
+    items: [
+      'Added a protected TNG screenshot shortcut import with a preview before saving',
+      'Choose an expense or income category in Shortcuts, then confirm the amount, date and merchant or sender',
+      'Shortcut keys can be created or revoked in Settings; repeated TNG transaction IDs are not imported twice',
+    ],
+    itemsZh: [
+      '新增受密钥保护的 TNG 截图快捷指令导入，保存前先预览交易',
+      '在快捷指令中选择支出或收入类别，并核对金额、日期及商家或转账人后确认',
+      '可在设置中生成或停用快捷指令密钥；相同 TNG 交易编号不会重复入账',
+    ],
+  },
+  {
     version: '3.5.2',
     date: '2026-09-06',
-    isLatest: true,
+    isLatest: false,
     items: [
       'First-run setup now opens immediately after email or Google account creation',
       'Removed the need to refresh or reopen the installed PWA before choosing a currency',

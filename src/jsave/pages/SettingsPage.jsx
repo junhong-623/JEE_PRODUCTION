@@ -15,13 +15,131 @@ import { isStandalone, doInstall } from '../installPrompt'
 import { createCoffeeBill } from '../services/toyyibpay'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import { db } from '../../lib/firebase'
+import { functions } from '../../lib/firebase'
 import { collection, query, orderBy, getDocs } from 'firebase/firestore'
+import { httpsCallable } from 'firebase/functions'
 import { localMonthKey, toLocalDateString } from '../utils/date'
 import { downloadTransactionsCsv } from '../services/export'
 import { SUPPORTED_CURRENCIES, currencyName } from '../utils/currency'
 
 const ACC_TYPES  = ['accCash', 'accBank', 'accEwallet', 'accCredit']
 const ACC_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6']
+
+function ShortcutImportSettings({ accounts, user, lang }) {
+  const zh = lang === 'zh'
+  const [accountId, setAccountId] = useState('')
+  const [enabled, setEnabled] = useState(false)
+  const [key, setKey] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [copied, setCopied] = useState('')
+  const endpoint = `https://us-central1-${import.meta.env.VITE_FIREBASE_PROJECT_ID}.cloudfunctions.net/jsaveShortcutImport`
+
+  useEffect(() => {
+    if (!user?.uid) return
+    let cancelled = false
+    httpsCallable(functions, 'jsaveShortcutKeyStatus')().then(({ data }) => {
+      if (cancelled) return
+      setEnabled(Boolean(data.enabled))
+      if (data.accountId) setAccountId(data.accountId)
+    }).catch(() => {
+      if (!cancelled) setError(zh ? '无法读取快捷指令状态。' : 'Could not load shortcut status.')
+    })
+    return () => { cancelled = true }
+  }, [user?.uid]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (accounts.length && !accounts.some(account => account.id === accountId)) {
+      setAccountId(accounts.find(account => /tng|touch\s*['’]?n\s*go/i.test(account.name))?.id || accounts[0].id)
+    }
+  }, [accounts, accountId])
+
+  async function generateKey() {
+    if (!accountId || busy) return
+    setBusy(true)
+    setError('')
+    setKey('')
+    try {
+      const { data } = await httpsCallable(functions, 'jsaveCreateShortcutKey')({ accountId })
+      setKey(data.key)
+      setEnabled(true)
+    } catch {
+      setError(zh ? '建立密钥失败，请稍后重试。' : 'Could not create a key. Please try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function revokeKey() {
+    if (busy) return
+    setBusy(true)
+    setError('')
+    try {
+      await httpsCallable(functions, 'jsaveRevokeShortcutKey')()
+      setEnabled(false)
+      setKey('')
+    } catch {
+      setError(zh ? '停用失败，请稍后重试。' : 'Could not revoke the key. Please try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function copy(value, name) {
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(name)
+      setTimeout(() => setCopied(''), 2500)
+    } catch {
+      setError(zh ? '无法自动复制，请长按文字手动复制。' : 'Could not copy. Select and copy the text manually.')
+    }
+  }
+
+  return (
+    <Accordion title={zh ? '📱 TNG 截图快捷指令' : '📱 TNG screenshot shortcut'}>
+      <p className="jsave-section-sub" style={{ marginBottom: 12 }}>
+        {zh
+          ? '快捷指令识别截图后先显示预览。你选类别并确认，它才会把交易加入以下账户。'
+          : 'The shortcut previews the screenshot first. After you choose a category and confirm, it adds the transaction to this account.'}
+      </p>
+      {accounts.length ? (
+        <>
+          <label className="jsave-label" htmlFor="jsave-shortcut-account">{zh ? 'TNG 钱包账户' : 'TNG wallet account'}</label>
+          <select id="jsave-shortcut-account" className="jsave-input jsave-input-sm" value={accountId} onChange={event => setAccountId(event.target.value)}>
+            {accounts.map(account => <option key={account.id} value={account.id}>{account.name}</option>)}
+          </select>
+          <p className="jsave-section-sub" style={{ margin: '8px 0 12px' }}>
+            {zh ? '更换账户后须重新生成密钥，旧密钥会立即失效。' : 'Generate a new key after changing accounts. The old key will stop working.'}
+          </p>
+          <button className="jsave-btn-primary jsave-btn-full" disabled={busy} onClick={generateKey}>
+            {enabled ? (zh ? '重新生成密钥' : 'Rotate key') : (zh ? '生成快捷指令密钥' : 'Create shortcut key')}
+          </button>
+        </>
+      ) : (
+        <p className="jsave-section-sub">{zh ? '请先在上方建立一个 TNG 钱包账户。' : 'Create a TNG wallet account above first.'}</p>
+      )}
+      {enabled && <p className="jsave-section-sub" style={{ marginTop: 10 }}>{zh ? '当前密钥已启用。' : 'A shortcut key is active.'}</p>}
+      {key && (
+        <div style={{ marginTop: 12 }}>
+          <label className="jsave-label" htmlFor="jsave-shortcut-key">{zh ? '密钥（只显示这一次）' : 'Key (shown only once)'}</label>
+          <textarea id="jsave-shortcut-key" className="jsave-input" readOnly value={key} rows={3} style={{ width: '100%', wordBreak: 'break-all' }} />
+          <button className="jsave-btn-ghost jsave-btn-full" onClick={() => copy(key, 'key')}>
+            {copied === 'key' ? '✓' : (zh ? '复制密钥' : 'Copy key')}
+          </button>
+        </div>
+      )}
+      <div style={{ marginTop: 12 }}>
+        <label className="jsave-label" htmlFor="jsave-shortcut-endpoint">{zh ? '快捷指令接口网址' : 'Shortcut endpoint URL'}</label>
+        <textarea id="jsave-shortcut-endpoint" className="jsave-input" readOnly value={endpoint} rows={2} style={{ width: '100%', wordBreak: 'break-all' }} />
+        <button className="jsave-btn-ghost jsave-btn-full" onClick={() => copy(endpoint, 'endpoint')}>
+          {copied === 'endpoint' ? '✓' : (zh ? '复制接口网址' : 'Copy endpoint URL')}
+        </button>
+      </div>
+      {enabled && <button className="jsave-btn-danger" style={{ marginTop: 12 }} disabled={busy} onClick={revokeKey}>{zh ? '停用快捷指令密钥' : 'Revoke shortcut key'}</button>}
+      {error && <p className="jsave-error" style={{ marginTop: 10 }}>{error}</p>}
+    </Accordion>
+  )
+}
 
 function salaryDate(monthKey, day) {
   if (!monthKey || !day) return null
@@ -707,6 +825,8 @@ export default function SettingsPage({ onOpenAdmin }) {
       </Accordion>
 
       {/* Data ownership */}
+      <ShortcutImportSettings accounts={accounts} user={user} lang={lang} />
+
       <Accordion title={t('dataSection')}>
         <p className="jsave-section-sub" style={{ marginBottom: 12 }}>{t('exportCsvDesc')}</p>
         <button

@@ -1,4 +1,4 @@
-const { onCall, HttpsError } = require('firebase-functions/v2/https')
+const { onCall, onRequest, HttpsError } = require('firebase-functions/v2/https')
 const { onSchedule } = require('firebase-functions/v2/scheduler')
 const { defineSecret } = require('firebase-functions/params')
 const { v2: cloudinary } = require('cloudinary')
@@ -6,6 +6,7 @@ const { initializeApp } = require('firebase-admin/app')
 const { FieldValue, Timestamp, getFirestore } = require('firebase-admin/firestore')
 const webpush = require('web-push')
 const crypto = require('crypto')
+const { parseTngScreenshot, validateCategory, transactionDocumentId } = require('./jsaveShortcut')
 
 initializeApp()
 
@@ -22,6 +23,126 @@ const ADMIN_UIDS = [
 
 const HAGENCY_EXPERIENCE = new Set(['无经验', '1-3个月', '3-12个月', '1年以上'])
 const HAGENCY_SPECIALIZATION = new Set(['唱歌', '跳舞', '聊天互动', '才艺表演', '其他'])
+
+// A shortcut key belongs to one signed-in JSave user and one of their accounts.
+// Only its SHA-256 digest is retained. Rotating the key invalidates the old one.
+const shortcutKeyRef = uid => getFirestore().collection('jsave_shortcut_tokens').doc(uid)
+
+exports.jsaveShortcutKeyStatus = onCall(async req => {
+  if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in required.')
+  const snapshot = await shortcutKeyRef(req.auth.uid).get()
+  return { enabled: snapshot.exists, accountId: snapshot.data()?.accountId || null }
+})
+
+exports.jsaveCreateShortcutKey = onCall(async req => {
+  if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in required.')
+  const accountId = req.data?.accountId
+  if (typeof accountId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(accountId)) {
+    throw new HttpsError('invalid-argument', 'Choose a valid JSave account.')
+  }
+  const account = await getFirestore().collection('users').doc(req.auth.uid)
+    .collection('jsave_accounts').doc(accountId).get()
+  if (!account.exists) throw new HttpsError('not-found', 'Account not found.')
+
+  const key = `jsv1_${req.auth.uid}_${crypto.randomBytes(32).toString('hex')}`
+  const keyHash = crypto.createHash('sha256').update(key).digest('hex')
+  await shortcutKeyRef(req.auth.uid).set({
+    keyHash,
+    accountId,
+    createdAt: FieldValue.serverTimestamp(),
+  })
+  return { key, accountId }
+})
+
+exports.jsaveRevokeShortcutKey = onCall(async req => {
+  if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in required.')
+  await shortcutKeyRef(req.auth.uid).delete()
+  return { revoked: true }
+})
+
+exports.jsaveShortcutImport = onRequest({ invoker: 'public', cors: false }, async (req, res) => {
+  res.set('Cache-Control', 'no-store')
+  if (req.method !== 'POST') return res.status(405).json({ error: 'method-not-allowed' })
+  const authHeader = req.get('authorization') || ''
+  const key = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
+  const match = key.length <= 200 && key.match(/^jsv1_(.+)_([a-f0-9]{64})$/)
+  if (!match || match[1].includes('/')) return res.status(401).json({ error: 'unauthorized' })
+  const uid = match[1]
+  const keyRef = shortcutKeyRef(uid)
+  const keySnapshot = await keyRef.get()
+  const expectedHash = keySnapshot.data()?.keyHash
+  const actualHash = crypto.createHash('sha256').update(key).digest('hex')
+  if (!expectedHash || !/^[a-f0-9]{64}$/.test(expectedHash) ||
+      !crypto.timingSafeEqual(Buffer.from(expectedHash, 'hex'), Buffer.from(actualHash, 'hex'))) {
+    return res.status(401).json({ error: 'unauthorized' })
+  }
+
+  const input = req.body || {}
+  if (typeof input !== 'object' || JSON.stringify(input).length > 10000 ||
+      !['preview', 'commit'].includes(input.action)) {
+    return res.status(400).json({ error: 'invalid-request' })
+  }
+  let draft
+  try {
+    draft = parseTngScreenshot(input.text)
+  } catch (error) {
+    return res.status(422).json({ error: error.message })
+  }
+  if (input.action === 'preview') {
+    return res.json({ draft: {
+      type: draft.type, amount: draft.amount, currency: draft.currency,
+      date: draft.date, time: draft.time, note: draft.note,
+      sourceTransactionId: draft.sourceTransactionId,
+    } })
+  }
+  if (!validateCategory(draft.type, input.category)) {
+    return res.status(400).json({ error: 'invalid-category' })
+  }
+  const accountId = keySnapshot.data().accountId
+  const db = getFirestore()
+  const account = await db.collection('users').doc(uid).collection('jsave_accounts').doc(accountId).get()
+  if (!account.exists) return res.status(409).json({ error: 'account-not-found' })
+  const transactionId = transactionDocumentId(draft.sourceTransactionId)
+  const transactionRef = db.collection('users').doc(uid).collection('jsave_transactions').doc(transactionId)
+  const now = Date.now()
+  const usageDay = new Date(now).toISOString().slice(0, 10)
+  const usageRef = db.collection('jsave_shortcut_usage').doc(`${uid}_${usageDay}`)
+  try {
+    const result = await db.runTransaction(async transaction => {
+      const [currentKey, existing, usageSnapshot] = await Promise.all([
+        transaction.get(keyRef), transaction.get(transactionRef), transaction.get(usageRef),
+      ])
+      if (currentKey.data()?.keyHash !== expectedHash) return 'revoked'
+      if (existing.exists) return 'duplicate'
+      const count = Number(usageSnapshot.data()?.count || 0)
+      if (count >= 100) return 'rate-limited'
+      transaction.create(transactionRef, {
+        id: transactionId,
+        userId: uid,
+        type: draft.type,
+        amount: draft.amount,
+        category: input.category,
+        accountId,
+        date: draft.date,
+        note: draft.note,
+        source: 'tng-shortcut',
+        sourceTransactionId: draft.sourceTransactionId,
+        sourceTime: draft.time,
+        createdAt: now,
+        updatedAt: now,
+        deleted: false,
+      })
+      transaction.set(usageRef, { count: count + 1, updatedAt: FieldValue.serverTimestamp() })
+      return 'created'
+    })
+    if (result === 'revoked') return res.status(401).json({ error: 'unauthorized' })
+    if (result === 'rate-limited') return res.status(429).json({ error: 'daily-limit' })
+    return res.json({ status: result, transactionId })
+  } catch (error) {
+    console.error('[jsave-shortcut] import failed', error)
+    return res.status(500).json({ error: 'server-error' })
+  }
+})
 
 function cleanHAgencyText(value, maxLength, required = false) {
   if (value == null) value = ''
