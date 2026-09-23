@@ -104,7 +104,7 @@ function ShortcutImportSettings({ accounts, user, lang }) {
       </p>
       <a
         className="jsave-btn-ghost jsave-btn-full"
-        href="https://jeeprod-jsave.web.app/shortcuts/JSave-TNG-Import.shortcut?v=3.6.3"
+        href="https://jeeprod-jsave.web.app/shortcuts/JSave-TNG-Import.shortcut?v=3.6.7"
         target="_blank"
         rel="noopener noreferrer"
         style={{ justifyContent: 'center', textDecoration: 'none', marginBottom: 10 }}

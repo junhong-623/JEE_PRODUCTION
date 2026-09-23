@@ -1,8 +1,21 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.6.6',
+    version: '3.6.7',
     date: '2026-09-23',
     isLatest: true,
+    items: [
+      'Ask whether to keep or delete the exact screenshot after a TNG import succeeds or is detected as a duplicate',
+      'Document the iOS 27 screenshot automation setup and its app filtering limitation',
+    ],
+    itemsZh: [
+      'TNG 截图导入成功或判定重复后，询问保留或删除本次导入的截图',
+      '补充 iOS 27 截屏自动化设置方法及无法直接限定 TNG App 的说明',
+    ],
+  },
+  {
+    version: '3.6.6',
+    date: '2026-09-23',
+    isLatest: false,
     items: [
       'Recognize scan payment recipients when iPhone OCR reads the page labels and values in separate groups',
     ],
