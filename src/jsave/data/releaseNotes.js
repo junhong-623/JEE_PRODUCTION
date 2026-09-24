@@ -1,8 +1,19 @@
 export const RELEASE_NOTES = [
   {
+    version: '3.6.8',
+    date: '2026-09-24',
+    isLatest: true,
+    items: [
+      'Introduce the iPhone TNG screenshot import flow on the JSave intro page, including category review, confirmation, and photo choice',
+    ],
+    itemsZh: [
+      '在 JSave 介绍页说明 iPhone TNG 截图导入流程，包括选择类别、核对确认及保留或删除截图',
+    ],
+  },
+  {
     version: '3.6.7',
     date: '2026-09-23',
-    isLatest: true,
+    isLatest: false,
     items: [
       'Ask whether to keep or delete the exact screenshot after a TNG import succeeds or is detected as a duplicate',
       'Document the iOS 27 screenshot automation setup and its app filtering limitation',

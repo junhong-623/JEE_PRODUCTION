@@ -34,6 +34,16 @@ const COPY = {
       { title: 'Adjust', body: 'Move at your own pace with simple feedback—not warnings designed to create anxiety.' },
       { title: 'Keep', body: 'Export a clean CSV whenever you need your records somewhere else.' },
     ],
+    shortcutKicker: 'TNG · IPHONE SHORTCUT',
+    shortcutTitle: 'From payment screenshot to JSave entry.',
+    shortcutBody: 'Use the iPhone shortcut with a successful TNG payment or incoming transfer screenshot. It reads the amount, date and merchant or sender, then lets you choose a category and confirm the entry before saving.',
+    shortcutSteps: [
+      { title: 'Capture', body: 'Share a TNG screenshot from Photos, or set up the optional screenshot automation on your iPhone.' },
+      { title: 'Check', body: 'Choose a category and review the amount, date and suggested note.' },
+      { title: 'Save', body: 'Confirm the entry, then choose whether to keep or delete the screenshot.' },
+    ],
+    shortcutNote: 'Get the shortcut and create its dedicated key in JSave Settings. Text is extracted on your iPhone; the screenshot itself is not uploaded. Unrecognized screenshots are not saved as transactions.',
+    shortcutPreview: 'IMPORT PREVIEW', shortcutMerchant: 'Merchant', shortcutDate: 'Date', shortcutCategory: 'Category', shortcutFood: 'Food', shortcutConfirm: 'Confirm to add to JSave',
     stories: [
       { no: '01', label: 'FAST CAPTURE', title: 'A money habit you can actually keep.', body: 'Choose an amount, category and account. That is enough. Recurring entries take care of predictable monthly spending without creating duplicates.', points: ['Four transaction types', 'Recurring monthly entries', 'Clear account balances'] },
       { no: '02', label: 'USEFUL FEEDBACK', title: 'Know what today means for tomorrow.', body: 'A daily budget signal turns a long monthly number into a decision you can use right now. Goals and cost-per-day add context without judging you.', points: ['Daily budget pacing', 'Goal progress', 'True cost per day'] },
@@ -97,6 +107,16 @@ const COPY = {
       { title: '调整', body: '用简单反馈找到自己的节奏，而不是用警告制造焦虑。' },
       { title: '保留', body: '需要在其他地方使用时，随时导出干净的 CSV。' },
     ],
+    shortcutKicker: 'TNG · IPHONE 快捷指令',
+    shortcutTitle: '付款截图，核对后记进 JSave。',
+    shortcutBody: '截下 TNG 付款成功页或收款详情页，iPhone 快捷指令会读取金额、日期、商家或转账人。你选择类别、核对资料并确认后，交易才会保存。',
+    shortcutSteps: [
+      { title: '截屏', body: '从「照片」分享 TNG 截图，或自行在 iPhone 设置截屏自动化。' },
+      { title: '核对', body: '选择类别，检查金额、日期和预设备注。' },
+      { title: '保存', body: '确认加入账本后，可选择保留或删除这张截图。' },
+    ],
+    shortcutNote: '在 JSave 设置中下载快捷指令并建立专用密钥。文字由 iPhone 提取；截图本身不会上传。无法识别的截图不会存为交易。',
+    shortcutPreview: '导入预览', shortcutMerchant: '商家', shortcutDate: '日期', shortcutCategory: '类别', shortcutFood: '餐饮', shortcutConfirm: '确认加入 JSave',
     stories: [
       { no: '01', label: '快速记录', title: '真正坚持得下来的金钱习惯。', body: '选择金额、类别和账户，就够了。固定的每月开销可以自动记录，同时避免重复生成。', points: ['四种交易类型', '每月周期记账', '清楚的账户余额'] },
       { no: '02', label: '有用的反馈', title: '看懂今天，会怎样影响明天。', body: '每日预算把遥远的月度数字，变成当下可用的判断。目标进度和日均成本提供背景，但不评判你。', points: ['每日预算节奏', '目标进度', '真实日均成本'] },
@@ -306,6 +326,26 @@ export default function JSaveIntro({ onOpenApp, withHead = true, language, onLan
           <Reveal direction="right"><p className="ji-kicker">{c.journeyKicker}</p><h2>{c.journeyTitle}</h2><p className="ji-journey-body">{c.journeyBody}</p></Reveal>
           <ol className="ji-journey-steps">{c.journeySteps.map((step, index) => <Reveal as="li" direction="right" delay={index * 90} key={step.title}><span>{String(index + 1).padStart(2, '0')}</span><div><h3>{step.title}</h3><p>{step.body}</p></div></Reveal>)}</ol>
         </div>
+      </section>
+
+      <section className="ji-shortcut" aria-labelledby="shortcut-title">
+        <Reveal direction="left" className="ji-shortcut-copy">
+          <p className="ji-kicker">{c.shortcutKicker}</p>
+          <h2 id="shortcut-title">{c.shortcutTitle}</h2>
+          <p className="ji-shortcut-body">{c.shortcutBody}</p>
+          <ol className="ji-shortcut-steps">{c.shortcutSteps.map((step, index) => <li key={step.title}><span>{String(index + 1).padStart(2, '0')}</span><div><h3>{step.title}</h3><p>{step.body}</p></div></li>)}</ol>
+          <p className="ji-shortcut-note">{c.shortcutNote}</p>
+        </Reveal>
+        <Reveal direction="scale" delay={120} className="ji-shortcut-visual" aria-label={zh ? 'TNG 截图导入示意' : 'TNG screenshot import illustration'}>
+          <div className="ji-shortcut-card">
+            <div className="ji-shortcut-card-head"><span>{c.shortcutPreview}</span><b>JSave</b></div>
+            <strong className="ji-shortcut-amount">−RM 13.00</strong>
+            <div className="ji-shortcut-detail"><span>{c.shortcutMerchant}</span><b>Kedai Kopi</b></div>
+            <div className="ji-shortcut-detail"><span>{c.shortcutDate}</span><b>23/09/2026</b></div>
+            <div className="ji-shortcut-detail"><span>{c.shortcutCategory}</span><b className="ji-shortcut-tag">{c.shortcutFood}</b></div>
+            <div className="ji-shortcut-card-confirm"><span>✓</span>{c.shortcutConfirm}</div>
+          </div>
+        </Reveal>
       </section>
 
       <section id="product" className="ji-stories">
