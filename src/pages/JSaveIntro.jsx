@@ -338,6 +338,7 @@ export default function JSaveIntro({ onOpenApp, withHead = true, language, onLan
         </Reveal>
         <Reveal direction="scale" delay={120} className="ji-shortcut-visual" aria-label={zh ? 'TNG 截图导入示意' : 'TNG screenshot import illustration'}>
           <div className="ji-shortcut-card">
+            <span className="ji-shortcut-scan" aria-hidden="true" />
             <div className="ji-shortcut-card-head"><span>{c.shortcutPreview}</span><b>JSave</b></div>
             <strong className="ji-shortcut-amount">−RM 13.00</strong>
             <div className="ji-shortcut-detail"><span>{c.shortcutMerchant}</span><b>Kedai Kopi</b></div>

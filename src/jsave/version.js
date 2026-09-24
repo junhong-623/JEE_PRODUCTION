@@ -1,1 +1,1 @@
-export const JSAVE_VERSION = '3.6.8'
+export const JSAVE_VERSION = '3.6.9'

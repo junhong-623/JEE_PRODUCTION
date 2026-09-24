@@ -151,7 +151,11 @@
 .ji-shortcut-steps p { margin-top: 4px; color: #5c6d62; font-size: 13px; line-height: 1.5; }
 .ji-shortcut-note { max-width: 570px; margin-top: 22px !important; color: #66796d; font-size: 12px; line-height: 1.65; }
 .ji-shortcut-visual { min-width: 0; display: flex; justify-content: center; }
-.ji-shortcut-card { width: min(440px, 100%); padding: 32px; border: 1px solid rgba(8,127,91,.15); border-radius: 32px; background: #fff; box-shadow: 0 35px 80px rgba(32,83,52,.12); transform: rotate(2deg); }
+.ji-shortcut-card { --ji-shortcut-tilt: 2deg; position: relative; width: min(440px, 100%); padding: 32px; border: 1px solid rgba(8,127,91,.15); border-radius: 32px; background: #fff; box-shadow: 0 35px 80px rgba(32,83,52,.12); transform: rotate(var(--ji-shortcut-tilt)); }
+.ji-shortcut-visual.is-visible .ji-shortcut-card { animation: ji-shortcut-float 8s ease-in-out infinite; }
+.ji-shortcut-scan { position: absolute; z-index: 2; inset: 20px; overflow: hidden; border-radius: 22px; pointer-events: none; }
+.ji-shortcut-scan::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; opacity: 0; background: linear-gradient(90deg, transparent, #10b981 20%, #10b981 80%, transparent); box-shadow: 0 0 18px 3px rgba(16,185,129,.28); }
+.ji-shortcut-visual.is-visible .ji-shortcut-scan::after { animation: ji-shortcut-scan 8s linear infinite; }
 .ji-shortcut-card-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .ji-shortcut-card-head span { color: #72917c; font-size: 10px; font-weight: 750; letter-spacing: .14em; }
 .ji-shortcut-card-head b { color: #085d42; font-size: 17px; letter-spacing: -.04em; }
@@ -162,6 +166,18 @@
 .ji-shortcut-tag { padding: 8px 12px; border-radius: 999px; color: #087f5b !important; background: #e6f7ec; }
 .ji-shortcut-card-confirm { margin-top: 25px; padding: 14px 18px; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 14px; color: #073721; background: #7ee3ab; font-size: 14px; font-weight: 700; }
 .ji-shortcut-card-confirm span { width: 19px; height: 19px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: #087f5b; font-size: 12px; }
+.ji-shortcut-visual.is-visible .ji-shortcut-amount { animation: ji-shortcut-amount-in 8s ease-in-out infinite both; }
+.ji-shortcut-visual.is-visible .ji-shortcut-detail:nth-of-type(2) { animation: ji-shortcut-row-one 8s ease-in-out infinite both; }
+.ji-shortcut-visual.is-visible .ji-shortcut-detail:nth-of-type(3) { animation: ji-shortcut-row-two 8s ease-in-out infinite both; }
+.ji-shortcut-visual.is-visible .ji-shortcut-detail:nth-of-type(4) { animation: ji-shortcut-row-three 8s ease-in-out infinite both; }
+.ji-shortcut-visual.is-visible .ji-shortcut-card-confirm { animation: ji-shortcut-confirm-in 8s ease-in-out infinite both; }
+@keyframes ji-shortcut-float { 0%, 100% { transform: translateY(0) rotate(var(--ji-shortcut-tilt)); } 50% { transform: translateY(-7px) rotate(var(--ji-shortcut-tilt)); } }
+@keyframes ji-shortcut-scan { 0%, 3% { top: 0; opacity: 0; } 7% { opacity: 1; } 42% { top: calc(100% - 2px); opacity: 1; } 48%, 100% { top: calc(100% - 2px); opacity: 0; } }
+@keyframes ji-shortcut-amount-in { 0%, 8% { opacity: 0; transform: translateY(12px); } 16%, 90% { opacity: 1; transform: none; } 98%, 100% { opacity: 0; transform: translateY(-4px); } }
+@keyframes ji-shortcut-row-one { 0%, 19% { opacity: 0; transform: translateY(10px); } 27%, 90% { opacity: 1; transform: none; } 98%, 100% { opacity: 0; transform: translateY(-4px); } }
+@keyframes ji-shortcut-row-two { 0%, 29% { opacity: 0; transform: translateY(10px); } 37%, 90% { opacity: 1; transform: none; } 98%, 100% { opacity: 0; transform: translateY(-4px); } }
+@keyframes ji-shortcut-row-three { 0%, 40% { opacity: 0; transform: translateY(10px); } 48%, 90% { opacity: 1; transform: none; } 98%, 100% { opacity: 0; transform: translateY(-4px); } }
+@keyframes ji-shortcut-confirm-in { 0%, 53% { opacity: 0; transform: translateY(10px) scale(.97); } 62%, 90% { opacity: 1; transform: none; } 98%, 100% { opacity: 0; transform: translateY(-4px); } }
 
 .ji-stories { background: var(--ji-cream); }
 .ji-story { min-height: 760px; padding: 120px max(24px, calc((100vw - 1120px) / 2)); display: grid; grid-template-columns: .82fr 1.18fr; align-items: center; gap: clamp(50px, 8vw, 130px); overflow: hidden; }
@@ -434,7 +450,7 @@
   .ji-shortcut { padding: 82px 20px; gap: 46px; }
   .ji-shortcut-copy h2 { font-size: 43px; }
   .ji-shortcut-body { font-size: 16px; }
-  .ji-shortcut-card { padding: 24px; border-radius: 26px; transform: none; }
+  .ji-shortcut-card { --ji-shortcut-tilt: 0deg; padding: 24px; border-radius: 26px; }
   .ji-shortcut-amount { font-size: 48px; }
   .ji-story { padding: 82px 20px; gap: 48px; }
   .ji-story-copy h3 { font-size: 43px; }
@@ -510,6 +526,8 @@
   .ji-root *, .ji-root *::before, .ji-root *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
   .ji-reveal, .ji-reveal-left, .ji-reveal-right, .ji-reveal-scale, .ji-lifestyle-copy.ji-reveal-left { opacity: 1 !important; filter: none !important; transform: none !important; }
   .ji-lifestyle-copy.ji-reveal-left { transform: translateY(-50%) !important; }
+  .ji-shortcut-card, .ji-shortcut-amount, .ji-shortcut-detail, .ji-shortcut-card-confirm { animation: none !important; opacity: 1 !important; transform: none !important; }
+  .ji-shortcut-scan { display: none; }
 }
 
 @media (max-width: 900px) and (prefers-reduced-motion: reduce) {

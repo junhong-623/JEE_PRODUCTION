@@ -1,8 +1,19 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.6.8',
+    version: '3.6.9',
     date: '2026-09-24',
     isLatest: true,
+    items: [
+      'Animate the TNG import preview on the intro page to show screenshot reading, transaction details, category, and confirmation in sequence',
+    ],
+    itemsZh: [
+      '为介绍页的 TNG 导入预览加入动画，依次展示读取截图、交易资料、类别和确认保存',
+    ],
+  },
+  {
+    version: '3.6.8',
+    date: '2026-09-24',
+    isLatest: false,
     items: [
       'Introduce the iPhone TNG screenshot import flow on the JSave intro page, including category review, confirmation, and photo choice',
     ],
