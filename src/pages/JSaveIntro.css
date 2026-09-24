@@ -203,6 +203,9 @@
 .ji-story:nth-child(even) .ji-story-copy li::before { background: #62d9ac; }
 .ji-story-visual { min-width: 0; display: flex; justify-content: center; align-items: center; }
 .ji-story-phone { width: 351px; height: 690px; overflow: hidden; border-radius: 48px 48px 0 0; filter: drop-shadow(0 40px 42px rgba(0,0,0,.18)); }
+.ji-root .js-phone-category { min-width: 0; color: #f1f5f9; font: inherit; text-align: left; cursor: pointer; transition: transform .18s ease, background .18s ease, border-color .18s ease; }
+.ji-root .js-phone-category:hover { transform: translateY(-2px); }
+.ji-root .js-phone-category:active { transform: scale(.97); }
 
 .ji-budget-visual { width: min(580px, 100%); padding: clamp(28px, 5vw, 58px); border: 1px solid rgba(255,255,255,.1); border-radius: 36px; background: linear-gradient(145deg, rgba(255,255,255,.08), rgba(255,255,255,.025)); box-shadow: 0 40px 80px rgba(0,0,0,.26); }
 .ji-budget-head { display: flex; align-items: center; justify-content: space-between; color: rgba(255,255,255,.45); font-size: 11px; font-weight: 700; letter-spacing: .12em; }
