@@ -320,15 +320,7 @@ exports.jsaveCimbShortcutImport = onRequest({ invoker: 'public', cors: false }, 
 exports.jsaveReceiptShortcutKeyStatus = onCall(async req => {
   if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in required.')
   const snapshot = await receiptShortcutKeyRef(req.auth.uid).get()
-  if (snapshot.exists) return { enabled: true, accountIds: snapshot.data()?.accountIds || {} }
-  const [tng, cimb] = await Promise.all([
-    shortcutKeyRef(req.auth.uid).get(), cimbShortcutKeyRef(req.auth.uid).get(),
-  ])
-  return { enabled: false, accountIds: {
-    tngAccountId: tng.data()?.accountId || cimb.data()?.tngAccountId || '',
-    cimbBankAccountId: cimb.data()?.bankAccountId || '',
-    cimbCreditAccountId: cimb.data()?.creditAccountId || '',
-  } }
+  return { enabled: snapshot.exists, accountIds: snapshot.data()?.accountIds || {} }
 })
 
 exports.jsaveCreateReceiptShortcutKey = onCall(async req => {

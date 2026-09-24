@@ -61,6 +61,27 @@ describe('CIMB screenshot shortcut import', () => {
     expect(parseCimbScreenshot(inline).note).toBe('RESTORAN SAMPLE SB IPOH MY')
   })
 
+  it('reads dates when iPhone OCR puts values before their labels', () => {
+    const topupReordered = topup.replace('Date\n16 Sep 2026', '16 Sep 2026\nDate')
+    const incomingReordered = incoming.replace('Date\n01 Sep 2026', '01 Sep 2026\nDate')
+    expect(parseCimbScreenshot(topupReordered).date).toBe('2026-09-16')
+    expect(parseCimbScreenshot(incomingReordered).date).toBe('2026-09-01')
+    expect(parseCimbScreenshot(incomingReordered.replace('01 Sep 2026', '01Sep2026')).date).toBe('2026-09-01')
+  })
+
+  it('reads bank details when OCR emits the values before the Details label', () => {
+    const topupReordered = topup.replace('Details\nPOS DEBIT', 'POS DEBIT\nDetails')
+    const incomingReordered = incoming.replace('Details\nAUTOPAY CR', 'AUTOPAY CR\nDetails')
+    expect(parseCimbScreenshot(topupReordered).type).toBe('transfer')
+    expect(parseCimbScreenshot(incomingReordered).type).toBe('income')
+  })
+
+  it('uses the earlier card date when OCR groups date labels and values', () => {
+    const grouped = card.replace('Posted Date\n16 Sep 2026\nTransacted Date\n14 Sep 2026',
+      'Posted Date\nTransacted Date\n16 Sep 2026\n14 Sep 2026')
+    expect(parseCimbScreenshot(grouped).date).toBe('2026-09-14')
+  })
+
   it('treats a debit to the user’s TNG wallet as a transfer', () => {
     expect(parseCimbScreenshot(topup)).toMatchObject({
       type: 'transfer', accountKind: 'bank', amount: 12,

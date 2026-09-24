@@ -128,6 +128,12 @@ function ReceiptShortcutSettings({ accounts, user, lang }) {
             {accounts.filter(account => account.type === type).map(account =>
               <option key={account.id} value={account.id}>{account.name}</option>)}
           </select>
+          {name.startsWith('cimb') && accountIds[name] &&
+            !/cimb/i.test(accounts.find(account => account.id === accountIds[name])?.name || '') &&
+            <p className="jsave-error" style={{ marginTop: 6 }}>
+              {zh ? '请确认这个账户确实属于 CIMB，避免交易记到其他银行。'
+                : 'Confirm this is a CIMB account to avoid saving transactions under another bank.'}
+            </p>}
         </div>
       ))}
       {enabled ? (

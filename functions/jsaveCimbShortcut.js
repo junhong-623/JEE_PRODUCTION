@@ -1,6 +1,6 @@
 const crypto = require('crypto')
 
-const MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 }
+const MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12 }
 const LABELS = /^(?:Amount|Reference No\.?|Posted Date|Transacted Date|Date|Details|To|From|Transfer Type|Done)$/i
 
 function rows(text) {
@@ -17,7 +17,7 @@ function field(lines, label) {
 }
 
 function parseDate(value) {
-  const match = value.match(/\b(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})\b/)
+  const match = value.match(/\b(\d{1,2})\s*([A-Za-z]{3,4})\s*(\d{4})\b/)
   if (!match) throw new Error('missing-date')
   const day = Number(match[1])
   const month = MONTHS[match[2].toLowerCase()]
@@ -38,6 +38,21 @@ function afterLabel(lines, label, stops) {
   return values.join(' ').replace(/\s+/g, ' ').trim()
 }
 
+function bankDetails(lines) {
+  const markerIndex = lines.findIndex(line => /\b(?:POS\s+DEBIT|AUTOPAY\s+CR)\b/i.test(line))
+  if (markerIndex < 0) {
+    return afterLabel(lines, 'Details', /^(?:Done|Reference No\.?|Posted Date|Transacted Date|Date|To|From|Transfer Type)(?:\s|$)/i)
+  }
+  const values = []
+  for (let i = markerIndex; i < lines.length && values.length < 8; i++) {
+    const line = lines[i].replace(/^Details\s*/i, '').trim()
+    if (/^(?:Done|Reference No\.?|Posted Date|Transacted Date|Date|To|From|Transfer Type)(?:\s|$)/i.test(line)) break
+    if (!line || /^\d{1,2}\s+[A-Za-z]{3,4}\s+\d{4}$/.test(line)) continue
+    values.push(line)
+  }
+  return values.join(' ')
+}
+
 function parseCimbScreenshot(ocrText) {
   if (typeof ocrText !== 'string' || !ocrText.trim() || ocrText.length > 8000) throw new Error('invalid-ocr')
   const text = ocrText.normalize('NFKC').replace(/\r/g, '')
@@ -50,13 +65,26 @@ function parseCimbScreenshot(ocrText) {
 
   const isCard = /Transfer\s+Type\s*[:：]?\s*Credit\s+Card/i.test(text) ||
     lines.some((line, i) => /^Transfer Type$/i.test(line) && /^Credit Card$/i.test(lines[i + 1] || ''))
-  const date = parseDate(isCard
-    ? field(lines, 'Transacted Date') || field(lines, 'Posted Date')
-    : field(lines, 'Date'))
+  // iPhone OCR sometimes emits the right-column dates before all their labels.
+  // These detail pages have one displayed date for bank movements and two for
+  // card purchases; the earlier card date is the transaction date.
+  const dateValues = [...text.matchAll(/\b\d{1,2}\s*[A-Za-z]{3,4}\s*\d{4}\b/g)]
+    .map(match => parseDate(match[0]))
+  if (!dateValues.length) throw new Error('missing-date')
+  let date
+  if (isCard) date = dateValues.sort()[0]
+  else {
+    try {
+      date = parseDate(field(lines, 'Date'))
+    } catch (error) {
+      if (error.message !== 'missing-date') throw error
+      date = dateValues[0]
+    }
+  }
 
   let note = isCard
     ? afterLabel(lines, 'To', /^(?:From|Transfer Type|Done)(?:\s|$)/i)
-    : afterLabel(lines, 'Details', /^(?:Done|Reference No\.?|Posted Date|Transacted Date|Date|To|From|Transfer Type)(?:\s|$)/i)
+    : bankDetails(lines)
   note = note.replace(/\s+/g, ' ').trim()
   if (!note || note === '-' || note.length > 240) throw new Error('missing-party')
 

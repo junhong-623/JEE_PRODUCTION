@@ -1,8 +1,19 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.7.1',
+    version: '3.7.2',
     date: '2026-09-24',
     isLatest: true,
+    items: [
+      'Read CIMB dates even when iPhone OCR places date values before labels, and require explicit account choices when setting up the unified shortcut; no shortcut reinstall is needed',
+    ],
+    itemsZh: [
+      '修复 iPhone OCR 将 CIMB 日期排在标签前时无法导入的问题，并在设置统一指令时要求自行确认账户对应关系；无需重新下载指令',
+    ],
+  },
+  {
+    version: '3.7.1',
+    date: '2026-09-24',
+    isLatest: false,
     items: [
       'Combine TNG and CIMB screenshot imports in one iPhone shortcut and key, with account choices that can be updated without reinstalling',
     ],
