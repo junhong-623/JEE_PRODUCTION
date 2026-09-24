@@ -368,7 +368,7 @@ export default function JSaveIntro({ onOpenApp, withHead = true, language, onLan
                   { initial: 'M', name: 'Mei', status: zh ? '已还款' : 'settled', settled: true },
                   { initial: 'K', name: 'Kai', status: zh ? '等待还款' : 'pending' },
                   { initial: 'A', name: 'Aina', status: zh ? '已还款' : 'settled', settled: true },
-                ].map(person => <div className={`ji-split-person ${person.own ? 'is-own' : ''}`} key={person.name}>
+                ].map(person => <div className={`ji-split-person${person.own ? ' is-own' : ''}${person.settled ? ' is-settled' : ''}`} key={person.name}>
                   <span className="ji-split-avatar">{person.initial}</span><div><b>{person.name}</b><small className={person.settled ? 'is-settled' : ''}>{person.status}</small></div><strong>RM 42.00</strong>
                 </div>)}
               </div>
@@ -399,7 +399,7 @@ export default function JSaveIntro({ onOpenApp, withHead = true, language, onLan
         <Reveal direction="left" className="ji-demo-copy"><p className="ji-kicker">{c.demoKicker}</p><h2 id="demo-title">{c.demoTitle}</h2><p>{c.demoBody}</p>
           <div className="ji-demo-tabs" role="tablist" aria-label={c.demoTitle}>{c.tabs.map((tab, index) => <button key={tab} role="tab" aria-selected={activeScreen === index} onClick={() => setActiveScreen(index)}><span>{String(index + 1).padStart(2, '0')}</span>{tab}</button>)}</div>
         </Reveal>
-        <Reveal direction="scale" delay={120} className="ji-demo-stage" role="tabpanel" aria-label={c.tabs[activeScreen]}><Device>{screens[activeScreen]}</Device></Reveal>
+        <Reveal direction="scale" delay={120} className="ji-demo-stage" role="tabpanel" aria-label={c.tabs[activeScreen]}><div className="ji-demo-screen" key={activeScreen}><Device>{screens[activeScreen]}</Device></div></Reveal>
       </section>
 
       <section className="ji-toolkit">

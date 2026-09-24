@@ -117,6 +117,9 @@
 .ji-float-card strong { font-size: 22px; letter-spacing: -.04em; }
 .ji-float-budget { top: 180px; left: -16px; }
 .ji-float-goal { top: 520px; right: -8px; }
+.ji-float-budget { animation: ji-hero-float 6.8s ease-in-out infinite; }
+.ji-float-goal { animation: ji-hero-float 7.6s ease-in-out -2.4s infinite; }
+@keyframes ji-hero-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
 
 .ji-intro { padding: 160px 24px 120px; background: #fff; }
 .ji-section-copy { width: min(900px, 100%); margin: 0 auto; text-align: center; }
@@ -186,6 +189,8 @@
 .ji-story:nth-child(even) .ji-story-visual { order: 1; }
 .ji-story-glyph { width: 56px; height: 56px; display: grid; place-items: center; border-radius: 17px; color: var(--ji-green-dark); background: rgba(16,185,129,.12); }
 .ji-story-glyph svg { width: 29px; height: 29px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.ji-story-copy.is-visible .ji-story-glyph { animation: ji-glyph-pop .75s cubic-bezier(.2,1.5,.4,1) .2s both; }
+@keyframes ji-glyph-pop { from { opacity: .45; transform: translateY(14px) scale(.8); } to { opacity: 1; transform: none; } }
 .ji-story-label { margin-top: 25px !important; color: var(--ji-green-dark); font-size: 11px; font-weight: 750; letter-spacing: .14em; }
 .ji-story:nth-child(even) .ji-story-label { color: #57d4a3; }
 .ji-story-copy h3 { max-width: 520px; margin-top: 18px; font-size: clamp(42px, 4.7vw, 68px); line-height: 1; letter-spacing: -.055em; }
@@ -207,6 +212,13 @@
 .ji-budget-row { padding: 18px 0; display: flex; align-items: center; justify-content: space-between; gap: 20px; border-top: 1px solid rgba(255,255,255,.09); color: rgba(255,255,255,.55); font-size: 14px; }
 .ji-budget-row strong { color: #fff; font-size: 22px; letter-spacing: -.03em; }
 .ji-budget-row strong.is-green { color: #63ddb0; }
+.ji-story-visual.is-visible .ji-budget-track span { transform-origin: left; animation: ji-progress-fill 1.8s cubic-bezier(.16,1,.3,1) .35s both; }
+.ji-story-visual.is-visible .ji-budget-head b { animation: ji-value-pop .7s cubic-bezier(.2,1.4,.4,1) 1.4s both; }
+.ji-story-visual.is-visible .ji-budget-row:nth-of-type(3) { animation: ji-detail-rise .7s ease-out 1.35s both; }
+.ji-story-visual.is-visible .ji-budget-row:nth-of-type(4) { animation: ji-detail-rise .7s ease-out 1.65s both; }
+@keyframes ji-progress-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes ji-value-pop { from { opacity: .3; transform: translateY(9px) scale(.86); } to { opacity: 1; transform: none; } }
+@keyframes ji-detail-rise { from { opacity: .2; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 
 .ji-sync-visual { width: min(600px, 100%); display: grid; grid-template-columns: 1fr 100px 1fr; align-items: center; }
 .ji-sync-device { min-height: 230px; padding: 28px; display: flex; flex-direction: column; justify-content: flex-end; border: 1px solid rgba(8,35,24,.1); border-radius: 32px; background: rgba(255,255,255,.78); box-shadow: 0 30px 70px rgba(20,45,34,.09); }
@@ -218,6 +230,8 @@
 .ji-sync-line i:nth-child(2) { animation-delay: .55s; }
 .ji-sync-line i:nth-child(3) { animation-delay: 1.1s; }
 @keyframes ji-sync { from { left: 2%; opacity: 0; transform: translateY(-50%); } 20% { opacity: 1; } to { left: 94%; opacity: 0; transform: translateY(-50%); } }
+.ji-story-visual.is-visible .ji-sync-device:last-child { animation: ji-sync-arrive 1s ease-out 1.35s both; }
+@keyframes ji-sync-arrive { from { opacity: .55; transform: translateY(12px) scale(.97); } to { opacity: 1; transform: none; } }
 
 .ji-split-visual { width: min(600px, 100%); padding: clamp(28px, 4.5vw, 50px); border: 1px solid rgba(255,255,255,.11); border-radius: 36px; background: linear-gradient(145deg, rgba(255,255,255,.085), rgba(255,255,255,.025)); box-shadow: 0 40px 90px rgba(0,0,0,.3); }
 .ji-split-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
@@ -236,6 +250,12 @@
 .ji-split-person > strong { color: rgba(255,255,255,.8); font-size: 15px; letter-spacing: -.02em; white-space: nowrap; }
 .ji-split-summary { padding-top: 27px; display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
 .ji-split-summary strong { color: #62d9ac; font-size: clamp(27px, 3vw, 38px); line-height: 1; letter-spacing: -.05em; white-space: nowrap; }
+.ji-story-visual.is-visible .ji-split-person.is-settled .ji-split-avatar { animation: ji-settle-pop .75s cubic-bezier(.2,1.5,.4,1) 1.1s both; }
+.ji-story-visual.is-visible .ji-split-person.is-settled:nth-child(4) .ji-split-avatar { animation-delay: 1.75s; }
+.ji-story-visual.is-visible .ji-split-person.is-settled small { animation: ji-detail-rise .7s ease-out 1.1s both; }
+.ji-story-visual.is-visible .ji-split-person.is-settled:nth-child(4) small { animation-delay: 1.75s; }
+.ji-story-visual.is-visible .ji-split-summary strong { animation: ji-value-pop .7s cubic-bezier(.2,1.4,.4,1) 2.1s both; }
+@keyframes ji-settle-pop { from { opacity: .45; transform: scale(.75); } to { opacity: 1; transform: none; } }
 
 .ji-lifestyle { position: relative; min-height: 760px; overflow: hidden; color: #fff; background: #131713; }
 .ji-lifestyle > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
@@ -263,6 +283,9 @@
 .ji-goal-progress strong { display: block; margin-top: 6px; font-size: 35px; letter-spacing: -.045em; }
 .ji-goal-progress i { height: 4px; margin-top: 13px; display: block; overflow: hidden; border-radius: 99px; background: rgba(255,255,255,.17); }
 .ji-goal-progress b { display: block; width: 72%; height: 100%; border-radius: inherit; background: #55daa7; }
+.ji-goal-photo.is-visible .ji-goal-progress { animation: ji-detail-rise .85s ease-out .35s both; }
+.ji-goal-photo.is-visible .ji-goal-progress b { transform-origin: left; animation: ji-progress-fill 2s cubic-bezier(.16,1,.3,1) .85s both; }
+.ji-goal-photo.is-visible .ji-goal-progress strong { animation: ji-value-pop .7s cubic-bezier(.2,1.4,.4,1) 1.9s both; }
 
 .ji-demo { min-height: 960px; padding: 130px max(24px, calc((100vw - 1120px) / 2)) 0; display: grid; grid-template-columns: .9fr 1.1fr; align-items: start; gap: clamp(50px, 8vw, 120px); overflow: hidden; background: #fff; }
 .ji-demo-copy { position: sticky; top: 150px; width: 100%; min-width: 0; padding-top: 72px; }
@@ -274,6 +297,8 @@
 .ji-demo-tabs button[aria-selected="true"] { color: var(--ji-ink); font-weight: 650; }
 .ji-demo-tabs button[aria-selected="true"] span { color: var(--ji-green-dark); }
 .ji-demo-stage { width: 100%; min-width: 0; min-height: 900px; padding-top: 22px; display: flex; justify-content: center; border-radius: 44px 44px 0 0; background: radial-gradient(circle at 50% 28%, rgba(16,185,129,.2), transparent 36%), #edf1ee; }
+.ji-demo-screen { flex: 0 0 auto; animation: ji-demo-switch .55s cubic-bezier(.16,1,.3,1) both; }
+@keyframes ji-demo-switch { from { opacity: .4; transform: translateY(17px) scale(.985); } to { opacity: 1; transform: none; } }
 
 .ji-toolkit { padding: 140px max(24px, calc((100vw - 1120px) / 2)); background: #f4f5f2; }
 .ji-toolkit-heading { max-width: 780px; }
@@ -523,11 +548,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ji-root *, .ji-root *::before, .ji-root *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  .ji-root *, .ji-root *::before, .ji-root *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; transition-delay: 0ms !important; }
   .ji-reveal, .ji-reveal-left, .ji-reveal-right, .ji-reveal-scale, .ji-lifestyle-copy.ji-reveal-left { opacity: 1 !important; filter: none !important; transform: none !important; }
   .ji-lifestyle-copy.ji-reveal-left { transform: translateY(-50%) !important; }
   .ji-shortcut-card, .ji-shortcut-amount, .ji-shortcut-detail, .ji-shortcut-card-confirm { animation: none !important; opacity: 1 !important; transform: none !important; }
   .ji-shortcut-scan { display: none; }
+  .ji-sync-line i { animation: none !important; opacity: 1 !important; }
 }
 
 @media (max-width: 900px) and (prefers-reduced-motion: reduce) {
