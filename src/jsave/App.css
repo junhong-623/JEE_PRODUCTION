@@ -637,7 +637,7 @@ body.jsave-body {
 }
 
 @media (max-width: 820px), (hover: none) and (pointer: coarse) {
-  .jsave-root input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='color']),
+  .jsave-root input:not([type='checkbox']):not([type='radio']):not([type='file']):not([type='range']):not([type='color']):not(.jsave-amount-input),
   .jsave-root select,
   .jsave-root textarea {
     font-size: 16px !important;
@@ -648,6 +648,54 @@ body.jsave-body {
 input[type="number"].jsave-input { -moz-appearance: textfield; }
 input[type="number"].jsave-input::-webkit-inner-spin-button,
 input[type="number"].jsave-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+.jsave-amount-entry {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 64px;
+}
+.jsave-amount-prefix {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(241,245,249,.58);
+  font: 600 18px var(--font-mono);
+  pointer-events: none;
+}
+.jsave-amount-input {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 0 48px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-family: var(--font-display);
+  font-size: clamp(44px, 12vw, 54px);
+  font-weight: 650;
+  line-height: 1.15;
+  letter-spacing: -.04em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.jsave-amount-input.is-long { font-size: clamp(32px, 8vw, 42px); }
+.jsave-amount-entry.is-long .jsave-amount-prefix { left: -6px; font-size: 15px; }
+.jsave-amount-input::placeholder { color: rgba(241,245,249,.38); opacity: 1; }
+.jsave-amount-input::-webkit-inner-spin-button,
+.jsave-amount-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+@media (max-width: 360px) {
+  .jsave-amount-prefix { font-size: 15px; }
+  .jsave-amount-input { padding: 0 34px; font-size: 38px; }
+  .jsave-amount-input.is-long { padding: 0 28px; font-size: 31px; }
+  .jsave-amount-entry.is-long .jsave-amount-prefix { left: -8px; font-size: 13px; }
+}
 
 .jsave-root.jsave-light .jsave-input {
   background: rgba(255,255,255,0.7);

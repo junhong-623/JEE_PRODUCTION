@@ -1,8 +1,19 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.7.4',
+    version: '3.7.5',
     date: '2026-09-24',
     isLatest: true,
+    items: [
+      'Make the amount entered manually large and centered on phones across expense, income, transfer, and split entries',
+    ],
+    itemsZh: [
+      '放大并居中手机上手动新增交易的金额，适用于支出、收入、转账和分账',
+    ],
+  },
+  {
+    version: '3.7.4',
+    date: '2026-09-24',
+    isLatest: false,
     items: [
       'Import CIMB payments to a UOB credit card as account transfers, with automatic matching when one UOB card exists and an optional account choice when needed; the unified shortcut does not need reinstalling',
     ],

@@ -413,17 +413,16 @@ function StandardTransactionForm({ initial, onClose }) {
             textAlign: 'center', position: 'relative', overflow: 'hidden',
           }}>
             <FieldLabel>{type === 'split' ? t('txBillAmount') : t('txAmount')} ({cur})</FieldLabel>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4 }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 16, color: 'rgba(241,245,249,0.5)' }}>
+            <div className={`jsave-amount-entry${amount.length > 9 ? ' is-long' : ''}`}>
+              <span className="jsave-amount-prefix" aria-hidden="true">
                 {type === 'income' ? '+' : type === 'expense' || type === 'split' ? '−' : '⇄'} {currencySymbol(cur, lang)}
               </span>
               <input
-                type="number" min="0" step="0.01" placeholder="0.00"
+                className={`jsave-amount-input${amount.length > 9 ? ' is-long' : ''}`}
+                type="number" min="0" step="0.01" inputMode="decimal" placeholder="0.00"
+                aria-label={type === 'split' ? t('txBillAmount') : t('txAmount')}
                 value={amount} onChange={e => setAmount(e.target.value)} required
                 style={{
-                  background: 'transparent', border: 'none', outline: 'none',
-                  fontFamily: 'var(--font-display)', fontSize: 44, letterSpacing: 0,
-                  width: '100%', textAlign: 'center', appearance: 'none', WebkitAppearance: 'none',
                   color: type === 'income' ? '#10b981' : type === 'expense' ? '#f87171' : '#f1f5f9',
                 }}
               />
