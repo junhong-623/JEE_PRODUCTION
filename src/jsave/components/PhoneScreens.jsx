@@ -1,5 +1,5 @@
 // JSave phone UI mockups — 5 core screens + Settings
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AnimatedCount, Sparkline, Donut, ProgressRing, BarChart } from './JSaveCharts'
 
 const JS_EMERALD = '#10b981'
@@ -229,17 +229,23 @@ export function PhoneTransactions({ lang = 'en', onNavigate }) {
 /* ── 3. Add ───────────────────────────────────────────────────────────── */
 export function PhoneAdd({ lang = 'en', onNavigate }) {
   const [selectedCategory, setSelectedCategory] = useState('food')
-  const [saved, setSaved] = useState(false)
+  const [saveSequence, setSaveSequence] = useState(0)
+  const saved = saveSequence > 0
+  useEffect(() => {
+    if (!saveSequence) return undefined
+    const timeout = window.setTimeout(() => setSaveSequence(0), 3200)
+    return () => window.clearTimeout(timeout)
+  }, [saveSequence])
   const t = lang === 'zh' ? {
     title: '新增', num: '02 / 新增', type: ['支出', '收入', '转账'],
     amount: '金额', cat: '类别', note: '备注', account: '账户', when: '时间',
-    save: '保存这一笔', saved: '已模拟保存', demoHint: '点选类别，再试试保存；不会写入真实账本。', savedHint: '已选「{category}」；这只是页面演示，没有保存交易。', placeholder: '记一笔...咖啡, 工资...',
+    save: '保存这一笔', saved: '已保存', demoHint: '点选类别，再试试保存；不会写入真实账本。', savedHint: '已选「{category}」；这是页面预览，不会写入真实账本。', placeholder: '记一笔...咖啡, 工资...',
     cats: [{ id: 'food', e: '🍜', n: '餐饮' }, { id: 'commute', e: '🚖', n: '通勤' }, { id: 'daily', e: '🛒', n: '日用' }, { id: 'fun', e: '🎬', n: '娱乐' }, { id: 'shopping', e: '🛍️', n: '购物' }, { id: 'other', e: '🎁', n: '其他' }],
     accounts: ['Maybank · 7782', 'Cash', 'Touch n Go'], today: '今天 · 09:18',
   } : {
     title: 'Add', num: '02 / Add', type: ['Spend', 'Income', 'Transfer'],
     amount: 'Amount', cat: 'Category', note: 'Note', account: 'Account', when: 'When',
-    save: 'Save this one', saved: 'Saved in demo', demoHint: 'Choose a category and try Save. No real entry is created.', savedHint: 'Selected {category}. This is a demo; no transaction was saved.', placeholder: 'log one... coffee, salary...',
+    save: 'Save this one', saved: 'Saved', demoHint: 'Choose a category and try Save. No real entry is created.', savedHint: 'Selected {category}. This preview does not create a real entry.', placeholder: 'log one... coffee, salary...',
     cats: [{ id: 'food', e: '🍜', n: 'Food' }, { id: 'commute', e: '🚖', n: 'Commute' }, { id: 'daily', e: '🛒', n: 'Daily' }, { id: 'fun', e: '🎬', n: 'Fun' }, { id: 'shopping', e: '🛍️', n: 'Shopping' }, { id: 'other', e: '🎁', n: 'Other' }],
     accounts: ['Maybank · 7782', 'Cash', 'Touch n Go'], today: 'Today · 9:18',
   }
@@ -269,7 +275,7 @@ export function PhoneAdd({ lang = 'en', onNavigate }) {
         <div className="js-eyebrow" style={{ fontSize: 9, color: 'rgba(241,245,249,0.4)' }}>{t.cat}</div>
         <div role="group" aria-label={t.cat} style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
           {t.cats.map((c) => (
-            <button type="button" className="js-phone-category" key={c.id} aria-pressed={selectedCategory === c.id} onClick={() => { setSelectedCategory(c.id); setSaved(false) }} style={{ padding: '12px 10px', borderRadius: 14, background: selectedCategory === c.id ? 'rgba(16,185,129,0.14)' : 'rgba(255,255,255,0.025)', border: selectedCategory === c.id ? '1px solid rgba(16,185,129,0.5)' : '1px solid rgba(241,245,249,0.06)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button type="button" className="js-phone-category" key={c.id} aria-pressed={selectedCategory === c.id} onClick={() => { setSelectedCategory(c.id); setSaveSequence(0) }} style={{ padding: '12px 10px', borderRadius: 14, background: selectedCategory === c.id ? 'rgba(16,185,129,0.14)' : 'rgba(255,255,255,0.025)', border: selectedCategory === c.id ? '1px solid rgba(16,185,129,0.5)' : '1px solid rgba(241,245,249,0.06)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ fontSize: 18 }}>{c.e}</div>
               <div style={{ fontSize: 12, fontWeight: 600, color: selectedCategory === c.id ? JS_EMERALD : '#f1f5f9' }}>{c.n}</div>
             </button>
@@ -277,7 +283,7 @@ export function PhoneAdd({ lang = 'en', onNavigate }) {
         </div>
       </div>
       <div style={{ margin: '20px 20px 0' }}>
-        <button type="button" className="js-btn-primary" onClick={() => setSaved(true)} style={{ width: '100%', justifyContent: 'center', padding: '14px 0', borderRadius: 16, border: 'none' }}>
+        <button type="button" className="js-btn-primary" onClick={() => setSaveSequence(sequence => sequence + 1)} style={{ width: '100%', justifyContent: 'center', padding: '14px 0', borderRadius: 16, border: 'none' }}>
           {saved ? t.saved : t.save} <span style={{ fontSize: 14 }}>{saved ? '✓' : '→'}</span>
         </button>
         <div role="status" aria-live="polite" style={{ marginTop: 10, color: saved ? JS_EMERALD : 'rgba(241,245,249,0.48)', fontSize: 10, lineHeight: 1.4, textAlign: 'center' }}>
