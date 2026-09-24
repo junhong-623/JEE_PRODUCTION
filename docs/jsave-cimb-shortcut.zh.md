@@ -1,16 +1,14 @@
 # JSave × CIMB iPhone 快捷指令
 
-这个快捷指令读取 CIMB「Transaction Details」截图中的文字，先预览，再由使用者选择类别及确认，最后才加入 JSave。截图留在 iPhone；接口只收到 iPhone 提取的文字。它与现有 TNG 指令及密钥分开。
+旧版 CIMB 指令的下载与设置入口已撤下。新用户请安装[统一收据截图快捷指令](jsave-receipt-shortcut.zh.md)。以下内容仅供已安装旧版指令的用户参考。它读取 CIMB「Transaction Details」截图中的文字，先预览，再由使用者选择类别及确认，最后才加入 JSave。
 
 ## 设置与安装
 
 1. 在 JSave「设置 → 账户」建立或确认一个 CIMB 银行账户（类型为银行）、一个 CIMB 信用卡账户（类型为信用卡），以及自己的 TNG 钱包账户（类型为电子钱包）。只使用其中一种 CIMB 账户时，另一项可以留空。
-2. 打开「设置 → CIMB 交易截图快捷指令」，将实际账户分别选好。若要导入 TNG 充值截图，须设置自己的 TNG 钱包。
-3. 生成并复制 **CIMB 密钥**。它只显示一次。重新生成只会使旧 CIMB 密钥失效，不影响 TNG 指令。
-4. 下载已签名的 [`JSave-CIMB-Import.shortcut`](../public-jsave/shortcuts/JSave-CIMB-Import.shortcut)，在 iPhone 的「文件」App 打开。导入时粘贴 CIMB 密钥；如果没有出现导入提问，就编辑 `JSave CIMB Import`，将密钥填入第一个「文本」操作。
-5. 从「照片」分享一张 CIMB 交易详情截图给 `JSave CIMB Import`。检查金额、日期、说明、账户及类别后，才确认保存。
+2. 旧版设置入口已撤下。已有密钥的用户可继续运行已安装的旧版指令；迁移时请在统一指令设置中选择相应的 CIMB 账户并生成统一密钥。
+3. 从「照片」分享一张 CIMB 交易详情截图给已安装的 `JSave CIMB Import`。检查金额、日期、说明、账户及类别后，才确认保存。
 
-签名文件 SHA-256：`D2FAB84A645C401B64ECC3472075CAE4269DA1555C89A5AC4B47B9B28A61170B`。
+旧版最后发布文件的 SHA-256：`D2FAB84A645C401B64ECC3472075CAE4269DA1555C89A5AC4B47B9B28A61170B`。该文件已撤下。
 
 ## 已覆盖的交易页
 

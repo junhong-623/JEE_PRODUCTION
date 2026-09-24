@@ -1,8 +1,19 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.7.2',
+    version: '3.7.3',
     date: '2026-09-24',
     isLatest: true,
+    items: [
+      'Remove the separate TNG and CIMB shortcut downloads and settings entries; keep one unified receipt shortcut for both sources',
+    ],
+    itemsZh: [
+      '移除旧版 TNG 与 CIMB 快捷指令的独立下载及设置入口，统一使用收据截图快捷指令',
+    ],
+  },
+  {
+    version: '3.7.2',
+    date: '2026-09-24',
+    isLatest: false,
     items: [
       'Read CIMB dates even when iPhone OCR places date values before labels, and require explicit account choices when setting up the unified shortcut; no shortcut reinstall is needed',
     ],

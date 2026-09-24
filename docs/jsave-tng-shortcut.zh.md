@@ -1,24 +1,21 @@
 # JSave × TNG iPhone 快捷指令
 
-这份设置说明配合 JSave 的 `jsaveShortcutImport` 函数使用。已签名的快捷指令位于 [`public-jsave/shortcuts/JSave-TNG-Import.shortcut`](../public-jsave/shortcuts/JSave-TNG-Import.shortcut)，Cherri 源码位于 [`shortcuts/JSave-TNG-Import.cherri`](../shortcuts/JSave-TNG-Import.cherri)。快捷指令已编译并检查请求参数，仍须在 iPhone 上验证导入和运行。
+旧版 TNG 指令的下载与设置入口已撤下。新用户请安装[统一收据截图快捷指令](jsave-receipt-shortcut.zh.md)。以下内容仅供已经安装旧版指令的用户参考；旧版 Cherri 源码仍在 [`shortcuts/JSave-TNG-Import.cherri`](../shortcuts/JSave-TNG-Import.cherri)。
 
 ## 1. 在 JSave 建立密钥
 
 1. 在 JSave「设置 → 账户」建立或确认一个 TNG 电子钱包账户。
-2. 打开「设置 → TNG 截图快捷指令」，选择这个账户，按「生成快捷指令密钥」。
+2. 旧版设置入口已撤下。已有密钥的用户可继续运行已安装的旧版指令；迁移时请在统一指令设置中选择 TNG 账户并生成统一密钥。
 3. 复制 **接口网址** 和 **密钥**。密钥只显示这一次；重新生成会使旧密钥失效。
-4. 密钥等同于一个仅可向你的 JSave 账户导入 TNG 交易的密码。不要把含有密钥的快捷指令分享给别人。可随时在同一设置页停用。
+4. 密钥等同于一个仅可向你的 JSave 账户导入 TNG 交易的密码。不要把含有密钥的快捷指令分享给别人。
 
-## 2. 下载并在 iPhone 导入
+## 2. 已安装旧版指令的使用方法
 
-1. 打开 JSave「设置 → TNG 截图快捷指令」，点「下载 iPhone 快捷指令」。链接会在浏览器打开下载页，以避开已安装 PWA 的旧缓存。也可以直接从 [JSave 下载地址](https://jeeprod-jsave.web.app/shortcuts/JSave-TNG-Import.shortcut?v=3.6.7)下载。
-2. 在 iPhone 的「文件」App 打开下载的 `JSave-TNG-Import.shortcut`。导入设置会问你要 JSave 密钥，粘贴第 1 节复制的完整密钥。如果没有出现问题，打开「快捷指令」App，编辑 `JSave TNG Import`，将密钥填入第一个「文本」操作。下载文件中没有预置任何用户密钥。
-3. 先从「照片」分享一张 TNG 交易详情页或扫码付款成功页截图，选择 `JSave TNG Import` 运行。它会提取文字、请求预览、让你选类别并显示核对提醒；按「取消」不会提交。
-4. 确认导入成功后，再考虑设置截屏自动化。已打开的 JSave PWA 可能需要联网同步或重新打开，才能看到新交易。
+1. 在「快捷指令」App 查看已经安装的 `JSave TNG Import`。迁移时，在 JSave 生成统一密钥并安装统一版；统一版不使用旧密钥。
+2. 从「照片」分享一张 TNG 交易详情页或扫码付款成功页截图，选择已安装的 `JSave TNG Import` 运行。它会提取文字、请求预览、让你选类别并显示核对提醒；按「取消」不会提交。
+3. 已打开的 JSave PWA 可能需要联网同步或重新打开，才能看到新交易。
 
-导入文件的 SHA-256：`AA4563215852402CC1589FA32E89A91513E1140ACEEEDBB94618E7E43E3B9204`。
-
-当前下载文件是 v3.6.7，包含导入后「保留照片／删除照片」菜单。若已有旧指令，先从旧指令的第一个「文本」操作复制密钥，再导入新版并填入密钥；如果找不到旧密钥，则到 JSave 设置页重新生成，新密钥会使旧密钥失效。请勿分享含密钥的指令。新版已验证签名封装及操作结构，照片删除仍须在 iPhone 上用可丢弃的截图测试。
+旧版最后发布文件的 SHA-256：`AA4563215852402CC1589FA32E89A91513E1140ACEEEDBB94618E7E43E3B9204`。该文件已撤下。统一版使用独立密钥；确认统一版可用后，可从 iPhone 删除旧指令。
 
 ## 3. 手动建立方式（备用）
 
