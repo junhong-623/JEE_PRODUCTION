@@ -8,7 +8,7 @@ const webpush = require('web-push')
 const crypto = require('crypto')
 const { parseTngScreenshot, validateCategory, transactionDocumentId } = require('./jsaveShortcut')
 const { parseCimbScreenshot, cimbTransactionDocumentId } = require('./jsaveCimbShortcut')
-const { parseReceiptScreenshot, receiptTransactionDocumentId, receiptAccountKey } = require('./jsaveReceiptShortcut')
+const { parseReceiptScreenshot, receiptTransactionDocumentId, receiptAccountKey, matchUobCreditAccount } = require('./jsaveReceiptShortcut')
 
 initializeApp()
 
@@ -35,6 +35,7 @@ const RECEIPT_ACCOUNT_TYPES = {
   tngAccountId: 'accEwallet',
   cimbBankAccountId: 'accBank',
   cimbCreditAccountId: 'accCredit',
+  uobCreditAccountId: 'accCredit',
 }
 
 async function checkedReceiptAccounts(uid, input) {
@@ -63,8 +64,9 @@ async function checkedReceiptAccounts(uid, input) {
   return accountIds
 }
 
-function receiptRoutingToken(accountIds) {
+function receiptRoutingToken(accountIds, targetAccountId = '') {
   const routing = Object.keys(RECEIPT_ACCOUNT_TYPES).map(key => accountIds[key] || '')
+  routing.push(targetAccountId)
   return crypto.createHash('sha256').update(JSON.stringify(routing)).digest('hex')
 }
 
@@ -378,25 +380,43 @@ exports.jsaveReceiptShortcutImport = onRequest({ invoker: 'public', cors: false 
   const accountIds = keySnapshot.data().accountIds || {}
   const accountId = accountIds[receiptAccountKey(draft)]
   if (!accountId) return res.status(409).json({ error: 'source-account-not-configured' })
-  const targetAccountId = draft.type === 'transfer' ? accountIds.tngAccountId : ''
+  const db = getFirestore()
+  const accountCollection = db.collection('users').doc(uid).collection('jsave_accounts')
+  let targetAccountId = ''
+  if (draft.type === 'transfer' && draft.transferTarget === 'uobCredit') {
+    targetAccountId = accountIds.uobCreditAccountId || ''
+    if (!targetAccountId) {
+      const accounts = await accountCollection.get()
+      targetAccountId = matchUobCreditAccount(accounts.docs.map(doc => ({ ...doc.data(), id: doc.id })), draft.note)
+    }
+    if (!targetAccountId) return res.status(409).json({ error: 'target-account-not-configured' })
+  } else if (draft.type === 'transfer') {
+    targetAccountId = accountIds.tngAccountId || ''
+  }
   if (draft.type === 'transfer' && (!targetAccountId || targetAccountId === accountId)) {
     return res.status(409).json({ error: 'transfer-account-not-configured' })
   }
-  const routingToken = receiptRoutingToken(accountIds)
+  const routingToken = receiptRoutingToken(accountIds, targetAccountId)
   if (input.action === 'commit' && input.routingToken !== routingToken) {
     return res.status(409).json({ error: 'account-configuration-changed' })
   }
-  const db = getFirestore()
-  const accountCollection = db.collection('users').doc(uid).collection('jsave_accounts')
   const accountSnapshots = await Promise.all([
     accountCollection.doc(accountId).get(),
     ...(targetAccountId ? [accountCollection.doc(targetAccountId).get()] : []),
   ])
   if (accountSnapshots.some(snapshot => !snapshot.exists)) return res.status(409).json({ error: 'account-not-found' })
   const expectedSourceType = RECEIPT_ACCOUNT_TYPES[receiptAccountKey(draft)]
+  const expectedTargetType = draft.transferTarget === 'uobCredit' ? 'accCredit' : 'accEwallet'
   if (accountSnapshots[0].data().type !== expectedSourceType ||
-      (targetAccountId && accountSnapshots[1].data().type !== 'accEwallet')) {
+      (targetAccountId && accountSnapshots[1].data().type !== expectedTargetType)) {
     return res.status(409).json({ error: 'account-type-changed' })
+  }
+  if (draft.transferTarget === 'uobCredit') {
+    const namedLastFour = (accountSnapshots[1].data().name || '').match(/(?:^|\D)(\d{4})\s*\)?\s*$/)?.[1]
+    const receiptLastFour = draft.note.replace(/\D/g, '').slice(-4)
+    if (namedLastFour && receiptLastFour && namedLastFour !== receiptLastFour) {
+      return res.status(409).json({ error: 'target-account-mismatch' })
+    }
   }
   if (input.action === 'preview') {
     const sourceName = accountSnapshots[0].data().name || draft.provider.toUpperCase()
@@ -421,7 +441,7 @@ exports.jsaveReceiptShortcutImport = onRequest({ invoker: 'public', cors: false 
         transaction.get(keyRef), transaction.get(transactionRef), transaction.get(usageRef),
       ])
       if (currentKey.data()?.keyHash !== expectedHash ||
-          receiptRoutingToken(currentKey.data()?.accountIds || {}) !== routingToken) return 'revoked'
+          receiptRoutingToken(currentKey.data()?.accountIds || {}, targetAccountId) !== routingToken) return 'revoked'
       if (existing.exists) return 'duplicate'
       const count = Number(usageSnapshot.data()?.count || 0)
       if (count >= 100) return 'rate-limited'

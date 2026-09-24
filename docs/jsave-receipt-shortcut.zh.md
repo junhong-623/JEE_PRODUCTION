@@ -4,11 +4,11 @@
 
 ## 安装
 
-1. 在 JSave「设置 → 账户」建立自己使用的 TNG 钱包、CIMB 银行及 CIMB 信用卡账户。未使用的来源可以不建。
-2. 在「设置 → 统一收据截图快捷指令」选择对应账户。CIMB 向自己的 TNG 钱包充值需要同时设置 CIMB 银行和 TNG 钱包。
+1. 在 JSave「设置 → 账户」建立自己使用的 TNG 钱包、CIMB 银行、CIMB 信用卡或 UOB 信用卡账户。未使用的来源可以不建。
+2. 在「设置 → 统一收据截图快捷指令」选择对应账户。CIMB 向自己的 TNG 钱包充值需要同时设置 CIMB 银行和 TNG 钱包。CIMB 支付 UOB 信用卡时，若只有一张名称含 UOB 的信用卡账户，JSave 会自动匹配；否则在设置页指定 UOB 信用卡账户。
 3. 点「生成统一密钥」并复制。密钥只显示一次；截图内容会以文字形式提交到 JSave 接口，图片本身不上传。
 4. [下载 `JSave-Receipt-Import.shortcut`](../public-jsave/shortcuts/JSave-Receipt-Import.shortcut)，在 iPhone 的「文件」App 打开并填入密钥。若没有出现导入提问，编辑 `JSave Receipt Import`，把密钥填入第一个「文本」操作。
-5. 从「照片」分享一张 TNG 或 CIMB 交易截图给这个指令。核对来源、账户、金额、日期、说明和类别后，再确认保存。
+5. 从「照片」分享一张 TNG 或 CIMB 交易截图给这个指令。核对来源、转入和转出账户、金额、日期、说明和类别后，再确认保存。CIMB 支付 UOB 信用卡会记为账户间转账，不会额外记支出。
 
 签名文件 SHA-256：`3B4BECFAF9B72AF1A028718B58097CE1646FC7A058D85DB7BEC88CC0577702D9`。
 

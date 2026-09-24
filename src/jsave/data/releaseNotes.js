@@ -1,8 +1,19 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.7.3',
+    version: '3.7.4',
     date: '2026-09-24',
     isLatest: true,
+    items: [
+      'Import CIMB payments to a UOB credit card as account transfers, with automatic matching when one UOB card exists and an optional account choice when needed; the unified shortcut does not need reinstalling',
+    ],
+    itemsZh: [
+      '支持将 CIMB 支付 UOB 信用卡的收据记为账户间转账；仅有一张 UOB 信用卡时自动匹配，必要时可在设置中指定账户；无需重装统一指令',
+    ],
+  },
+  {
+    version: '3.7.3',
+    date: '2026-09-24',
+    isLatest: false,
     items: [
       'Remove the separate TNG and CIMB shortcut downloads and settings entries; keep one unified receipt shortcut for both sources',
     ],

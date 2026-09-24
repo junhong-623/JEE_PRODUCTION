@@ -48,6 +48,29 @@ INTERN
 1234567890123456
 Done`
 
+const cardPayment = `Transaction Details
+Amount
+- MYR 1,690.00
+01 Sep 2026 9:14:44 AM
+Reference No.
+223991066
+To
+JEE JUN HONG
+United Overseas Bank Berhad 4599 1441 0504
+0401
+From
+BASIC SA
+7076892808
+When
+01 Sep 2026
+Repeat
+No
+Transfer Method
+DuitNow to Account
+Payment Type
+Credit Card
+Done`
+
 describe('CIMB screenshot shortcut import', () => {
   it('uses the card transaction date, not the posted date', () => {
     expect(parseCimbScreenshot(card)).toMatchObject({
@@ -87,6 +110,16 @@ describe('CIMB screenshot shortcut import', () => {
       type: 'transfer', accountKind: 'bank', amount: 12,
       date: '2026-09-16',
     })
+  })
+
+  it('reads a CIMB payment to a UOB credit card as a bank-to-card transfer', () => {
+    expect(parseCimbScreenshot(cardPayment)).toMatchObject({
+      type: 'transfer', accountKind: 'bank', transferTarget: 'uobCredit',
+      amount: 1690, date: '2026-09-01',
+      note: 'JEE JUN HONG United Overseas Bank Berhad •••• 0401',
+    })
+    expect(() => parseCimbScreenshot(cardPayment.replace('United Overseas Bank Berhad', 'Another Bank')))
+      .toThrow('unsupported-card-payment-bank')
   })
 
   it('recognizes a credited bank transaction as income without assuming a category', () => {

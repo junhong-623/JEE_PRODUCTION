@@ -1,7 +1,7 @@
 const crypto = require('crypto')
 
 const MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12 }
-const LABELS = /^(?:Amount|Reference No\.?|Posted Date|Transacted Date|Date|Details|To|From|Transfer Type|Done)$/i
+const LABELS = /^(?:Amount|Reference No\.?|Posted Date|Transacted Date|Date|Details|To|From|When|Repeat|Transfer Type|Transfer Method|Payment Type|Done)$/i
 
 function rows(text) {
   return text.split('\n').map(row => row.trim()).filter(Boolean)
@@ -65,6 +65,9 @@ function parseCimbScreenshot(ocrText) {
 
   const isCard = /Transfer\s+Type\s*[:：]?\s*Credit\s+Card/i.test(text) ||
     lines.some((line, i) => /^Transfer Type$/i.test(line) && /^Credit Card$/i.test(lines[i + 1] || ''))
+  const isCardPayment = /Payment\s+Type\s*[:：]?\s*Credit\s+Card/i.test(text) ||
+    lines.some((line, i) => /^Payment Type$/i.test(line) &&
+      (/^Credit Card$/i.test(lines[i + 1] || '') || /^Credit Card$/i.test(lines[i - 1] || '')))
   // iPhone OCR sometimes emits the right-column dates before all their labels.
   // These detail pages have one displayed date for bank movements and two for
   // card purchases; the earlier card date is the transaction date.
@@ -82,23 +85,30 @@ function parseCimbScreenshot(ocrText) {
     }
   }
 
-  let note = isCard
-    ? afterLabel(lines, 'To', /^(?:From|Transfer Type|Done)(?:\s|$)/i)
+  let note = isCard || isCardPayment
+    ? afterLabel(lines, 'To', /^(?:From|When|Repeat|Transfer Type|Transfer Method|Payment Type|Done)(?:\s|$)/i)
     : bankDetails(lines)
   note = note.replace(/\s+/g, ' ').trim()
   if (!note || note === '-' || note.length > 240) throw new Error('missing-party')
 
+  let transferTarget = ''
+  if (isCardPayment) {
+    if (amountMatch[1] !== '-') throw new Error('ambiguous-direction')
+    if (/\bUOB\b|United\s+Overseas\s+Bank/i.test(note)) transferTarget = 'uobCredit'
+    else throw new Error('unsupported-card-payment-bank')
+    note = note.replace(/\b(?:\d[\s-]?){11,19}\d\b/g, value => `•••• ${value.replace(/\D/g, '').slice(-4)}`)
+  }
   const isTopup = !isCard && amountMatch[1] !== '+' && /TNG\s+E\s*WALLET\b/i.test(note) &&
     /\bTOP\s*UP/i.test(note) && (amountMatch[1] === '-' || /\bPOS DEBIT\b/i.test(note))
   let type
-  if (isTopup) type = 'transfer'
+  if (isTopup || isCardPayment) type = 'transfer'
   else if (amountMatch[1] === '-' || /\b(?:POS DEBIT|DEBIT|\bDR\b)/i.test(note)) type = 'expense'
   else if (amountMatch[1] === '+' || /\b(?:CR|CREDIT|RECEIVED)\b/i.test(note)) type = 'income'
   else throw new Error('ambiguous-direction')
   const accountKind = isCard ? 'credit' : 'bank'
   const fingerprint = `${accountKind}|${type}|${date}|${amount.toFixed(2)}|${note.toUpperCase()}`
   const sourceTransactionId = `CIMB-${crypto.createHash('sha256').update(fingerprint).digest('hex').slice(0, 40).toUpperCase()}`
-  return { type, accountKind, amount, currency: 'MYR', date, time: '', note, sourceTransactionId }
+  return { type, accountKind, amount, currency: 'MYR', date, time: '', note, transferTarget, sourceTransactionId }
 }
 
 function cimbTransactionDocumentId(sourceTransactionId) {

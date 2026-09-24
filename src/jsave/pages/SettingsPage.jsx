@@ -27,7 +27,7 @@ const ACC_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4
 
 function ReceiptShortcutSettings({ accounts, user, lang }) {
   const zh = lang === 'zh'
-  const emptyIds = { tngAccountId: '', cimbBankAccountId: '', cimbCreditAccountId: '' }
+  const emptyIds = { tngAccountId: '', cimbBankAccountId: '', cimbCreditAccountId: '', uobCreditAccountId: '' }
   const [accountIds, setAccountIds] = useState(emptyIds)
   const [savedIds, setSavedIds] = useState(emptyIds)
   const [enabled, setEnabled] = useState(false)
@@ -41,6 +41,7 @@ function ReceiptShortcutSettings({ accounts, user, lang }) {
     { key: 'tngAccountId', type: 'accEwallet', label: zh ? 'TNG 钱包账户' : 'TNG wallet account' },
     { key: 'cimbBankAccountId', type: 'accBank', label: zh ? 'CIMB 银行账户' : 'CIMB bank account' },
     { key: 'cimbCreditAccountId', type: 'accCredit', label: zh ? 'CIMB 信用卡账户' : 'CIMB credit card account' },
+    { key: 'uobCreditAccountId', type: 'accCredit', label: zh ? 'UOB 信用卡账户（可选）' : 'UOB credit card account (optional)' },
   ]
 
   useEffect(() => {
@@ -116,8 +117,8 @@ function ReceiptShortcutSettings({ accounts, user, lang }) {
         {zh ? '下载统一 iPhone 快捷指令' : 'Download unified iPhone shortcut'}
       </a>
       <p className="jsave-section-sub" style={{ marginBottom: 12 }}>
-        {zh ? '选择你使用的账户，未使用的来源可以留空。CIMB 的 TNG 充值需要同时设置 CIMB 银行和 TNG 钱包。'
-          : 'Choose the accounts you use and leave unused sources blank. A CIMB to TNG top-up needs both accounts.'}
+        {zh ? '选择你使用的账户，未使用的来源可以留空。CIMB 的 TNG 充值需要同时设置 CIMB 银行和 TNG 钱包。CIMB 支付 UOB 信用卡时，若你只有一张名称包含 UOB 的信用卡账户，会自动匹配；否则在下方指定 UOB 信用卡。'
+          : 'Choose the accounts you use and leave unused sources blank. A CIMB to TNG top-up needs both accounts. A CIMB payment to a UOB card matches one UOB credit card account automatically; otherwise choose the UOB card below.'}
       </p>
       {choices.map(({ key: name, type, label }) => (
         <div key={name} style={{ marginBottom: 10 }}>
@@ -133,6 +134,12 @@ function ReceiptShortcutSettings({ accounts, user, lang }) {
             <p className="jsave-error" style={{ marginTop: 6 }}>
               {zh ? '请确认这个账户确实属于 CIMB，避免交易记到其他银行。'
                 : 'Confirm this is a CIMB account to avoid saving transactions under another bank.'}
+            </p>}
+          {name === 'uobCreditAccountId' && accountIds[name] &&
+            !/\bUOB\b|United Overseas Bank/i.test(accounts.find(account => account.id === accountIds[name])?.name || '') &&
+            <p className="jsave-error" style={{ marginTop: 6 }}>
+              {zh ? '请确认这个账户确实是 UOB 信用卡。'
+                : 'Confirm this is your UOB credit card.'}
             </p>}
         </div>
       ))}

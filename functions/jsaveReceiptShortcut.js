@@ -27,4 +27,18 @@ function receiptAccountKey(draft) {
   throw new Error('unsupported-provider')
 }
 
-module.exports = { parseReceiptScreenshot, receiptTransactionDocumentId, receiptAccountKey }
+function matchUobCreditAccount(accounts, payee) {
+  const matches = accounts.filter(account => account.type === 'accCredit' &&
+    /\bUOB\b|United\s+Overseas\s+Bank/i.test(account.name || ''))
+  const digits = (payee || '').replace(/\D/g, '')
+  const lastFour = digits.slice(-4)
+  if (matches.length === 1) {
+    const namedLastFour = (matches[0].name || '').match(/(?:^|\D)(\d{4})\s*\)?\s*$/)?.[1]
+    return namedLastFour && lastFour && namedLastFour !== lastFour ? '' : matches[0].id
+  }
+  if (lastFour.length !== 4) return ''
+  const numbered = matches.filter(account => (account.name || '').includes(lastFour))
+  return numbered.length === 1 ? numbered[0].id : ''
+}
+
+module.exports = { parseReceiptScreenshot, receiptTransactionDocumentId, receiptAccountKey, matchUobCreditAccount }

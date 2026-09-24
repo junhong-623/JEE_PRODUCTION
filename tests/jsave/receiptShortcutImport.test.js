@@ -2,7 +2,7 @@ import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
 
 const require = createRequire(import.meta.url)
-const { parseReceiptScreenshot, receiptTransactionDocumentId, receiptAccountKey } = require('../../functions/jsaveReceiptShortcut.js')
+const { parseReceiptScreenshot, receiptTransactionDocumentId, receiptAccountKey, matchUobCreditAccount } = require('../../functions/jsaveReceiptShortcut.js')
 const { transactionDocumentId } = require('../../functions/jsaveShortcut.js')
 const { cimbTransactionDocumentId } = require('../../functions/jsaveCimbShortcut.js')
 
@@ -39,6 +39,18 @@ Date 01 Sep 2026
 Details AUTOPAY CR SAMPLE SOFTWARE INTERN
 Done`
 
+const cimbCardPayment = `Transaction Details
+Amount
+- MYR 1,690.00
+01 Sep 2026 9:14:44 AM
+Reference No. 223991066
+To JEE JUN HONG United Overseas Bank Berhad 4599 1441 0504 0401
+From BASIC SA 7076892808
+When 01 Sep 2026
+Transfer Method DuitNow to Account
+Payment Type Credit Card
+Done`
+
 describe('unified receipt shortcut', () => {
   it('routes TNG to the wallet and keeps legacy duplicate IDs', () => {
     const draft = parseReceiptScreenshot(tng)
@@ -61,6 +73,24 @@ describe('unified receipt shortcut', () => {
     expect(income.type).toBe('income')
     expect(receiptAccountKey(topup)).toBe('cimbBankAccountId')
     expect(receiptAccountKey(income)).toBe('cimbBankAccountId')
+  })
+
+  it('routes a CIMB payment to a UOB credit card from the CIMB bank account', () => {
+    const draft = parseReceiptScreenshot(cimbCardPayment)
+    expect(draft).toMatchObject({ provider: 'cimb', accountKind: 'bank', type: 'transfer', transferTarget: 'uobCredit' })
+    expect(receiptAccountKey(draft)).toBe('cimbBankAccountId')
+  })
+
+  it('matches one UOB card automatically and refuses an ambiguous or mismatched card', () => {
+    const payee = parseReceiptScreenshot(cimbCardPayment).note
+    expect(matchUobCreditAccount([{ id: 'uob', name: 'UOB Credit Card', type: 'accCredit' }], payee)).toBe('uob')
+    expect(matchUobCreditAccount([
+      { id: 'a', name: 'UOB Visa 0504', type: 'accCredit' },
+      { id: 'b', name: 'UOB Mastercard 0401', type: 'accCredit' },
+    ], payee)).toBe('b')
+    expect(matchUobCreditAccount([{ id: 'wrong', name: 'UOB Credit Card 0504', type: 'accCredit' }], payee)).toBe('')
+    expect(matchUobCreditAccount([{ id: 'wrong', name: 'UOB Credit Card (0504)', type: 'accCredit' }], payee)).toBe('')
+    expect(matchUobCreditAccount([{ id: 'bank', name: 'UOB', type: 'accBank' }], payee)).toBe('')
   })
 
   it('ignores unrelated screenshots without saving a transaction', () => {
