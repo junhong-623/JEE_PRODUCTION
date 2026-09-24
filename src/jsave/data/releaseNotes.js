@@ -1,8 +1,19 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.7.0',
+    version: '3.7.1',
     date: '2026-09-24',
     isLatest: true,
+    items: [
+      'Combine TNG and CIMB screenshot imports in one iPhone shortcut and key, with account choices that can be updated without reinstalling',
+    ],
+    itemsZh: [
+      '将 TNG 与 CIMB 截图导入合并为同一个 iPhone 快捷指令与密钥；账户设置可更新，无需重新安装指令',
+    ],
+  },
+  {
+    version: '3.7.0',
+    date: '2026-09-24',
+    isLatest: false,
     items: [
       'Add a separate iPhone shortcut for CIMB transaction screenshots with bank and credit card account routing, category review, and TNG top-up transfers',
     ],

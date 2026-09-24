@@ -25,6 +25,146 @@ import { SUPPORTED_CURRENCIES, currencyName } from '../utils/currency'
 const ACC_TYPES  = ['accCash', 'accBank', 'accEwallet', 'accCredit']
 const ACC_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6']
 
+function ReceiptShortcutSettings({ accounts, user, lang }) {
+  const zh = lang === 'zh'
+  const emptyIds = { tngAccountId: '', cimbBankAccountId: '', cimbCreditAccountId: '' }
+  const [accountIds, setAccountIds] = useState(emptyIds)
+  const [savedIds, setSavedIds] = useState(emptyIds)
+  const [enabled, setEnabled] = useState(false)
+  const [key, setKey] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
+  const hasAccount = Object.values(accountIds).some(Boolean)
+  const changed = Object.keys(emptyIds).some(name => accountIds[name] !== savedIds[name])
+  const choices = [
+    { key: 'tngAccountId', type: 'accEwallet', label: zh ? 'TNG 钱包账户' : 'TNG wallet account' },
+    { key: 'cimbBankAccountId', type: 'accBank', label: zh ? 'CIMB 银行账户' : 'CIMB bank account' },
+    { key: 'cimbCreditAccountId', type: 'accCredit', label: zh ? 'CIMB 信用卡账户' : 'CIMB credit card account' },
+  ]
+
+  useEffect(() => {
+    if (!user?.uid) return
+    let cancelled = false
+    httpsCallable(functions, 'jsaveReceiptShortcutKeyStatus')().then(({ data }) => {
+      if (cancelled) return
+      const ids = { ...emptyIds, ...(data.accountIds || {}) }
+      setAccountIds(ids)
+      setSavedIds(ids)
+      setEnabled(Boolean(data.enabled))
+    }).catch(() => {
+      if (!cancelled) setError(zh ? '无法读取统一指令状态。' : 'Could not load the unified shortcut status.')
+    })
+    return () => { cancelled = true }
+  }, [user?.uid]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function run(action, successMessage) {
+    if (busy) return
+    setBusy(true)
+    setError('')
+    setMessage('')
+    try {
+      const { data } = await httpsCallable(functions, action)({ accountIds })
+      if (data.key) setKey(data.key)
+      if (data.accountIds) setSavedIds({ ...emptyIds, ...data.accountIds })
+      setEnabled(true)
+      setMessage(successMessage)
+    } catch {
+      setError(zh ? '操作失败。请确认账户类型正确，并稍后重试。' : 'Could not save. Check the account types and try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function revokeKey() {
+    if (busy) return
+    setBusy(true)
+    setError('')
+    setMessage('')
+    try {
+      await httpsCallable(functions, 'jsaveRevokeReceiptShortcutKey')()
+      setEnabled(false)
+      setKey('')
+      setMessage(zh ? '统一密钥已停用。' : 'Unified key revoked.')
+    } catch {
+      setError(zh ? '停用失败，请稍后重试。' : 'Could not revoke the key. Please try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function copyKey() {
+    try {
+      await navigator.clipboard.writeText(key)
+      setMessage(zh ? '密钥已复制。' : 'Key copied.')
+    } catch {
+      setError(zh ? '无法自动复制，请长按密钥手动复制。' : 'Could not copy. Select the key manually.')
+    }
+  }
+
+  return (
+    <Accordion title={zh ? '📱 统一收据截图快捷指令 · TNG / CIMB' : '📱 One receipt shortcut · TNG / CIMB'}>
+      <p className="jsave-section-sub" style={{ marginBottom: 12 }}>
+        {zh
+          ? '同一个 iPhone 指令识别 TNG 和 CIMB 交易截图，选类别、核对账户后才保存。以后支持其他银行时，这个指令不用重新下载。'
+          : 'One iPhone shortcut reviews TNG and CIMB screenshots before saving. New bank formats can be added without reinstalling the shortcut.'}
+      </p>
+      <a className="jsave-btn-ghost jsave-btn-full"
+        href="https://jeeprod-jsave.web.app/shortcuts/JSave-Receipt-Import.shortcut?v=3.7.1"
+        target="_blank" rel="noopener noreferrer"
+        style={{ justifyContent: 'center', textDecoration: 'none', marginBottom: 12 }}>
+        {zh ? '下载统一 iPhone 快捷指令' : 'Download unified iPhone shortcut'}
+      </a>
+      <p className="jsave-section-sub" style={{ marginBottom: 12 }}>
+        {zh ? '选择你使用的账户，未使用的来源可以留空。CIMB 的 TNG 充值需要同时设置 CIMB 银行和 TNG 钱包。'
+          : 'Choose the accounts you use and leave unused sources blank. A CIMB to TNG top-up needs both accounts.'}
+      </p>
+      {choices.map(({ key: name, type, label }) => (
+        <div key={name} style={{ marginBottom: 10 }}>
+          <label className="jsave-label" htmlFor={`jsave-receipt-${name}`}>{label}</label>
+          <select id={`jsave-receipt-${name}`} className="jsave-input jsave-input-sm"
+            value={accountIds[name]} onChange={event => setAccountIds(previous => ({ ...previous, [name]: event.target.value }))}>
+            <option value="">{zh ? '未设置' : 'Not configured'}</option>
+            {accounts.filter(account => account.type === type).map(account =>
+              <option key={account.id} value={account.id}>{account.name}</option>)}
+          </select>
+        </div>
+      ))}
+      {enabled ? (
+        <>
+          <button className="jsave-btn-primary jsave-btn-full" disabled={busy || !hasAccount || !changed}
+            onClick={() => run('jsaveUpdateReceiptShortcutAccounts', zh ? '账户设置已保存，原密钥继续有效。' : 'Accounts saved. The existing key still works.')}>
+            {zh ? '保存账户设置' : 'Save account choices'}
+          </button>
+          <p className="jsave-section-sub" style={{ margin: '10px 0 12px' }}>
+            {zh ? '换账户只需保存设置；丢失密钥时再重新生成。旧 TNG / CIMB 指令不受影响。'
+              : 'Save account changes without changing the key. Rotate only if you have lost the key.'}
+          </p>
+          <button className="jsave-btn-ghost jsave-btn-full" disabled={busy || !hasAccount}
+            onClick={() => run('jsaveCreateReceiptShortcutKey', zh ? '新密钥已生成，请更新手机指令。' : 'New key created. Update the shortcut on your phone.')}>
+            {zh ? '重新生成统一密钥' : 'Rotate unified key'}
+          </button>
+        </>
+      ) : (
+        <button className="jsave-btn-primary jsave-btn-full" disabled={busy || !hasAccount}
+          onClick={() => run('jsaveCreateReceiptShortcutKey', zh ? '密钥已生成，请填入手机指令。' : 'Key created. Paste it into the shortcut.')}>
+          {zh ? '生成统一密钥' : 'Create unified key'}
+        </button>
+      )}
+      {key && <div style={{ marginTop: 12 }}>
+        <label className="jsave-label" htmlFor="jsave-receipt-key">{zh ? '密钥（只显示这一次）' : 'Key (shown only once)'}</label>
+        <textarea id="jsave-receipt-key" className="jsave-input" readOnly value={key} rows={3} style={{ width: '100%', wordBreak: 'break-all' }} />
+        <button className="jsave-btn-ghost jsave-btn-full" onClick={copyKey}>{zh ? '复制密钥' : 'Copy key'}</button>
+      </div>}
+      {enabled && <button className="jsave-btn-danger" style={{ marginTop: 12 }} disabled={busy} onClick={revokeKey}>
+        {zh ? '停用统一密钥' : 'Revoke unified key'}
+      </button>}
+      {message && <p className="jsave-section-sub" style={{ marginTop: 10 }}>{message}</p>}
+      {error && <p className="jsave-error" style={{ marginTop: 10 }}>{error}</p>}
+    </Accordion>
+  )
+}
+
 function ShortcutImportSettings({ accounts, user, lang }) {
   const zh = lang === 'zh'
   const [accountId, setAccountId] = useState('')
@@ -96,7 +236,7 @@ function ShortcutImportSettings({ accounts, user, lang }) {
   }
 
   return (
-    <Accordion title={zh ? '📱 TNG 截图快捷指令' : '📱 TNG screenshot shortcut'}>
+    <Accordion title={zh ? '旧版 · TNG 截图快捷指令' : 'Legacy · TNG screenshot shortcut'}>
       <p className="jsave-section-sub" style={{ marginBottom: 12 }}>
         {zh
           ? '快捷指令识别截图后先显示预览。你选类别并确认，它才会把交易加入以下账户。'
@@ -217,7 +357,7 @@ function CimbShortcutSettings({ accounts, user, lang }) {
   }
 
   return (
-    <Accordion title={zh ? '📱 CIMB 交易截图快捷指令' : '📱 CIMB transaction screenshot shortcut'}>
+    <Accordion title={zh ? '旧版 · CIMB 交易截图快捷指令' : 'Legacy · CIMB transaction screenshot shortcut'}>
       <p className="jsave-section-sub" style={{ marginBottom: 12 }}>
         {zh
           ? '识别 CIMB 交易详情截图，核对后记入银行或信用卡账户。TNG 钱包充值会作为转账，不计作支出。'
@@ -953,6 +1093,7 @@ export default function SettingsPage({ onOpenAdmin }) {
       </Accordion>
 
       {/* Data ownership */}
+      <ReceiptShortcutSettings accounts={accounts} user={user} lang={lang} />
       <ShortcutImportSettings accounts={accounts} user={user} lang={lang} />
       <CimbShortcutSettings accounts={accounts} user={user} lang={lang} />
 

@@ -1,0 +1,143 @@
+#include 'actions/images'
+#include 'actions/photos'
+#include 'actions/web'
+#define name JSave Receipt Import
+#define color blue
+#define inputs image
+#define from sharesheet
+#define noinput askfor image
+#question shortcutKey "粘贴 JSave 设置页生成的统一收据密钥" ""
+
+const key = text(shortcutKey)
+@keyText = "{key}"
+if @keyText == "" {
+    alert("请先在 JSave 设置页生成统一收据密钥，并填入快捷指令的第一个「文本」操作。", "JSave")
+    stop()
+}
+const ocr = extractImageText(ShortcutInput)
+@sourceHint = ""
+
+@preview = jsonRequest("https://us-central1-jee-production.cloudfunctions.net/jsaveReceiptShortcutImport", "POST", {"action":"preview", "text":"{ocr}", "sourceHint":"{@sourceHint}"}, {"Authorization":"Bearer {key}"})
+@previewDict = getDictionary(@preview)
+@apiErrorValue = getValue(@previewDict, "error")
+@apiError = "{@apiErrorValue}"
+if @apiError == "ambiguous-source" {
+    @sourceChoices = getValue(@previewDict, "sources")
+    @chosenSource = chooseFromList(@sourceChoices, "选择这张截图来自哪个 App 或银行")
+    @sourceHint = "{@chosenSource}"
+    @preview = jsonRequest("https://us-central1-jee-production.cloudfunctions.net/jsaveReceiptShortcutImport", "POST", {"action":"preview", "text":"{ocr}", "sourceHint":"{@sourceHint}"}, {"Authorization":"Bearer {key}"})
+    @previewDict = getDictionary(@preview)
+    @apiErrorValue = getValue(@previewDict, "error")
+    @apiError = "{@apiErrorValue}"
+}
+if @apiError == "unsupported-receipt" {
+    stop()
+}
+if @apiError == "unauthorized" {
+    alert("统一收据密钥无效或已停用。请在 JSave 设置页重新生成并填入。", "JSave")
+    stop()
+}
+if @apiError != "" {
+    alert("暂时无法识别这张交易截图（{@apiError}），未保存。请检查图片及 JSave 设置中的账户。", "JSave")
+    stop()
+}
+@draftValue = getValue(@previewDict, "draft")
+@draft = getDictionary(@draftValue)
+@providerValue = getValue(@draft, "provider")
+@provider = "{@providerValue}"
+@typeValue = getValue(@draft, "type")
+@type = "{@typeValue}"
+@amountValue = getValue(@draft, "amount")
+@amount = "{@amountValue}"
+@dateValue = getValue(@draft, "date")
+@date = "{@dateValue}"
+@timeValue = getValue(@draft, "time")
+@time = "{@timeValue}"
+@noteValue = getValue(@draft, "note")
+@note = "{@noteValue}"
+@accountNameValue = getValue(@draft, "accountName")
+@accountName = "{@accountNameValue}"
+@routingTokenValue = getValue(@draft, "routingToken")
+@routingToken = "{@routingTokenValue}"
+@category = ""
+@categoryLabel = ""
+@direction = ""
+if @type == "expense" {
+    @direction = "支出"
+    menu "选择支出类别" {
+        item "餐饮":
+            @category = "catFood"
+            @categoryLabel = "餐饮"
+        item "交通":
+            @category = "catTransport"
+            @categoryLabel = "交通"
+        item "账单":
+            @category = "catBills"
+            @categoryLabel = "账单"
+        item "娱乐":
+            @category = "catEntertainment"
+            @categoryLabel = "娱乐"
+        item "医疗":
+            @category = "catHealth"
+            @categoryLabel = "医疗"
+        item "购物":
+            @category = "catShopping"
+            @categoryLabel = "购物"
+        item "其他支出":
+            @category = "catOther"
+            @categoryLabel = "其他支出"
+    }
+} else {
+    if @type == "income" {
+        @direction = "收入"
+        menu "选择收入类别" {
+            item "薪资":
+                @category = "catSalary"
+                @categoryLabel = "薪资"
+            item "接案":
+                @category = "catFreelance"
+                @categoryLabel = "接案"
+            item "投资":
+                @category = "catInvestment"
+                @categoryLabel = "投资"
+            item "礼物":
+                @category = "catGift"
+                @categoryLabel = "礼物"
+            item "其他收入":
+                @category = "catOtherIncome"
+                @categoryLabel = "其他收入"
+        }
+    } else {
+        if @type == "transfer" {
+            @direction = "转账"
+            @categoryLabel = "账户间转账"
+        } else {
+            alert("无法读取交易类型（{@type}），未保存。", "JSave")
+            stop()
+        }
+    }
+}
+
+confirm("{@direction} RM{@amount}\n日期：{@date} {@time}\n来源：{@provider}\n账户：{@accountName}\n说明：{@note}\n类别：{@categoryLabel}\n\n确认加入 JSave？", "核对交易")
+@commit = jsonRequest("https://us-central1-jee-production.cloudfunctions.net/jsaveReceiptShortcutImport", "POST", {"action":"commit", "text":"{ocr}", "category":"{@category}", "routingToken":"{@routingToken}", "sourceHint":"{@sourceHint}"}, {"Authorization":"Bearer {key}"})
+@commitDict = getDictionary(@commit)
+@statusValue = getValue(@commitDict, "status")
+@status = "{@statusValue}"
+@completion = ""
+if @status == "created" {
+    @completion = "已加入 JSave。"
+} else {
+    if @status == "duplicate" {
+        @completion = "这笔交易已导入过，没有重复新增。"
+    } else {
+        alert("JSave 没有确认保存，请检查网络与密钥。", "未完成")
+        stop()
+    }
+}
+menu "{@completion} 要删除这张截图吗？" {
+    item "保留照片":
+        alert("{@completion} 截图已保留。", "JSave")
+    item "删除照片":
+        deletePhotos(ShortcutInput)
+        alert("{@completion} 已请求删除这张截图。", "JSave")
+}

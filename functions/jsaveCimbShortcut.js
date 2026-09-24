@@ -60,7 +60,7 @@ function parseCimbScreenshot(ocrText) {
   note = note.replace(/\s+/g, ' ').trim()
   if (!note || note === '-' || note.length > 240) throw new Error('missing-party')
 
-  const isTopup = !isCard && amountMatch[1] !== '+' && /\bTNG\s+E\s*WALLET\b/i.test(note) &&
+  const isTopup = !isCard && amountMatch[1] !== '+' && /TNG\s+E\s*WALLET\b/i.test(note) &&
     /\bTOP\s*UP/i.test(note) && (amountMatch[1] === '-' || /\bPOS DEBIT\b/i.test(note))
   let type
   if (isTopup) type = 'transfer'

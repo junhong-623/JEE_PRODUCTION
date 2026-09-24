@@ -8,6 +8,7 @@ const webpush = require('web-push')
 const crypto = require('crypto')
 const { parseTngScreenshot, validateCategory, transactionDocumentId } = require('./jsaveShortcut')
 const { parseCimbScreenshot, cimbTransactionDocumentId } = require('./jsaveCimbShortcut')
+const { parseReceiptScreenshot, receiptTransactionDocumentId, receiptAccountKey } = require('./jsaveReceiptShortcut')
 
 initializeApp()
 
@@ -29,6 +30,43 @@ const HAGENCY_SPECIALIZATION = new Set(['唱歌', '跳舞', '聊天互动', '才
 // Only its SHA-256 digest is retained. Rotating the key invalidates the old one.
 const shortcutKeyRef = uid => getFirestore().collection('jsave_shortcut_tokens').doc(uid)
 const cimbShortcutKeyRef = uid => getFirestore().collection('jsave_cimb_shortcut_tokens').doc(uid)
+const receiptShortcutKeyRef = uid => getFirestore().collection('jsave_receipt_shortcut_tokens').doc(uid)
+const RECEIPT_ACCOUNT_TYPES = {
+  tngAccountId: 'accEwallet',
+  cimbBankAccountId: 'accBank',
+  cimbCreditAccountId: 'accCredit',
+}
+
+async function checkedReceiptAccounts(uid, input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw new HttpsError('invalid-argument', 'Choose JSave accounts.')
+  }
+  const accountIds = {}
+  for (const key of Object.keys(RECEIPT_ACCOUNT_TYPES)) {
+    const id = input[key] || ''
+    if (typeof id !== 'string' || (id && !/^[A-Za-z0-9_-]{1,128}$/.test(id))) {
+      throw new HttpsError('invalid-argument', 'Choose valid JSave accounts.')
+    }
+    accountIds[key] = id
+  }
+  const selected = Object.entries(accountIds).filter(([, id]) => id)
+  if (!selected.length || new Set(selected.map(([, id]) => id)).size !== selected.length) {
+    throw new HttpsError('invalid-argument', 'Choose separate JSave accounts.')
+  }
+  const snapshots = await Promise.all(selected.map(([, id]) => getFirestore().collection('users').doc(uid)
+    .collection('jsave_accounts').doc(id).get()))
+  selected.forEach(([key], index) => {
+    if (!snapshots[index].exists || snapshots[index].data().type !== RECEIPT_ACCOUNT_TYPES[key]) {
+      throw new HttpsError('invalid-argument', 'Account type does not match the receipt source.')
+    }
+  })
+  return accountIds
+}
+
+function receiptRoutingToken(accountIds) {
+  const routing = Object.keys(RECEIPT_ACCOUNT_TYPES).map(key => accountIds[key] || '')
+  return crypto.createHash('sha256').update(JSON.stringify(routing)).digest('hex')
+}
 
 exports.jsaveShortcutKeyStatus = onCall(async req => {
   if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in required.')
@@ -275,6 +313,145 @@ exports.jsaveCimbShortcutImport = onRequest({ invoker: 'public', cors: false }, 
     return res.json({ status: result, transactionId })
   } catch (error) {
     console.error('[jsave-cimb-shortcut] import failed', error)
+    return res.status(500).json({ error: 'server-error' })
+  }
+})
+
+exports.jsaveReceiptShortcutKeyStatus = onCall(async req => {
+  if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in required.')
+  const snapshot = await receiptShortcutKeyRef(req.auth.uid).get()
+  if (snapshot.exists) return { enabled: true, accountIds: snapshot.data()?.accountIds || {} }
+  const [tng, cimb] = await Promise.all([
+    shortcutKeyRef(req.auth.uid).get(), cimbShortcutKeyRef(req.auth.uid).get(),
+  ])
+  return { enabled: false, accountIds: {
+    tngAccountId: tng.data()?.accountId || cimb.data()?.tngAccountId || '',
+    cimbBankAccountId: cimb.data()?.bankAccountId || '',
+    cimbCreditAccountId: cimb.data()?.creditAccountId || '',
+  } }
+})
+
+exports.jsaveCreateReceiptShortcutKey = onCall(async req => {
+  if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in required.')
+  const accountIds = await checkedReceiptAccounts(req.auth.uid, req.data?.accountIds)
+  const key = `jsv1_${req.auth.uid}_${crypto.randomBytes(32).toString('hex')}`
+  await receiptShortcutKeyRef(req.auth.uid).set({
+    keyHash: crypto.createHash('sha256').update(key).digest('hex'),
+    accountIds,
+    createdAt: FieldValue.serverTimestamp(),
+  })
+  return { key, accountIds }
+})
+
+exports.jsaveUpdateReceiptShortcutAccounts = onCall(async req => {
+  if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in required.')
+  const accountIds = await checkedReceiptAccounts(req.auth.uid, req.data?.accountIds)
+  const keyRef = receiptShortcutKeyRef(req.auth.uid)
+  if (!(await keyRef.get()).exists) throw new HttpsError('failed-precondition', 'Create a shortcut key first.')
+  await keyRef.update({ accountIds, updatedAt: FieldValue.serverTimestamp() })
+  return { accountIds }
+})
+
+exports.jsaveRevokeReceiptShortcutKey = onCall(async req => {
+  if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in required.')
+  await receiptShortcutKeyRef(req.auth.uid).delete()
+  return { revoked: true }
+})
+
+exports.jsaveReceiptShortcutImport = onRequest({ invoker: 'public', cors: false }, async (req, res) => {
+  res.set('Cache-Control', 'no-store')
+  if (req.method !== 'POST') return res.status(405).json({ error: 'method-not-allowed' })
+  const authHeader = req.get('authorization') || ''
+  const key = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
+  const match = key.length <= 200 && key.match(/^jsv1_(.+)_([a-f0-9]{64})$/)
+  if (!match || match[1].includes('/')) return res.status(401).json({ error: 'unauthorized' })
+  const uid = match[1]
+  const keyRef = receiptShortcutKeyRef(uid)
+  const keySnapshot = await keyRef.get()
+  const expectedHash = keySnapshot.data()?.keyHash
+  const actualHash = crypto.createHash('sha256').update(key).digest('hex')
+  if (!expectedHash || !/^[a-f0-9]{64}$/.test(expectedHash) ||
+      !crypto.timingSafeEqual(Buffer.from(expectedHash, 'hex'), Buffer.from(actualHash, 'hex'))) {
+    return res.status(401).json({ error: 'unauthorized' })
+  }
+  const input = req.body || {}
+  if (typeof input !== 'object' || JSON.stringify(input).length > 10000 ||
+      !['preview', 'commit'].includes(input.action)) return res.status(400).json({ error: 'invalid-request' })
+  let draft
+  try {
+    draft = parseReceiptScreenshot(input.text, input.sourceHint || '')
+  } catch (error) {
+    return res.status(422).json({ error: error.message, ...(error.sources ? { sources: error.sources } : {}) })
+  }
+  const accountIds = keySnapshot.data().accountIds || {}
+  const accountId = accountIds[receiptAccountKey(draft)]
+  if (!accountId) return res.status(409).json({ error: 'source-account-not-configured' })
+  const targetAccountId = draft.type === 'transfer' ? accountIds.tngAccountId : ''
+  if (draft.type === 'transfer' && (!targetAccountId || targetAccountId === accountId)) {
+    return res.status(409).json({ error: 'transfer-account-not-configured' })
+  }
+  const routingToken = receiptRoutingToken(accountIds)
+  if (input.action === 'commit' && input.routingToken !== routingToken) {
+    return res.status(409).json({ error: 'account-configuration-changed' })
+  }
+  const db = getFirestore()
+  const accountCollection = db.collection('users').doc(uid).collection('jsave_accounts')
+  const accountSnapshots = await Promise.all([
+    accountCollection.doc(accountId).get(),
+    ...(targetAccountId ? [accountCollection.doc(targetAccountId).get()] : []),
+  ])
+  if (accountSnapshots.some(snapshot => !snapshot.exists)) return res.status(409).json({ error: 'account-not-found' })
+  const expectedSourceType = RECEIPT_ACCOUNT_TYPES[receiptAccountKey(draft)]
+  if (accountSnapshots[0].data().type !== expectedSourceType ||
+      (targetAccountId && accountSnapshots[1].data().type !== 'accEwallet')) {
+    return res.status(409).json({ error: 'account-type-changed' })
+  }
+  if (input.action === 'preview') {
+    const sourceName = accountSnapshots[0].data().name || draft.provider.toUpperCase()
+    const accountName = targetAccountId
+      ? `${sourceName} → ${accountSnapshots[1].data().name || 'TNG'}` : sourceName
+    return res.json({ draft: {
+      provider: draft.provider, type: draft.type, amount: draft.amount,
+      currency: draft.currency, date: draft.date, time: draft.time,
+      note: draft.note, accountName, routingToken,
+    } })
+  }
+  if (draft.type !== 'transfer' && !validateCategory(draft.type, input.category)) {
+    return res.status(400).json({ error: 'invalid-category' })
+  }
+  const transactionId = receiptTransactionDocumentId(draft)
+  const transactionRef = db.collection('users').doc(uid).collection('jsave_transactions').doc(transactionId)
+  const now = Date.now()
+  const usageRef = db.collection('jsave_shortcut_usage').doc(`${uid}_${new Date(now).toISOString().slice(0, 10)}`)
+  try {
+    const result = await db.runTransaction(async transaction => {
+      const [currentKey, existing, usageSnapshot] = await Promise.all([
+        transaction.get(keyRef), transaction.get(transactionRef), transaction.get(usageRef),
+      ])
+      if (currentKey.data()?.keyHash !== expectedHash ||
+          receiptRoutingToken(currentKey.data()?.accountIds || {}) !== routingToken) return 'revoked'
+      if (existing.exists) return 'duplicate'
+      const count = Number(usageSnapshot.data()?.count || 0)
+      if (count >= 100) return 'rate-limited'
+      transaction.create(transactionRef, {
+        id: transactionId, userId: uid, type: draft.type, amount: draft.amount,
+        category: draft.type === 'transfer' ? 'txTransfer' : input.category,
+        ...(draft.type === 'transfer'
+          ? { fromAccountId: accountId, toAccountId: targetAccountId }
+          : { accountId }),
+        date: draft.date, note: draft.note, source: `${draft.provider}-shortcut`,
+        sourceTransactionId: draft.sourceTransactionId,
+        ...(draft.time ? { sourceTime: draft.time } : {}),
+        createdAt: now, updatedAt: now, deleted: false,
+      })
+      transaction.set(usageRef, { count: count + 1, updatedAt: FieldValue.serverTimestamp() })
+      return 'created'
+    })
+    if (result === 'revoked') return res.status(409).json({ error: 'account-configuration-changed' })
+    if (result === 'rate-limited') return res.status(429).json({ error: 'daily-limit' })
+    return res.json({ status: result, transactionId })
+  } catch (error) {
+    console.error('[jsave-receipt-shortcut] import failed', error)
     return res.status(500).json({ error: 'server-error' })
   }
 })
