@@ -7,6 +7,7 @@ const { FieldValue, Timestamp, getFirestore } = require('firebase-admin/firestor
 const webpush = require('web-push')
 const crypto = require('crypto')
 const { parseTngScreenshot, validateCategory, transactionDocumentId } = require('./jsaveShortcut')
+const { parseCimbScreenshot, cimbTransactionDocumentId } = require('./jsaveCimbShortcut')
 
 initializeApp()
 
@@ -27,6 +28,7 @@ const HAGENCY_SPECIALIZATION = new Set(['唱歌', '跳舞', '聊天互动', '才
 // A shortcut key belongs to one signed-in JSave user and one of their accounts.
 // Only its SHA-256 digest is retained. Rotating the key invalidates the old one.
 const shortcutKeyRef = uid => getFirestore().collection('jsave_shortcut_tokens').doc(uid)
+const cimbShortcutKeyRef = uid => getFirestore().collection('jsave_cimb_shortcut_tokens').doc(uid)
 
 exports.jsaveShortcutKeyStatus = onCall(async req => {
   if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in required.')
@@ -140,6 +142,139 @@ exports.jsaveShortcutImport = onRequest({ invoker: 'public', cors: false }, asyn
     return res.json({ status: result, transactionId })
   } catch (error) {
     console.error('[jsave-shortcut] import failed', error)
+    return res.status(500).json({ error: 'server-error' })
+  }
+})
+
+exports.jsaveCimbShortcutKeyStatus = onCall(async req => {
+  if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in required.')
+  const snapshot = await cimbShortcutKeyRef(req.auth.uid).get()
+  return {
+    enabled: snapshot.exists,
+    bankAccountId: snapshot.data()?.bankAccountId || null,
+    creditAccountId: snapshot.data()?.creditAccountId || null,
+    tngAccountId: snapshot.data()?.tngAccountId || null,
+  }
+})
+
+exports.jsaveCreateCimbShortcutKey = onCall(async req => {
+  if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in required.')
+  const { bankAccountId, creditAccountId, tngAccountId } = req.data || {}
+  for (const id of [bankAccountId, creditAccountId, tngAccountId]) {
+    if (id && (typeof id !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(id))) {
+      throw new HttpsError('invalid-argument', 'Choose valid JSave accounts.')
+    }
+  }
+  if (!bankAccountId && !creditAccountId) {
+    throw new HttpsError('invalid-argument', 'Choose a CIMB bank or credit card account.')
+  }
+  if (new Set([bankAccountId, creditAccountId, tngAccountId].filter(Boolean)).size !==
+      [bankAccountId, creditAccountId, tngAccountId].filter(Boolean).length) {
+    throw new HttpsError('invalid-argument', 'Choose separate accounts.')
+  }
+  const accountIds = [bankAccountId, creditAccountId, tngAccountId].filter(Boolean)
+  const accounts = await Promise.all(accountIds.map(id => getFirestore().collection('users').doc(req.auth.uid)
+    .collection('jsave_accounts').doc(id).get()))
+  if (accounts.some(account => !account.exists)) throw new HttpsError('not-found', 'Account not found.')
+  if (bankAccountId && accounts[accountIds.indexOf(bankAccountId)].data().type !== 'accBank') {
+    throw new HttpsError('invalid-argument', 'Choose a bank account.')
+  }
+  if (creditAccountId && accounts[accountIds.indexOf(creditAccountId)].data().type !== 'accCredit') {
+    throw new HttpsError('invalid-argument', 'Choose a credit card account.')
+  }
+  if (tngAccountId && accounts[accountIds.indexOf(tngAccountId)].data().type !== 'accEwallet') {
+    throw new HttpsError('invalid-argument', 'Choose an e-wallet account.')
+  }
+  const key = `jsv1_${req.auth.uid}_${crypto.randomBytes(32).toString('hex')}`
+  await cimbShortcutKeyRef(req.auth.uid).set({
+    keyHash: crypto.createHash('sha256').update(key).digest('hex'),
+    bankAccountId: bankAccountId || null,
+    creditAccountId: creditAccountId || null,
+    tngAccountId: tngAccountId || null,
+    createdAt: FieldValue.serverTimestamp(),
+  })
+  return { key }
+})
+
+exports.jsaveRevokeCimbShortcutKey = onCall(async req => {
+  if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in required.')
+  await cimbShortcutKeyRef(req.auth.uid).delete()
+  return { revoked: true }
+})
+
+exports.jsaveCimbShortcutImport = onRequest({ invoker: 'public', cors: false }, async (req, res) => {
+  res.set('Cache-Control', 'no-store')
+  if (req.method !== 'POST') return res.status(405).json({ error: 'method-not-allowed' })
+  const authHeader = req.get('authorization') || ''
+  const key = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
+  const match = key.length <= 200 && key.match(/^jsv1_(.+)_([a-f0-9]{64})$/)
+  if (!match || match[1].includes('/')) return res.status(401).json({ error: 'unauthorized' })
+  const uid = match[1]
+  const keyRef = cimbShortcutKeyRef(uid)
+  const keySnapshot = await keyRef.get()
+  const expectedHash = keySnapshot.data()?.keyHash
+  const actualHash = crypto.createHash('sha256').update(key).digest('hex')
+  if (!expectedHash || !/^[a-f0-9]{64}$/.test(expectedHash) ||
+      !crypto.timingSafeEqual(Buffer.from(expectedHash, 'hex'), Buffer.from(actualHash, 'hex'))) {
+    return res.status(401).json({ error: 'unauthorized' })
+  }
+
+  const input = req.body || {}
+  if (typeof input !== 'object' || JSON.stringify(input).length > 10000 ||
+      !['preview', 'commit'].includes(input.action)) return res.status(400).json({ error: 'invalid-request' })
+  let draft
+  try {
+    draft = parseCimbScreenshot(input.text)
+  } catch (error) {
+    return res.status(422).json({ error: error.message })
+  }
+  const settings = keySnapshot.data()
+  const accountId = draft.accountKind === 'credit' ? settings.creditAccountId : settings.bankAccountId
+  if (!accountId) return res.status(409).json({ error: 'source-account-not-configured' })
+  if (draft.type === 'transfer' && !settings.tngAccountId) {
+    return res.status(409).json({ error: 'transfer-account-not-configured' })
+  }
+  if (input.action === 'preview') return res.json({ draft })
+  if (draft.type !== 'transfer' && !validateCategory(draft.type, input.category)) {
+    return res.status(400).json({ error: 'invalid-category' })
+  }
+  const db = getFirestore()
+  const sourceRef = db.collection('users').doc(uid).collection('jsave_accounts').doc(accountId)
+  const targetRef = settings.tngAccountId
+    ? db.collection('users').doc(uid).collection('jsave_accounts').doc(settings.tngAccountId) : null
+  const accountSnapshots = await Promise.all([sourceRef.get(), ...(draft.type === 'transfer' ? [targetRef.get()] : [])])
+  if (accountSnapshots.some(snapshot => !snapshot.exists)) return res.status(409).json({ error: 'account-not-found' })
+  const transactionId = cimbTransactionDocumentId(draft.sourceTransactionId)
+  const transactionRef = db.collection('users').doc(uid).collection('jsave_transactions').doc(transactionId)
+  const now = Date.now()
+  const usageRef = db.collection('jsave_shortcut_usage').doc(`${uid}_${new Date(now).toISOString().slice(0, 10)}`)
+  try {
+    const result = await db.runTransaction(async transaction => {
+      const [currentKey, existing, usageSnapshot] = await Promise.all([
+        transaction.get(keyRef), transaction.get(transactionRef), transaction.get(usageRef),
+      ])
+      if (currentKey.data()?.keyHash !== expectedHash) return 'revoked'
+      if (existing.exists) return 'duplicate'
+      const count = Number(usageSnapshot.data()?.count || 0)
+      if (count >= 100) return 'rate-limited'
+      transaction.create(transactionRef, {
+        id: transactionId, userId: uid, type: draft.type, amount: draft.amount,
+        category: draft.type === 'transfer' ? 'txTransfer' : input.category,
+        ...(draft.type === 'transfer'
+          ? { fromAccountId: accountId, toAccountId: settings.tngAccountId }
+          : { accountId }),
+        date: draft.date, note: draft.note, source: 'cimb-shortcut',
+        sourceTransactionId: draft.sourceTransactionId,
+        createdAt: now, updatedAt: now, deleted: false,
+      })
+      transaction.set(usageRef, { count: count + 1, updatedAt: FieldValue.serverTimestamp() })
+      return 'created'
+    })
+    if (result === 'revoked') return res.status(401).json({ error: 'unauthorized' })
+    if (result === 'rate-limited') return res.status(429).json({ error: 'daily-limit' })
+    return res.json({ status: result, transactionId })
+  } catch (error) {
+    console.error('[jsave-cimb-shortcut] import failed', error)
     return res.status(500).json({ error: 'server-error' })
   }
 })

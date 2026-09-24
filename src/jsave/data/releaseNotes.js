@@ -1,8 +1,19 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.6.9',
+    version: '3.7.0',
     date: '2026-09-24',
     isLatest: true,
+    items: [
+      'Add a separate iPhone shortcut for CIMB transaction screenshots with bank and credit card account routing, category review, and TNG top-up transfers',
+    ],
+    itemsZh: [
+      '新增 CIMB 交易截图 iPhone 快捷指令，可区分银行与信用卡账户、核对类别，并将 TNG 充值记为转账',
+    ],
+  },
+  {
+    version: '3.6.9',
+    date: '2026-09-24',
+    isLatest: false,
     items: [
       'Animate the TNG import preview on the intro page to show screenshot reading, transaction details, category, and confirmation in sequence',
     ],

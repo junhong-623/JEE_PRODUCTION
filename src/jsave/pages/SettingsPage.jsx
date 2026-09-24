@@ -155,6 +155,120 @@ function ShortcutImportSettings({ accounts, user, lang }) {
   )
 }
 
+function CimbShortcutSettings({ accounts, user, lang }) {
+  const zh = lang === 'zh'
+  const bankAccounts = accounts.filter(account => account.type === 'accBank')
+  const creditAccounts = accounts.filter(account => account.type === 'accCredit')
+  const walletAccounts = accounts.filter(account => account.type === 'accEwallet')
+  const [bankAccountId, setBankAccountId] = useState('')
+  const [creditAccountId, setCreditAccountId] = useState('')
+  const [tngAccountId, setTngAccountId] = useState('')
+  const [enabled, setEnabled] = useState(false)
+  const [key, setKey] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!user?.uid) return
+    let cancelled = false
+    httpsCallable(functions, 'jsaveCimbShortcutKeyStatus')().then(({ data }) => {
+      if (cancelled) return
+      setEnabled(Boolean(data.enabled))
+      setBankAccountId(data.bankAccountId || '')
+      setCreditAccountId(data.creditAccountId || '')
+      setTngAccountId(data.tngAccountId || '')
+    }).catch(() => {
+      if (!cancelled) setError(zh ? '无法读取 CIMB 快捷指令状态。' : 'Could not load CIMB shortcut status.')
+    })
+    return () => { cancelled = true }
+  }, [user?.uid]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function generateKey() {
+    if ((!bankAccountId && !creditAccountId) || busy) return
+    setBusy(true)
+    setError('')
+    setKey('')
+    try {
+      const { data } = await httpsCallable(functions, 'jsaveCreateCimbShortcutKey')({
+        bankAccountId, creditAccountId, tngAccountId,
+      })
+      setKey(data.key)
+      setEnabled(true)
+    } catch {
+      setError(zh ? '建立密钥失败，请确认账户类型后重试。' : 'Could not create a key. Check the account types and try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function revokeKey() {
+    if (busy) return
+    setBusy(true)
+    setError('')
+    try {
+      await httpsCallable(functions, 'jsaveRevokeCimbShortcutKey')()
+      setEnabled(false)
+      setKey('')
+    } catch {
+      setError(zh ? '停用密钥失败，请稍后重试。' : 'Could not revoke the key. Please try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Accordion title={zh ? '📱 CIMB 交易截图快捷指令' : '📱 CIMB transaction screenshot shortcut'}>
+      <p className="jsave-section-sub" style={{ marginBottom: 12 }}>
+        {zh
+          ? '识别 CIMB 交易详情截图，核对后记入银行或信用卡账户。TNG 钱包充值会作为转账，不计作支出。'
+          : 'Review CIMB transaction screenshots before saving to a bank or credit card account. TNG wallet top-ups are recorded as transfers.'}
+      </p>
+      <a className="jsave-btn-ghost jsave-btn-full"
+        href="https://jeeprod-jsave.web.app/shortcuts/JSave-CIMB-Import.shortcut?v=3.7.0"
+        target="_blank" rel="noopener noreferrer"
+        style={{ justifyContent: 'center', textDecoration: 'none', marginBottom: 12 }}>
+        {zh ? '下载 CIMB iPhone 快捷指令' : 'Download CIMB iPhone shortcut'}
+      </a>
+      <p className="jsave-section-sub" style={{ marginBottom: 12 }}>
+        {zh ? '先选择实际的 JSave 账户并生成 CIMB 密钥；它与现有 TNG 密钥分开。安装指令时粘贴密钥，或填入第一个「文本」操作。'
+          : 'Select your JSave accounts and create a separate CIMB key. Paste it while installing the shortcut, or into its first Text action.'}
+      </p>
+      <label className="jsave-label" htmlFor="jsave-cimb-bank">{zh ? 'CIMB 银行账户' : 'CIMB bank account'}</label>
+      <select id="jsave-cimb-bank" className="jsave-input jsave-input-sm" value={bankAccountId} onChange={event => setBankAccountId(event.target.value)}>
+        <option value="">{zh ? '未设置' : 'Not configured'}</option>
+        {bankAccounts.map(account => <option key={account.id} value={account.id}>{account.name}</option>)}
+      </select>
+      <label className="jsave-label" htmlFor="jsave-cimb-credit" style={{ marginTop: 10 }}>{zh ? 'CIMB 信用卡账户' : 'CIMB credit card account'}</label>
+      <select id="jsave-cimb-credit" className="jsave-input jsave-input-sm" value={creditAccountId} onChange={event => setCreditAccountId(event.target.value)}>
+        <option value="">{zh ? '未设置' : 'Not configured'}</option>
+        {creditAccounts.map(account => <option key={account.id} value={account.id}>{account.name}</option>)}
+      </select>
+      <label className="jsave-label" htmlFor="jsave-cimb-tng" style={{ marginTop: 10 }}>{zh ? '我的 TNG 钱包（用于充值转账）' : 'My TNG wallet (top-up transfers)'}</label>
+      <select id="jsave-cimb-tng" className="jsave-input jsave-input-sm" value={tngAccountId} onChange={event => setTngAccountId(event.target.value)}>
+        <option value="">{zh ? '未设置：充值截图不会导入' : 'Not configured: top-ups will not import'}</option>
+        {walletAccounts.map(account => <option key={account.id} value={account.id}>{account.name}</option>)}
+      </select>
+      <p className="jsave-section-sub" style={{ margin: '10px 0 12px' }}>
+        {zh ? '改变账户配置后请重新生成密钥。旧 CIMB 密钥会立即失效，TNG 密钥不受影响。'
+          : 'Create a new key after changing accounts. This disables the old CIMB key without affecting the TNG key.'}
+      </p>
+      <button className="jsave-btn-primary jsave-btn-full" disabled={busy || (!bankAccountId && !creditAccountId)} onClick={generateKey}>
+        {enabled ? (zh ? '重新生成 CIMB 密钥' : 'Rotate CIMB key') : (zh ? '生成 CIMB 密钥' : 'Create CIMB key')}
+      </button>
+      {enabled && <p className="jsave-section-sub" style={{ marginTop: 10 }}>{zh ? '当前 CIMB 密钥已启用。' : 'A CIMB key is active.'}</p>}
+      {key && <div style={{ marginTop: 12 }}>
+        <label className="jsave-label" htmlFor="jsave-cimb-key">{zh ? '密钥（只显示这一次）' : 'Key (shown only once)'}</label>
+        <textarea id="jsave-cimb-key" className="jsave-input" readOnly value={key} rows={3} style={{ width: '100%', wordBreak: 'break-all' }} />
+        <button className="jsave-btn-ghost jsave-btn-full" onClick={() => navigator.clipboard.writeText(key)}>{zh ? '复制密钥' : 'Copy key'}</button>
+      </div>}
+      {enabled && <button className="jsave-btn-danger" style={{ marginTop: 12 }} disabled={busy} onClick={revokeKey}>
+        {zh ? '停用 CIMB 密钥' : 'Revoke CIMB key'}
+      </button>}
+      {error && <p className="jsave-error" style={{ marginTop: 10 }}>{error}</p>}
+    </Accordion>
+  )
+}
+
 function salaryDate(monthKey, day) {
   if (!monthKey || !day) return null
   const [year, month] = monthKey.split('-').map(Number)
@@ -840,6 +954,7 @@ export default function SettingsPage({ onOpenAdmin }) {
 
       {/* Data ownership */}
       <ShortcutImportSettings accounts={accounts} user={user} lang={lang} />
+      <CimbShortcutSettings accounts={accounts} user={user} lang={lang} />
 
       <Accordion title={t('dataSection')}>
         <p className="jsave-section-sub" style={{ marginBottom: 12 }}>{t('exportCsvDesc')}</p>

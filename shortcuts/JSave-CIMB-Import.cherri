@@ -1,0 +1,127 @@
+#include 'actions/images'
+#include 'actions/photos'
+#include 'actions/web'
+#define name JSave CIMB Import
+#define color red
+#define inputs image
+#define from sharesheet
+#define noinput askfor image
+#question shortcutKey "粘贴 JSave 设置页生成的 CIMB 快捷指令密钥" ""
+
+const key = text(shortcutKey)
+@keyText = "{key}"
+if @keyText == "" {
+    alert("请先在 JSave 设置页生成 CIMB 密钥，并填入快捷指令的第一个「文本」操作。", "JSave")
+    stop()
+}
+const ocr = extractImageText(ShortcutInput)
+
+@preview = jsonRequest("https://us-central1-jee-production.cloudfunctions.net/jsaveCimbShortcutImport", "POST", {"action":"preview", "text":"{ocr}"}, {"Authorization":"Bearer {key}"})
+@previewDict = getDictionary(@preview)
+@apiErrorValue = getValue(@previewDict, "error")
+@apiError = "{@apiErrorValue}"
+if @apiError == "unsupported-receipt" {
+    stop()
+}
+if @apiError == "unauthorized" {
+    alert("CIMB 密钥无效或已停用。请在 JSave 设置页重新生成并填入。", "JSave")
+    stop()
+}
+if @apiError != "" {
+    alert("暂时无法识别 CIMB 交易（{@apiError}），未保存。请检查截图及 JSave 设置中的账户。", "JSave")
+    stop()
+}
+@draftValue = getValue(@previewDict, "draft")
+@draft = getDictionary(@draftValue)
+@typeValue = getValue(@draft, "type")
+@type = "{@typeValue}"
+@amountValue = getValue(@draft, "amount")
+@amount = "{@amountValue}"
+@dateValue = getValue(@draft, "date")
+@date = "{@dateValue}"
+@noteValue = getValue(@draft, "note")
+@note = "{@noteValue}"
+@accountKindValue = getValue(@draft, "accountKind")
+@accountKind = "{@accountKindValue}"
+@category = ""
+@categoryLabel = ""
+@direction = ""
+if @type == "expense" {
+    @direction = "支出"
+    menu "选择支出类别" {
+        item "餐饮":
+            @category = "catFood"
+            @categoryLabel = "餐饮"
+        item "交通":
+            @category = "catTransport"
+            @categoryLabel = "交通"
+        item "账单":
+            @category = "catBills"
+            @categoryLabel = "账单"
+        item "娱乐":
+            @category = "catEntertainment"
+            @categoryLabel = "娱乐"
+        item "医疗":
+            @category = "catHealth"
+            @categoryLabel = "医疗"
+        item "购物":
+            @category = "catShopping"
+            @categoryLabel = "购物"
+        item "其他支出":
+            @category = "catOther"
+            @categoryLabel = "其他支出"
+    }
+} else {
+    if @type == "income" {
+        @direction = "收入"
+        menu "选择收入类别" {
+            item "薪资":
+                @category = "catSalary"
+                @categoryLabel = "薪资"
+            item "接案":
+                @category = "catFreelance"
+                @categoryLabel = "接案"
+            item "投资":
+                @category = "catInvestment"
+                @categoryLabel = "投资"
+            item "礼物":
+                @category = "catGift"
+                @categoryLabel = "礼物"
+            item "其他收入":
+                @category = "catOtherIncome"
+                @categoryLabel = "其他收入"
+        }
+    } else {
+        if @type == "transfer" {
+            @direction = "转账"
+            @categoryLabel = "CIMB 银行 → TNG 钱包"
+        } else {
+            alert("无法读取交易类型（{@type}），未保存。", "JSave")
+            stop()
+        }
+    }
+}
+
+confirm("{@direction} RM{@amount}\n日期：{@date}\n内容：{@note}\n账户：{@accountKind}\n类别：{@categoryLabel}\n\n确认加入 JSave？", "核对 CIMB 交易")
+@commit = jsonRequest("https://us-central1-jee-production.cloudfunctions.net/jsaveCimbShortcutImport", "POST", {"action":"commit", "text":"{ocr}", "category":"{@category}"}, {"Authorization":"Bearer {key}"})
+@commitDict = getDictionary(@commit)
+@statusValue = getValue(@commitDict, "status")
+@status = "{@statusValue}"
+@completion = ""
+if @status == "created" {
+    @completion = "已加入 JSave。"
+} else {
+    if @status == "duplicate" {
+        @completion = "这笔 CIMB 交易已导入过，没有重复新增。"
+    } else {
+        alert("JSave 没有确认保存，请检查网络与密钥。", "未完成")
+        stop()
+    }
+}
+menu "{@completion} 要删除这张截图吗？" {
+    item "保留照片":
+        alert("{@completion} 截图已保留。", "JSave")
+    item "删除照片":
+        deletePhotos(ShortcutInput)
+        alert("{@completion} 已请求删除这张截图。", "JSave")
+}
