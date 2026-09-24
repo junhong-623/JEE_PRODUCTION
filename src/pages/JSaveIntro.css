@@ -152,6 +152,9 @@
 .ji-shortcut-steps li > span { padding-top: 3px; color: var(--ji-green-dark); font-size: 11px; font-weight: 750; letter-spacing: .08em; }
 .ji-shortcut-steps h3 { font-size: 17px; letter-spacing: -.02em; }
 .ji-shortcut-steps p { margin-top: 4px; color: #5c6d62; font-size: 13px; line-height: 1.5; }
+.ji-shortcut-guide-button { margin-top: 24px; padding: 14px 18px; display: inline-flex; align-items: center; justify-content: center; gap: 12px; border: 1px solid #087f5b; border-radius: 999px; color: #fff; background: #087f5b; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; transition: transform .2s ease, box-shadow .2s ease, background .2s ease; }
+.ji-shortcut-guide-button:hover { transform: translateY(-2px); background: #066a4c; box-shadow: 0 12px 24px rgba(8,127,91,.19); }
+.ji-shortcut-guide-button svg { width: 18px; height: 18px; }
 .ji-shortcut-note { max-width: 570px; margin-top: 22px !important; color: #66796d; font-size: 12px; line-height: 1.65; }
 .ji-shortcut-visual { min-width: 0; display: flex; justify-content: center; }
 .ji-shortcut-card { --ji-shortcut-tilt: 2deg; position: relative; width: min(440px, 100%); padding: 32px; border: 1px solid rgba(8,127,91,.15); border-radius: 32px; background: #fff; box-shadow: 0 35px 80px rgba(32,83,52,.12); transform: rotate(var(--ji-shortcut-tilt)); }
@@ -367,6 +370,85 @@
 .ji-footer > span { justify-self: end; color: #8b918d; font-size: 11px; }
 .ji-footer > span a { color: #4d5550; font-weight: 650; text-decoration: none; }
 .ji-footer > span a:hover { color: var(--ji-green-dark); text-decoration: underline; text-underline-offset: 3px; }
+
+.ji-guide-backdrop { position: fixed; inset: 0; z-index: 600; padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); display: grid; place-items: center; background: rgba(4,18,12,.72); backdrop-filter: blur(12px); }
+.ji-guide-dialog { position: relative; width: min(900px, 100%); max-height: calc(100dvh - 32px); padding: 30px 32px 0; overflow-y: auto; overscroll-behavior: contain; border: 1px solid #d6e9db; border-radius: 28px; background: #fcfefa; box-shadow: 0 36px 110px rgba(0,0,0,.38); }
+.ji-guide-close { position: absolute; top: 18px; right: 20px; width: 38px; height: 38px; display: grid; place-items: center; border: 0; border-radius: 50%; color: #375343; background: #eaf3ed; font-size: 26px; line-height: 1; cursor: pointer; }
+.ji-guide-heading { max-width: 720px; padding-right: 42px; }
+.ji-guide-heading h2 { margin-top: 8px !important; font-size: clamp(28px, 4vw, 42px); line-height: 1.08; letter-spacing: -.05em; }
+.ji-guide-heading > p:last-child { margin-top: 10px; color: #597063; font-size: 14px; line-height: 1.55; }
+.ji-guide-progress { margin-top: 24px; display: flex; gap: 9px; }
+.ji-guide-progress button { width: 40px; height: 40px; border: 1px solid #ccded1; border-radius: 50%; color: #47705b; background: #fff; font: 700 11px var(--font-mono, monospace); cursor: pointer; transition: color .2s, background .2s, transform .2s; }
+.ji-guide-progress button:hover { transform: translateY(-2px); }
+.ji-guide-progress button.is-active { border-color: #087f5b; color: #fff; background: #087f5b; }
+.ji-guide-body { margin-top: 20px; display: grid; grid-template-columns: minmax(0, 310px) minmax(0, 1fr); align-items: center; gap: clamp(22px, 4vw, 56px); animation: ji-guide-step-in .32s ease both; }
+@keyframes ji-guide-step-in { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: none; } }
+.ji-guide-art { min-height: 376px; padding: 14px; display: grid; place-items: center; overflow: hidden; border-radius: 22px; background: radial-gradient(circle at 20% 12%, #cbf4d8, transparent 50%), linear-gradient(145deg, #eaf7ee, #dbece3); }
+.ji-guide-phone { width: 236px; height: 344px; padding: 10px 13px 14px; overflow: hidden; border: 7px solid #16271f; border-radius: 32px; color: #16241b; background: #f8faf7; box-shadow: 0 18px 30px rgba(4,54,32,.23); }
+.ji-guide-phone-status { display: flex; align-items: center; justify-content: space-between; padding: 0 6px 10px; color: #24372a; font: 650 10px var(--font-sans, sans-serif); }
+.ji-guide-phone-status span:last-child { font-size: 8px; letter-spacing: 2px; }
+.ji-guide-phone-screen { height: 100%; text-align: left; }
+.ji-guide-phone-title { margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; font-size: 17px; font-weight: 750; }
+.ji-guide-phone-title span { color: #6f8776; font-size: 10px; font-weight: 650; }
+.ji-guide-screen-card, .ji-guide-review-card, .ji-guide-key-card { padding: 14px; border: 1px solid #e1eae3; border-radius: 15px; background: #fff; box-shadow: 0 8px 20px rgba(22,61,40,.06); }
+.ji-guide-screen-card > b { display: block; margin-bottom: 14px; color: #153a27; font-size: 11px; }
+.ji-guide-account-row { padding: 10px 0; display: flex; justify-content: space-between; gap: 8px; border-top: 1px solid #eef3ef; font-size: 10px; }
+.ji-guide-account-row span { color: #73877a; }
+.ji-guide-account-row strong { color: #155b3a; font-weight: 700; }
+.ji-guide-screen-button { margin-top: 16px; padding: 10px 8px; border-radius: 10px; color: #fff; background: #087f5b; font-size: 10px; font-weight: 750; text-align: center; }
+.ji-guide-shortcut-icon { width: 64px; height: 64px; margin: 20px auto 10px; display: grid; place-items: center; border-radius: 16px; color: #fff; background: linear-gradient(135deg, #2bb7eb, #7069e7); font-size: 30px; box-shadow: 0 10px 22px rgba(73,112,202,.25); }
+.ji-guide-shortcut-name, .ji-guide-result-title { display: block; text-align: center; font-size: 13px; }
+.ji-guide-key-card { margin-top: 20px; }
+.ji-guide-key-card span { display: block; margin-bottom: 6px; color: #6f8073; font-size: 9px; }
+.ji-guide-key-card strong { font: 650 10px var(--font-mono, monospace); }
+.ji-guide-receipt { min-height: 138px; padding: 18px 15px; display: grid; align-content: center; gap: 8px; border-radius: 15px; color: #194631; background: #fff; box-shadow: 0 6px 18px rgba(0,0,0,.06); }
+.ji-guide-receipt span { font-weight: 800; font-size: 13px; }
+.ji-guide-receipt strong { font-size: 30px; letter-spacing: -.05em; }
+.ji-guide-receipt small { color: #647c6d; font-size: 9px; }
+.ji-guide-share-sheet { margin-top: 14px; padding: 10px; border-radius: 14px; background: #e9eef1; }
+.ji-guide-share-sheet span { display: block; padding-bottom: 9px; color: #6b7a79; font-size: 10px; }
+.ji-guide-share-sheet strong { display: block; padding: 10px; border-radius: 9px; background: #fff; font-size: 10px; }
+.ji-guide-review-card > strong { color: #df6162; font-size: 28px; letter-spacing: -.04em; }
+.ji-guide-review-card > div { margin-top: 15px; font-size: 12px; font-weight: 700; }
+.ji-guide-review-card small { display: block; margin-top: 6px; color: #708575; font-size: 10px; }
+.ji-guide-review-card em { margin-top: 12px; padding: 5px 9px; display: inline-block; border-radius: 999px; color: #087f5b; background: #e7f6ec; font-size: 10px; font-style: normal; }
+.ji-guide-result-check { width: 58px; height: 58px; margin: 18px auto 12px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: #10b981; font-size: 31px; }
+.ji-guide-photo-choice { margin-top: 22px; display: grid; gap: 8px; font-size: 11px; text-align: center; }
+.ji-guide-photo-choice span, .ji-guide-photo-choice strong { padding: 10px; border-radius: 9px; background: #e9f1ed; }
+.ji-guide-photo-choice strong { color: #fff; background: #087f5b; }
+.ji-guide-automation-chip { margin-top: 18px; color: #60766a; font-size: 10px; text-align: center; }
+.ji-guide-instructions { align-self: center; }
+.ji-guide-step-number { color: #087f5b; font: 750 11px var(--font-mono, monospace); letter-spacing: .12em; }
+.ji-guide-instructions h3 { margin-top: 12px; font-size: clamp(25px, 3vw, 34px); line-height: 1.12; letter-spacing: -.045em; }
+.ji-guide-instructions > p { margin-top: 16px; color: #415548; font-size: 16px; line-height: 1.65; }
+.ji-guide-tip { margin-top: 22px; padding: 14px 16px; display: flex; gap: 10px; border-left: 3px solid #10b981; border-radius: 0 10px 10px 0; background: #edf7ef; }
+.ji-guide-tip span { color: #087f5b; font-size: 16px; }
+.ji-guide-tip p { color: #47604f; font-size: 13px; line-height: 1.55; }
+.ji-guide-download { margin-top: 17px; padding: 12px 16px; display: inline-flex; border-radius: 999px; color: #fff; background: #087f5b; font-size: 13px; font-weight: 750; text-decoration: none; }
+.ji-guide-actions { position: sticky; bottom: 0; margin-top: 22px; padding: 16px 0 22px; display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid #e4eee7; background: #fcfefa; }
+.ji-guide-actions button { min-height: 44px; padding: 0 20px; border: 1px solid #cadfd0; border-radius: 999px; color: #155c3c; background: #fff; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+.ji-guide-actions button:disabled { opacity: .4; cursor: default; }
+.ji-guide-actions .ji-guide-next { display: inline-flex; align-items: center; gap: 9px; border-color: #087f5b; color: #fff; background: #087f5b; }
+.ji-guide-next svg { width: 17px; height: 17px; }
+
+@media (max-width: 600px) {
+  .ji-guide-backdrop { padding: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom)); }
+  .ji-guide-dialog { max-height: calc(100dvh - 16px); padding: 22px 18px 0; border-radius: 22px; }
+  .ji-guide-close { top: 12px; right: 12px; width: 34px; height: 34px; }
+  .ji-guide-heading { padding-right: 27px; }
+  .ji-guide-heading h2 { font-size: 27px; }
+  .ji-guide-heading > p:last-child { font-size: 12px; }
+  .ji-guide-progress { margin-top: 18px; gap: 7px; }
+  .ji-guide-progress button { width: 35px; height: 35px; }
+  .ji-guide-body { margin-top: 16px; grid-template-columns: 1fr; gap: 20px; }
+  .ji-guide-art { height: 270px; min-height: 0; padding: 10px; display: flex; align-items: flex-start; justify-content: center; }
+  .ji-guide-phone { flex: 0 0 auto; transform: scale(.71); transform-origin: top center; }
+  .ji-guide-instructions h3 { margin-top: 8px; font-size: 25px; }
+  .ji-guide-instructions > p { margin-top: 11px; font-size: 14px; }
+  .ji-guide-tip { margin-top: 15px; padding: 11px 12px; }
+  .ji-guide-tip p { font-size: 12px; }
+  .ji-guide-actions { margin-top: 18px; padding: 12px 0 15px; }
+}
 
 .ji-modal-backdrop { position: fixed; inset: 0; z-index: 500; padding: 22px; display: grid; place-items: center; background: rgba(0,0,0,.68); backdrop-filter: blur(12px); }
 .ji-install-modal { position: relative; width: min(420px, 100%); padding: 34px; border-radius: 28px; background: #fff; box-shadow: 0 40px 100px rgba(0,0,0,.35); }

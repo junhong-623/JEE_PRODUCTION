@@ -34,16 +34,29 @@ const COPY = {
       { title: 'Adjust', body: 'Move at your own pace with simple feedback—not warnings designed to create anxiety.' },
       { title: 'Keep', body: 'Export a clean CSV whenever you need your records somewhere else.' },
     ],
-    shortcutKicker: 'TNG · IPHONE SHORTCUT',
+    shortcutKicker: 'TNG + CIMB · IPHONE SHORTCUT',
     shortcutTitle: 'From payment screenshot to JSave entry.',
-    shortcutBody: 'Use the iPhone shortcut with a successful TNG payment or incoming transfer screenshot. It reads the amount, date and merchant or sender, then lets you choose a category and confirm the entry before saving.',
+    shortcutBody: 'Use one iPhone shortcut for supported TNG confirmations and CIMB transaction details. It reads the amount, date and payee, then lets you check the category and account before saving.',
     shortcutSteps: [
-      { title: 'Capture', body: 'Share a TNG screenshot from Photos, or set up the optional screenshot automation on your iPhone.' },
-      { title: 'Check', body: 'Choose a category and review the amount, date and suggested note.' },
+      { title: 'Capture', body: 'Share one supported TNG or CIMB transaction screenshot from Photos.' },
+      { title: 'Check', body: 'Choose a category and review the amount, date, account and suggested note.' },
       { title: 'Save', body: 'Confirm the entry, then choose whether to keep or delete the screenshot.' },
     ],
-    shortcutNote: 'Get the shortcut and create its dedicated key in JSave Settings. Text is extracted on your iPhone; the screenshot itself is not uploaded. Unrecognized screenshots are not saved as transactions.',
+    shortcutNote: 'Set up your accounts and key in JSave Settings. Text is extracted on your iPhone; the screenshot itself is not uploaded. Unrecognized screenshots are not saved.',
     shortcutPreview: 'IMPORT PREVIEW', shortcutMerchant: 'Merchant', shortcutDate: 'Date', shortcutCategory: 'Category', shortcutFood: 'Food', shortcutConfirm: 'Confirm to add to JSave',
+    shortcutGuideButton: 'iPhone shortcut setup guide',
+    shortcutGuide: {
+      eyebrow: 'IPHONE WALKTHROUGH', title: 'Turn one screenshot into one entry.',
+      intro: 'Five short steps, from choosing accounts to reviewing the saved transaction. The pictures are guides, not screenshots from your phone.',
+      visualLabel: 'Illustration', previous: 'Back', next: 'Next step', finish: 'Done', download: 'Download unified shortcut',
+      steps: [
+        { title: 'Choose your JSave accounts', body: 'Open JSave → Settings → Unified receipt screenshot shortcut. Select the TNG wallet and/or CIMB bank and credit card accounts you actually use. You can leave unused sources blank. Creating the key saves your first account choices; use Save account choices for later changes.', tip: 'For a CIMB payment to your UOB card, JSave can match one UOB credit card automatically; choose it in Settings if there is more than one.' },
+        { title: 'Create a key and install', body: 'Create the unified key in Settings and copy it. Download the .shortcut file, open it from Files on your iPhone, and paste the key when asked. If no setup question appears, edit “JSave Receipt Import” and paste the key into its first Text action.', tip: 'The key appears only once. Keep it private. Changing account choices later does not require a new key or shortcut.' },
+        { title: 'Share one screenshot', body: 'Capture a successful TNG payment or incoming transfer, or a supported CIMB Transaction Details page. In Photos, open that single screenshot, tap Share, then choose “JSave Receipt Import”.', tip: 'A transaction list or whole bank statement is not a single transaction screenshot and will not be imported.' },
+        { title: 'Review before saving', body: 'The shortcut reads text on your iPhone. For income or expenses, choose a category. Check the amount, date, account and note in the confirmation, then tap Confirm. Cancel if anything looks wrong.', tip: 'Only the extracted text goes to JSave for parsing; the image stays on your phone.' },
+        { title: 'Keep the photo or automate later', body: 'After a save or duplicate result, choose to keep or delete that exact photo. Once sharing from Photos works, you may add an optional screenshot automation in the Shortcuts app that runs JSave Receipt Import.', tip: 'Screenshot automation is not limited to TNG or CIMB. It can run after screenshots in other apps too; unsupported images are skipped. The Photos share action is always available.' },
+      ],
+    },
     stories: [
       { no: '01', label: 'FAST CAPTURE', title: 'A money habit you can actually keep.', body: 'Choose an amount, category and account. That is enough. Recurring entries take care of predictable monthly spending without creating duplicates.', points: ['Four transaction types', 'Recurring monthly entries', 'Clear account balances'] },
       { no: '02', label: 'USEFUL FEEDBACK', title: 'Know what today means for tomorrow.', body: 'A daily budget signal turns a long monthly number into a decision you can use right now. Goals and cost-per-day add context without judging you.', points: ['Daily budget pacing', 'Goal progress', 'True cost per day'] },
@@ -107,16 +120,29 @@ const COPY = {
       { title: '调整', body: '用简单反馈找到自己的节奏，而不是用警告制造焦虑。' },
       { title: '保留', body: '需要在其他地方使用时，随时导出干净的 CSV。' },
     ],
-    shortcutKicker: 'TNG · IPHONE 快捷指令',
+    shortcutKicker: 'TNG + CIMB · IPHONE 快捷指令',
     shortcutTitle: '付款截图，核对后记进 JSave。',
-    shortcutBody: '截下 TNG 付款成功页或收款详情页，iPhone 快捷指令会读取金额、日期、商家或转账人。你选择类别、核对资料并确认后，交易才会保存。',
+    shortcutBody: '同一个 iPhone 快捷指令可处理已支持的 TNG 成功页与 CIMB 交易详情页。它读取金额、日期和交易对象，由你核对类别及账户后才保存。',
     shortcutSteps: [
-      { title: '截屏', body: '从「照片」分享 TNG 截图，或自行在 iPhone 设置截屏自动化。' },
-      { title: '核对', body: '选择类别，检查金额、日期和预设备注。' },
+      { title: '截屏', body: '从「照片」分享一张已支持的 TNG 或 CIMB 单笔交易截图。' },
+      { title: '核对', body: '选择类别，检查金额、日期、账户和预设备注。' },
       { title: '保存', body: '确认加入账本后，可选择保留或删除这张截图。' },
     ],
-    shortcutNote: '在 JSave 设置中下载快捷指令并建立专用密钥。文字由 iPhone 提取；截图本身不会上传。无法识别的截图不会存为交易。',
+    shortcutNote: '先在 JSave 设置中选账户并建立统一密钥。文字由 iPhone 提取；截图本身不会上传。无法识别的截图不会存为交易。',
     shortcutPreview: '导入预览', shortcutMerchant: '商家', shortcutDate: '日期', shortcutCategory: '类别', shortcutFood: '餐饮', shortcutConfirm: '确认加入 JSave',
+    shortcutGuideButton: '查看 iPhone 快捷指令教程',
+    shortcutGuide: {
+      eyebrow: 'IPHONE 操作教程', title: '一张截图，核对后记下一笔。',
+      intro: '从选账户到确认入账，分五步完成。下方画面是操作示意，不是你的手机截图。',
+      visualLabel: '操作示意', previous: '上一步', next: '下一步', finish: '完成', download: '下载统一快捷指令',
+      steps: [
+        { title: '先选择 JSave 账户', body: '打开 JSave → 设置 → 统一收据截图快捷指令。选好自己使用的 TNG 钱包、CIMB 银行或信用卡账户；没使用的来源可以留空。首次生成密钥时会保存账户选择；日后更换账户才点「保存账户设置」。', tip: 'CIMB 支付自己的 UOB 信用卡时，只有一张 UOB 卡会自动匹配；有多张时请在设置中指定。' },
+        { title: '生成密钥并安装指令', body: '在设置中生成统一密钥并复制。下载 .shortcut 文件，在 iPhone「文件」App 打开，按提示粘贴密钥。若没有出现提问，请编辑「JSave Receipt Import」，把密钥填入第一个「文本」操作。', tip: '密钥只显示一次，请勿分享。日后更换账户设置，无需重新生成密钥或重装指令。' },
+        { title: '从「照片」分享一张截图', body: '截取 TNG 付款成功页、收款详情页，或已支持的 CIMB「Transaction Details」单笔页面。在「照片」打开这张截图，点击分享，选择「JSave Receipt Import」。', tip: '交易列表或整份银行账单不是单笔截图，目前不会批量导入。' },
+        { title: '核对资料再保存', body: '指令先在 iPhone 提取图片文字。支出或收入会让你选类别；接着检查金额、日期、账户和备注。确认无误才按「确认」，有疑问就取消。', tip: '只有提取出的文字会交给 JSave 解析，图片本身留在你的手机。' },
+        { title: '选择照片去留，自动化可稍后加', body: '保存成功或发现重复后，可以保留或删除本次截图。先用「照片」分享方式测试成功，再视需要到「快捷指令 → 自动化」设置截图后运行统一指令。', tip: '截图自动化会受其他 App 的截图触发，无法只限 TNG 或 CIMB；不支持的图片会跳过。手动分享一直可以使用。' },
+      ],
+    },
     stories: [
       { no: '01', label: '快速记录', title: '真正坚持得下来的金钱习惯。', body: '选择金额、类别和账户，就够了。固定的每月开销可以自动记录，同时避免重复生成。', points: ['四种交易类型', '每月周期记账', '清楚的账户余额'] },
       { no: '02', label: '有用的反馈', title: '看懂今天，会怎样影响明天。', body: '每日预算把遥远的月度数字，变成当下可用的判断。目标进度和日均成本提供背景，但不评判你。', points: ['每日预算节奏', '目标进度', '真实日均成本'] },
@@ -194,6 +220,103 @@ function FeatureGlyph({ type }) {
   return <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 13a9 9 0 0117-3M25 19a9 9 0 01-17 3"/><path d="M24 4v6h-6M8 28v-6h6"/></svg>
 }
 
+function ShortcutGuideVisual({ step, zh, label }) {
+  return <div className="ji-guide-art" role="img" aria-label={`${label}: ${step + 1}`}>
+    <div className="ji-guide-phone">
+      <div className="ji-guide-phone-status"><span>9:41</span><span>●●● ▰</span></div>
+      {step === 0 && <div className="ji-guide-phone-screen">
+        <div className="ji-guide-phone-title">JSave <span>{zh ? '设置' : 'Settings'}</span></div>
+        <div className="ji-guide-screen-card"><b>{zh ? '统一收据截图快捷指令' : 'Unified receipt shortcut'}</b>
+          <div className="ji-guide-account-row"><span>TNG</span><strong>{zh ? '我的钱包' : 'My wallet'} ✓</strong></div>
+          <div className="ji-guide-account-row"><span>CIMB</span><strong>{zh ? '银行账户' : 'Bank account'} ✓</strong></div>
+          <div className="ji-guide-screen-button">{zh ? '生成统一密钥' : 'Create unified key'}</div>
+        </div>
+      </div>}
+      {step === 1 && <div className="ji-guide-phone-screen">
+        <div className="ji-guide-phone-title">{zh ? '快捷指令' : 'Shortcuts'}</div>
+        <div className="ji-guide-shortcut-icon">▣</div>
+        <b className="ji-guide-shortcut-name">JSave Receipt Import</b>
+        <div className="ji-guide-key-card"><span>{zh ? '统一密钥' : 'Unified key'}</span><strong>jsv1_ ••••••••••••</strong></div>
+        <div className="ji-guide-screen-button">{zh ? '加入快捷指令' : 'Add Shortcut'}</div>
+      </div>}
+      {step === 2 && <div className="ji-guide-phone-screen">
+        <div className="ji-guide-phone-title">{zh ? '照片' : 'Photos'}</div>
+        <div className="ji-guide-receipt"><span>TNG</span><strong>−RM 13.00</strong><small>Kedai Kopi · 23/09/2026</small></div>
+        <div className="ji-guide-share-sheet"><span>↥ {zh ? '分享' : 'Share'}</span><strong>▣ JSave Receipt Import</strong></div>
+      </div>}
+      {step === 3 && <div className="ji-guide-phone-screen">
+        <div className="ji-guide-phone-title">JSave <span>{zh ? '核对交易' : 'Review entry'}</span></div>
+        <div className="ji-guide-review-card"><strong>−RM 13.00</strong><div>Kedai Kopi</div><small>23/09/2026 · TNG</small><em>{zh ? '餐饮' : 'Food'}</em></div>
+        <div className="ji-guide-screen-button">{zh ? '确认加入 JSave' : 'Confirm in JSave'}</div>
+      </div>}
+      {step === 4 && <div className="ji-guide-phone-screen">
+        <div className="ji-guide-phone-title">JSave</div>
+        <div className="ji-guide-result-check">✓</div>
+        <b className="ji-guide-result-title">{zh ? '已加入 JSave' : 'Saved to JSave'}</b>
+        <div className="ji-guide-photo-choice"><span>{zh ? '保留照片' : 'Keep photo'}</span><strong>{zh ? '删除照片' : 'Delete photo'}</strong></div>
+        <div className="ji-guide-automation-chip">◉ {zh ? '自动化可选' : 'Automation is optional'}</div>
+      </div>}
+    </div>
+  </div>
+}
+
+function ShortcutGuideModal({ copy, zh, onClose, returnFocusRef }) {
+  const [step, setStep] = useState(0)
+  const dialogRef = useRef(null)
+  const closeRef = useRef(null)
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    closeRef.current?.focus()
+    const handleKeyDown = event => {
+      if (event.key === 'Escape') { onClose(); return }
+      if (event.key !== 'Tab') return
+      const controls = [...(dialogRef.current?.querySelectorAll('button:not([disabled]), a[href]') || [])]
+      if (!controls.length) return
+      if (event.shiftKey && document.activeElement === controls[0]) {
+        event.preventDefault(); controls.at(-1).focus()
+      } else if (!event.shiftKey && document.activeElement === controls.at(-1)) {
+        event.preventDefault(); controls[0].focus()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+      returnFocusRef.current?.focus()
+    }
+  }, [onClose, returnFocusRef])
+
+  const current = copy.steps[step]
+  return <div className="ji-guide-backdrop" onClick={event => { if (event.target === event.currentTarget) onClose() }}>
+    <div className="ji-guide-dialog" role="dialog" aria-modal="true" aria-labelledby="ji-guide-title" aria-describedby="ji-guide-intro" ref={dialogRef}>
+      <button className="ji-guide-close" ref={closeRef} onClick={onClose} aria-label={zh ? '关闭教程' : 'Close guide'}>×</button>
+      <div className="ji-guide-heading"><p className="ji-kicker">{copy.eyebrow}</p><h2 id="ji-guide-title">{copy.title}</h2><p id="ji-guide-intro">{copy.intro}</p></div>
+      <div className="ji-guide-progress" role="group" aria-label={zh ? '教程步骤' : 'Guide steps'}>
+        {copy.steps.map((item, index) => <button key={item.title} className={index === step ? 'is-active' : ''}
+          aria-current={index === step ? 'step' : undefined} aria-label={`${index + 1}. ${item.title}`}
+          onClick={() => setStep(index)}>{String(index + 1).padStart(2, '0')}</button>)}
+      </div>
+      <div className="ji-guide-body" key={step}>
+        <ShortcutGuideVisual step={step} zh={zh} label={`${copy.visualLabel}: ${current.title}`} />
+        <div className="ji-guide-instructions" aria-live="polite">
+          <span className="ji-guide-step-number">{String(step + 1).padStart(2, '0')} / {String(copy.steps.length).padStart(2, '0')}</span>
+          <h3>{current.title}</h3><p>{current.body}</p>
+          {step === 1 && <a className="ji-guide-download" href="https://jeeprod-jsave.web.app/shortcuts/JSave-Receipt-Import.shortcut" target="_blank" rel="noopener noreferrer">↓ {copy.download}</a>}
+          <div className="ji-guide-tip"><span>✦</span><p>{current.tip}</p></div>
+        </div>
+      </div>
+      <div className="ji-guide-actions">
+        <button onClick={() => setStep(index => index - 1)} disabled={step === 0}>{copy.previous}</button>
+        <button className="ji-guide-next" onClick={() => step === copy.steps.length - 1 ? onClose() : setStep(index => index + 1)}>
+          {step === copy.steps.length - 1 ? copy.finish : copy.next}<ArrowIcon />
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
 function Reveal({ children, className = '', delay = 0, direction = 'up', as: Tag = 'div', ...props }) {
   const ref = useRef(null)
   const [visible, setVisible] = useState(false)
@@ -230,6 +353,8 @@ export default function JSaveIntro({ onOpenApp, withHead = true, language, onLan
   const [openFaq, setOpenFaq] = useState(0)
   const [menuOpen, setMenuOpen] = useState(false)
   const [installGuide, setInstallGuide] = useState(null)
+  const [shortcutGuideOpen, setShortcutGuideOpen] = useState(false)
+  const shortcutGuideButtonRef = useRef(null)
   const deferredPromptRef = useRef(null)
   const lang = language || localLanguage
   const zh = lang === 'zh'
@@ -328,12 +453,13 @@ export default function JSaveIntro({ onOpenApp, withHead = true, language, onLan
         </div>
       </section>
 
-      <section className="ji-shortcut" aria-labelledby="shortcut-title">
+      <section id="shortcut" className="ji-shortcut" aria-labelledby="shortcut-title">
         <Reveal direction="left" className="ji-shortcut-copy">
           <p className="ji-kicker">{c.shortcutKicker}</p>
           <h2 id="shortcut-title">{c.shortcutTitle}</h2>
           <p className="ji-shortcut-body">{c.shortcutBody}</p>
           <ol className="ji-shortcut-steps">{c.shortcutSteps.map((step, index) => <li key={step.title}><span>{String(index + 1).padStart(2, '0')}</span><div><h3>{step.title}</h3><p>{step.body}</p></div></li>)}</ol>
+          <button className="ji-shortcut-guide-button" ref={shortcutGuideButtonRef} onClick={() => setShortcutGuideOpen(true)}>{c.shortcutGuideButton}<ArrowIcon /></button>
           <p className="ji-shortcut-note">{c.shortcutNote}</p>
         </Reveal>
         <Reveal direction="scale" delay={120} className="ji-shortcut-visual" aria-label={zh ? 'TNG 截图导入示意' : 'TNG screenshot import illustration'}>
@@ -432,6 +558,7 @@ export default function JSaveIntro({ onOpenApp, withHead = true, language, onLan
       <footer className="ji-footer"><a className="ji-brand" href="#top"><span className="ji-brand-mark">J</span><span>JSave</span></a><p>{c.footer}</p><span>© 2026 JSave · <a href="https://www.jeeprod.com" target="_blank" rel="noopener noreferrer">Jee Production</a></span></footer>
 
       {!onOpenApp && installGuide && <div className="ji-modal-backdrop" onClick={() => setInstallGuide(null)}><div className="ji-install-modal" role="dialog" aria-modal="true" aria-labelledby="install-title" onClick={event => event.stopPropagation()}><button className="ji-modal-close" onClick={() => setInstallGuide(null)} aria-label={c.close}>×</button><span className="ji-brand-mark">J</span><h2 id="install-title">{c.install} JSave</h2><ol>{PWA_STEPS[lang][installGuide].map(step => <li key={step}>{step}</li>)}</ol></div></div>}
+      {shortcutGuideOpen && <ShortcutGuideModal copy={c.shortcutGuide} zh={zh} onClose={() => setShortcutGuideOpen(false)} returnFocusRef={shortcutGuideButtonRef} />}
     </main>
   )
 }
