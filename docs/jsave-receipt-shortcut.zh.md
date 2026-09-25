@@ -10,6 +10,8 @@
 4. [下载 `JSave-Receipt-Import.shortcut`](../public-jsave/shortcuts/JSave-Receipt-Import.shortcut)，在 iPhone 的「文件」App 打开并填入密钥。若没有出现导入提问，编辑 `JSave Receipt Import`，把密钥填入第一个「文本」操作。
 5. 从「照片」分享一张 TNG 或 CIMB 交易截图给这个指令。核对来源、转入和转出账户、金额、日期、说明和类别后，再确认保存。CIMB 支付 UOB 信用卡会记为账户间转账，不会额外记支出。
 
+TNG 交易详情中标为 `DuitNow QR TNGD` 的扫码付款按支出处理。若 iPhone 文字提取漏掉「支付」字样，服务器仍会根据扫码交易类型识别；现有统一指令无需重新下载。
+
 签名文件 SHA-256：`3B4BECFAF9B72AF1A028718B58097CE1646FC7A058D85DB7BEC88CC0577702D9`。
 
 已安装的旧 TNG 和 CIMB 指令可以暂时保留。统一指令使用独立密钥；旧指令与旧密钥不会自动失效。旧版下载与设置入口已撤下，统一指令实机测试通过后，可以从 iPhone 移除旧指令。如需停用旧版密钥，需要通过旧版管理接口处理。旧版与新版沿用同一来源交易编号去重，避免同一张截图因换指令重复入账。

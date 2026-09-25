@@ -42,7 +42,10 @@ function parseTngScreenshot(ocrText) {
   if (!Number.isFinite(amount) || amount <= 0 || amount > 1000000) throw new Error('invalid-amount')
 
   const type = transferSuccess || amountMatch[2] === '-' ? 'expense' : 'income'
-  if (type === 'expense' && !transferSuccess && !/支付/.test(text)) throw new Error('invalid-type')
+  // TNG labels successful DuitNow QR payments with the rail name instead of "支付".
+  // OCR can omit the adjacent "交易类型" label, so match the distinctive TNGD rail name.
+  const duitNowQrPayment = /\bDuitNow\s*QR\s*TNGD\b/i.test(text)
+  if (type === 'expense' && !transferSuccess && !/支付/.test(text) && !duitNowQrPayment) throw new Error('invalid-type')
   if (type === 'income' && !/(从钱包接收|接收转账)/.test(text)) throw new Error('invalid-type')
   if (!transferSuccess && fieldAfter(text, '状态') !== '成功') throw new Error('not-successful')
 

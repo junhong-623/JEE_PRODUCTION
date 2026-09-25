@@ -16,6 +16,19 @@ const payment = `详情
 状态 成功
 交易编号 TNGTEST12345678`
 
+const duitNowQrPayment = `详情
+-RM8.50
++8 points
+交易类型
+DuitNow QR TNGD
+商家 SAMPLE SHOP
+款项详情 SAMPLE SHOP
+付款方式 电子钱包余额
+日期/时间 24/09/2026 19:23:33
+钱包参考号 2026092410110000010000TEST123
+状态 成功
+交易编号 20260924TNGDMYNB0300QRTEST123`
+
 const receipt = `详情
 +RM250.00
 交易类型 从钱包接收
@@ -47,6 +60,17 @@ describe('TNG shortcut import', () => {
       date: '2026-09-22', time: '21:23:15',
       note: 'SUNWAY VELOCITY MALL', sourceTransactionId: 'TNGTEST12345678',
     })
+  })
+
+  it('accepts a successful DuitNow QR TNGD payment when OCR misses the word 支付', () => {
+    expect(parseTngScreenshot(duitNowQrPayment)).toEqual({
+      type: 'expense', amount: 8.5, currency: 'MYR',
+      date: '2026-09-24', time: '19:23:33',
+      note: 'SAMPLE SHOP', sourceTransactionId: '20260924TNGDMYNB0300QRTEST123',
+    })
+    expect(parseTngScreenshot(duitNowQrPayment.replace('交易类型\n', '')).type).toBe('expense')
+    expect(() => parseTngScreenshot(duitNowQrPayment.replace('状态 成功', '状态 失败'))).toThrow('not-successful')
+    expect(() => parseTngScreenshot(duitNowQrPayment.replace('交易类型\nDuitNow QR TNGD', '交易类型\nOther QR'))).toThrow('invalid-type')
   })
 
   it('extracts a receipt and rejoins a wrapped transaction ID', () => {
