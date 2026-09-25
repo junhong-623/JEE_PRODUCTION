@@ -25,14 +25,15 @@ function run(args) {
 }
 
 const scenes = [
-  { card: 'opening', frames: 69 },
-  // Cropping the real recordings to the active control removes receipt IDs, barcodes and unrelated photos.
-  { card: 'auto', video: automation, start: 11.8, sourceSeconds: 0.5, frames: 54, crop: [384, 495, 0, 60], size: [665, 857] },
-  { card: 'album', video: album, start: 5.8, sourceSeconds: 1.1, frames: 75, crop: [384, 515, 0, 245], size: [641, 860] },
-  { card: 'category', video: album, start: 9.7, sourceSeconds: 0.6, frames: 60, crop: [384, 495, 0, 60], size: [665, 857] },
-  { card: 'review', video: album, start: 11.3, sourceSeconds: 1.2, frames: 75, crop: [384, 335, 0, 58], size: [850, 742] },
-  { card: 'saved', video: album, start: 15.5, sourceSeconds: 1.3, frames: 60, crop: [384, 205, 0, 55], size: [850, 454] },
-  { card: 'closing', frames: 84 },
+  { card: 'opening', frames: 45 },
+  // The automation screenshot contains a real receipt, so blur the entire clip before it is shown.
+  { card: 'auto', video: automation, start: 3.55, sourceSeconds: 1.45, frames: 45, crop: [384, 848, 0, 0], size: [426, 940], blur: true },
+  // Cropping the other real recording to the active control removes receipt IDs and unrelated photos.
+  { card: 'album', video: album, start: 5.8, sourceSeconds: 1.7, frames: 51, crop: [384, 515, 0, 245], size: [641, 860] },
+  { card: 'category', video: album, start: 9.7, sourceSeconds: 1.0, frames: 48, crop: [384, 495, 0, 60], size: [665, 857] },
+  { card: 'review', video: album, start: 11.3, sourceSeconds: 2.0, frames: 60, crop: [384, 335, 0, 58], size: [850, 742] },
+  { card: 'saved', video: album, start: 15.5, sourceSeconds: 1.4, frames: 42, crop: [384, 205, 0, 55], size: [850, 454] },
+  { card: 'closing', frames: 54 },
 ]
 
 const paths = []
@@ -41,7 +42,7 @@ scenes.forEach((scene, index) => {
   const still = join(here, `${scene.card}.jpg`)
   const common = ['-map', '[out]', '-frames:v', String(scene.frames), '-r', String(fps), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20', '-pix_fmt', 'yuv420p', '-video_track_timescale', '30000', '-movflags', '+faststart', out]
   if (!scene.video) {
-    const filter = "zoompan=z='min(zoom+0.0004,1.04)':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1080x1920:fps=30,format=yuv420p[out]"
+    const filter = "zoompan=z='min(zoom+0.0018,1.10)':d=1:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1080x1920:fps=30,format=yuv420p[out]"
     run(['-loop', '1', '-framerate', String(fps), '-i', still, '-filter_complex', filter, ...common])
   } else {
     const [cw, ch, cx, cy] = scene.crop
@@ -51,7 +52,10 @@ scenes.forEach((scene, index) => {
     const redaction = scene.card === 'review'
       ? ',drawbox=x=56:y=108:w=738:h=105:color=0x4d5555:t=fill,drawbox=x=56:y=345:w=738:h=58:color=0x4d5555:t=fill'
       : ''
-    const filter = `[1:v]crop=${cw}:${ch}:${cx}:${cy},scale=${width}:${height}:flags=lanczos,unsharp=5:5:0.55${redaction},fps=${fps},setpts=PTS-STARTPTS[fg];[0:v][fg]overlay=${x}:${y}:eof_action=repeat:shortest=0,format=yuv420p[out]`
+    const foreground = scene.blur
+      ? `crop=${cw}:${ch}:${cx}:${cy},boxblur=18:2,scale=${width}:${height}:flags=lanczos`
+      : `crop=${cw}:${ch}:${cx}:${cy},scale=${width}:${height}:flags=lanczos,unsharp=5:5:0.55${redaction}`
+    const filter = `[1:v]${foreground},fps=${fps},setpts=PTS-STARTPTS[fg];[0:v][fg]overlay=${x}:${y}:eof_action=repeat:shortest=0,format=yuv420p[out]`
     run(['-loop', '1', '-framerate', String(fps), '-i', still, '-ss', String(scene.start), '-t', String(scene.sourceSeconds), '-i', scene.video, '-filter_complex', filter, ...common])
   }
   paths.push(out)
@@ -72,7 +76,7 @@ pcm.writeUInt32LE(16, 16); pcm.writeUInt16LE(1, 20); pcm.writeUInt16LE(1, 22)
 pcm.writeUInt32LE(rate, 24); pcm.writeUInt32LE(rate * 2, 28)
 pcm.writeUInt16LE(2, 32); pcm.writeUInt16LE(16, 34); pcm.write('data', 36)
 pcm.writeUInt32LE(samples * 2, 40)
-const beat = 60 / 105
+const beat = 60 / 116
 const chords = [[261.63,329.63,392.00],[220.00,261.63,329.63],[174.61,220.00,261.63],[196.00,246.94,293.66]]
 for (let i = 0; i < samples; i += 1) {
   const t = i / rate
