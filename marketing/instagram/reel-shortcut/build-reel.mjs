@@ -7,9 +7,10 @@ import { dirname, join, resolve } from 'node:path'
 
 const require = createRequire(import.meta.url)
 const here = dirname(fileURLToPath(import.meta.url))
-const [automationArg, albumArg] = process.argv.slice(2)
+const showDetails = process.argv.includes('--show-details')
+const [automationArg, albumArg] = process.argv.slice(2).filter(arg => arg !== '--show-details')
 if (!automationArg || !albumArg) {
-  throw new Error('Usage: node build-reel.mjs <automation-recording.mp4> <album-recording.mp4>')
+  throw new Error('Usage: node build-reel.mjs <automation-recording.mp4> <album-recording.mp4> [--show-details]')
 }
 const automation = resolve(automationArg)
 const album = resolve(albumArg)
@@ -26,8 +27,10 @@ function run(args) {
 
 const scenes = [
   { card: 'opening', frames: 45 },
-  // The automation screenshot contains a real receipt, so blur the entire clip before it is shown.
-  { card: 'auto', video: automation, start: 3.55, sourceSeconds: 1.45, frames: 45, crop: [384, 848, 0, 0], size: [426, 940], blur: true },
+  // The public detail edit shows only the top of the receipt; the archive edit blurs the whole screen.
+  showDetails
+    ? { card: 'auto', video: automation, start: 3.55, sourceSeconds: 1.45, frames: 45, crop: [384, 430, 0, 0], size: [840, 940] }
+    : { card: 'auto', video: automation, start: 3.55, sourceSeconds: 1.45, frames: 45, crop: [384, 848, 0, 0], size: [426, 940], blur: true },
   // Cropping the other real recording to the active control removes receipt IDs and unrelated photos.
   { card: 'album', video: album, start: 5.8, sourceSeconds: 1.7, frames: 51, crop: [384, 515, 0, 245], size: [641, 860] },
   { card: 'category', video: album, start: 9.7, sourceSeconds: 1.0, frames: 48, crop: [384, 495, 0, 60], size: [665, 857] },
@@ -49,7 +52,7 @@ scenes.forEach((scene, index) => {
     const [width, height] = scene.size
     const x = Math.round((1080 - width) / 2)
     const y = Math.round(680 + (940 - height) / 2)
-    const redaction = scene.card === 'review'
+    const redaction = !showDetails && scene.card === 'review'
       ? ',drawbox=x=56:y=108:w=738:h=105:color=0x4d5555:t=fill,drawbox=x=56:y=345:w=738:h=58:color=0x4d5555:t=fill'
       : ''
     const foreground = scene.blur
@@ -97,7 +100,9 @@ for (let i = 0; i < samples; i += 1) {
 }
 const soundtrack = join(work, 'soundtrack.wav')
 writeFileSync(soundtrack, pcm)
-const output = join(here, 'jsave-shortcut-demo.mp4')
+const output = showDetails
+  ? join(tmpdir(), 'jsave-shortcut-demo-details.mp4')
+  : join(here, 'jsave-shortcut-demo.mp4')
 run(['-i', silent, '-i', soundtrack, '-map', '0:v:0', '-map', '1:a:0', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-shortest', '-movflags', '+faststart', output])
 console.log(output)
 console.log(`Duration: ${seconds.toFixed(2)} seconds`)
