@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <title>JSave screenshot import Reel cards</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; }
+    .card { position: relative; width: 1080px; height: 1920px; overflow: hidden; padding: 170px 88px 175px; color: #f8fff9; background: radial-gradient(circle at 86% 14%, #268960, transparent 39%), linear-gradient(155deg, #0b543f 4%, #0b3025 90%); }
+    .card:before { content: ""; position: absolute; width: 1180px; height: 1180px; right: -500px; top: -280px; border: 2px solid rgba(255,255,255,.16); border-radius: 50%; }
+    .brand { display: flex; align-items: center; gap: 20px; position: relative; z-index: 1; font-size: 42px; font-weight: 850; }
+    .brand img { width: 82px; height: 82px; border-radius: 22px; }
+    .eyebrow { position: relative; z-index: 1; margin-top: 235px; color: #a5eac3; font-size: 29px; font-weight: 800; letter-spacing: .14em; }
+    h1 { position: relative; z-index: 1; margin: 34px 0 0; font-size: 110px; line-height: 1.16; letter-spacing: -.065em; }
+    .sub { position: relative; z-index: 1; margin-top: 48px; max-width: 840px; color: #c4e5d2; font-size: 43px; line-height: 1.5; }
+    .demo { position: absolute; left: 88px; right: 88px; bottom: 285px; padding: 40px 45px; border: 1px solid rgba(255,255,255,.28); border-radius: 34px; background: rgba(255,255,255,.1); font-size: 35px; font-weight: 750; }
+    .demo b { color: #9cf3c0; }
+    .foot { position: absolute; left: 88px; right: 88px; bottom: 170px; display: flex; justify-content: space-between; color: #b4dfc7; font-size: 27px; font-weight: 700; }
+    .end { background: radial-gradient(circle at 16% 80%, #238861, transparent 47%), linear-gradient(155deg, #123b2b, #0d261e); }
+    .end .eyebrow { margin-top: 270px; }
+    .end h1 { font-size: 116px; }
+    .end .cta { position: absolute; left: 88px; right: 88px; bottom: 325px; padding: 44px 48px; border-radius: 31px; color: #103327; background: #ddf8e4; font-size: 35px; line-height: 1.45; font-weight: 800; }
+    .end .cta span { display: block; margin-top: 12px; color: #357156; font-size: 29px; }
+  </style>
+</head>
+<body>
+  <section class="card" id="opening">
+    <div class="brand"><img src="../jsave-instagram-avatar.png" alt="" />JSave <span style="color:#a7dfbc;font-size:31px">/ J省</span></div>
+    <div class="eyebrow">IPHONE 快捷指令 · 20 秒看懂</div>
+    <h1>付款截图，<br />怎样进入<br />JSave？</h1>
+    <p class="sub">截图分享给快捷指令，<br />选类别、核对，再保存。</p>
+    <div class="demo"><b>1 张截图</b> → <b>1 笔清楚的记录</b></div>
+    <div class="foot"><span>TNG / CIMB 单笔交易</span><span>操作演示</span></div>
+  </section>
+  <section class="card end" id="closing">
+    <div class="brand"><img src="../jsave-instagram-avatar.png" alt="" />JSave <span style="color:#a7dfbc;font-size:31px">/ J省</span></div>
+    <div class="eyebrow">核对后才入账</div>
+    <h1>下一笔，<br />试试看。</h1>
+    <p class="sub">截图文字由 iPhone 提取。<br />原图留在你的手机。</p>
+    <div class="cta">JSave → 设置 → 统一收据截图快捷指令<span>完整安装教程在主页链接</span></div>
+    <div class="foot"><span>免费使用</span><span>jsave.jeeprod.com</span></div>
+  </section>
+</body>
+</html>
