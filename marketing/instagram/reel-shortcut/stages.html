@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <title>JSave Reel video stages</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; }
+    .stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; padding: 150px 85px 120px; color: #eefdf3; background: radial-gradient(circle at 86% 12%, #186f51, transparent 37%), linear-gradient(153deg,#0c513d,#0c2e24 82%); }
+    .stage:before { content: ""; position: absolute; right: -350px; top: -360px; width: 940px; height: 940px; border: 2px solid rgba(255,255,255,.12); border-radius: 50%; }
+    .brand { display: flex; align-items: center; gap: 14px; font-size: 30px; font-weight: 850; }
+    .brand img { width: 57px; height: 57px; border-radius: 15px; }
+    .num { margin-top: 105px; color: #99e6b8; font-size: 27px; font-weight: 800; letter-spacing: .13em; }
+    h1 { margin: 27px 0 0; font-size: 80px; line-height: 1.15; letter-spacing: -.055em; }
+    .sub { margin: 26px 0 0; color: #c1e1cd; font-size: 32px; line-height: 1.42; }
+    .slot { position: absolute; top: 680px; left: 82px; width: 916px; height: 940px; border: 2px solid rgba(213,248,224,.34); border-radius: 42px; background: rgba(3,27,20,.53); box-shadow: 0 38px 110px rgba(0,0,0,.22); }
+    .slot:before, .slot:after { content: ""; position: absolute; width: 34px; height: 34px; border-color: #71dea5; opacity: .6; }
+    .slot:before { top: 24px; left: 24px; border-top: 3px solid; border-left: 3px solid; border-radius: 10px 0 0 0; }
+    .slot:after { bottom: 24px; right: 24px; border-bottom: 3px solid; border-right: 3px solid; border-radius: 0 0 10px 0; }
+    .note { position: absolute; left: 85px; right: 85px; bottom: 178px; color: #bce3ca; font-size: 29px; line-height: 1.4; }
+    .progress { position: absolute; left: 85px; right: 85px; bottom: 105px; display: flex; gap: 9px; }
+    .progress i { display: block; width: 16px; height: 7px; border-radius: 99px; background: #56977a; }
+    .progress i.active { width: 62px; background: #8ce4b1; }
+  </style>
+</head>
+<body>
+  <section class="stage" id="auto">
+    <div class="brand"><img src="../jsave-instagram-avatar.png" alt="" />JSave / J省</div>
+    <div class="num">方法 01</div><h1>截图后，<br />自动接着运行。</h1><p class="sub">自动化启动统一快捷指令。</p>
+    <div class="slot"></div><div class="note">已支持的 TNG、CIMB 单笔交易截图</div><div class="progress"><i class="active"></i><i></i><i></i><i></i></div>
+  </section>
+  <section class="stage" id="album">
+    <div class="brand"><img src="../jsave-instagram-avatar.png" alt="" />JSave / J省</div>
+    <div class="num">方法 02</div><h1>从相册，<br />分享给指令。</h1><p class="sub">照片 → 分享 → JSave-Receipt-Import</p>
+    <div class="slot"></div><div class="note">两种入口，后面的核对步骤一样</div><div class="progress"><i></i><i class="active"></i><i></i><i></i></div>
+  </section>
+  <section class="stage" id="category">
+    <div class="brand"><img src="../jsave-instagram-avatar.png" alt="" />JSave / J省</div>
+    <div class="num">共同步骤 01</div><h1>选择这一笔<br />的类别。</h1><p class="sub">例如：餐饮、交通、购物。</p>
+    <div class="slot"></div><div class="note">没选对可以取消，不会直接保存</div><div class="progress"><i></i><i></i><i class="active"></i><i></i></div>
+  </section>
+  <section class="stage" id="review">
+    <div class="brand"><img src="../jsave-instagram-avatar.png" alt="" />JSave / J省</div>
+    <div class="num">共同步骤 02</div><h1>核对资料，<br />再按确认。</h1><p class="sub">金额 · 日期 · 账户 · 备注</p>
+    <div class="slot"></div><div class="note">只有确认之后，这笔交易才会加入 JSave</div><div class="progress"><i></i><i></i><i></i><i class="active"></i></div>
+  </section>
+  <section class="stage" id="saved">
+    <div class="brand"><img src="../jsave-instagram-avatar.png" alt="" />JSave / J省</div>
+    <div class="num">完成</div><h1>已加入<br />JSave ✓</h1><p class="sub">最后可以选择保留或删除截图。</p>
+    <div class="slot"></div><div class="note">截图本身不会上传到 JSave</div><div class="progress"><i></i><i></i><i></i><i class="active"></i></div>
+  </section>
+</body>
+</html>
