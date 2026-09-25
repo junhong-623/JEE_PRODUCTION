@@ -394,7 +394,7 @@ function Hero({ portfolioCount }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4, flexWrap: 'wrap' }}>
               <span className="hud-status">
                 <span className="dot" />
-                {lang === 'zh' ? '操作员在线' : 'OPERATOR ONLINE'}
+                {lang === 'zh' ? '灵感在线' : 'CURIOSITY ONLINE'}
               </span>
               <span className="hud-status cyan">
                 <span className="dot" />
@@ -404,8 +404,8 @@ function Hero({ portfolioCount }) {
 
             <p className="hud-hero-intro">
               {lang === 'zh'
-                ? <>我是余俊宏，一名在<span>马来西亚</span>做产品的全栈软件工程师。我把想法从页面、后台一路做到上线，主要做 PWA、电商与订单流程、支付整合。</>
-                : <>I&apos;m Jun Hong Jee, a full-stack software engineer in <span>Malaysia</span>. I take ideas from interface and back office through to launch, with a focus on PWAs, commerce workflows, and payments.</>
+                ? <>把真实需求做成能上线、能运营，也能持续迭代的产品。从界面、数据与权限，到订单、支付和后台，<span>整套流程一起完成。</span></>
+                : <>Turning real needs into products that can launch, operate, and keep improving. From interfaces and data to permissions, payments, orders, and admin systems—<span>the whole flow, built together.</span></>
               }
             </p>
 
@@ -472,7 +472,7 @@ function About() {
       <div className="hud-container">
         <SectionEyebrow
           id="about" num="02" name="// ABOUT"
-          title={lang === 'zh' ? '关于我' : 'About me'}
+          title={lang === 'zh' ? '关于 Jee Production' : 'About Jee Production'}
           sub={lang === 'zh' ? '$ cat ./about.md' : '$ cat ./about.md'}
           spec={[
             { k: 'TYPE:', v: 'IDENT' },
@@ -486,22 +486,22 @@ function About() {
               <p className="lead">
                 <span className="prompt">&gt;</span>
                 {lang === 'zh'
-                  ? <>我是 <span className="cyan">余俊宏（Jun Hong Jee）</span>。我喜欢做能真正拿来用的产品，不只把画面做完，也会把资料、权限、订单和后台一起顾好。</>
-                  : <>I&apos;m <span className="cyan">Jun Hong Jee</span>. I like building products people can actually use, including the data, permissions, orders, and admin work behind the interface.</>
+                  ? <>Jee Production 是<span className="cyan">余俊宏（Jun Hong Jee）</span>的个人产品工作室。这里收录的不只是完成的页面，而是从问题梳理、产品设计、系统开发到正式上线的完整实践。</>
+                  : <>Jee Production is the independent product studio of <span className="cyan">Jun Hong Jee</span>. It documents complete product work—from understanding the problem and shaping the experience to building the system and shipping it.</>
                 }
               </p>
               <p>
                 <span className="prompt">&gt;</span>
                 {lang === 'zh'
-                  ? '平时以 React、Vite、Firebase 和 Node 为主，也处理支付接口、PHP 系统整合与自动化工具。项目需要什么，我就把那一段补起来。'
-                  : 'I mostly work with React, Vite, Firebase, and Node, and I also handle payment integrations, PHP systems, and automation when the product needs them.'
+                  ? '我主要使用 React、Vite、Firebase 和 Node，也处理支付接口、PHP 系统整合与自动化工具。比起套用固定技术栈，我更在意产品需要解决什么，以及怎样把它稳定地交付出来。'
+                  : 'My core stack includes React, Vite, Firebase, and Node, alongside payment integrations, PHP systems, and automation. The technology follows the product, not the other way around.'
                 }
               </p>
               <p>
                 <span className="prompt">&gt;</span>
                 {lang === 'zh'
-                  ? <>屏幕之外 — 钓鱼、慢慢开着吉普车兜风，以及吉隆坡的安静周末。 <span className="ok">[exit 0]</span></>
-                  : <>Outside the screen — fishing trips, slow drives in the Jeep, and quiet weekends in Klang Valley. <span className="ok">[exit 0]</span></>
+                  ? <>屏幕之外，是钓鱼、开着吉普车慢慢兜风，以及吉隆坡周末难得的安静。 <span className="ok">[exit 0]</span></>
+                  : <>Away from the screen: fishing trips, slow drives in the Jeep, and quiet weekends around Kuala Lumpur. <span className="ok">[exit 0]</span></>
                 }
               </p>
             </div>
@@ -830,8 +830,8 @@ function ContactBlock() {
               <p>
                 <span className="prompt">&gt;</span>
                 {lang === 'zh'
-                  ? '你可以找我谈全职机会、freelance 项目，也可以聊 PWA、商店、管理后台或支付流程。把现在卡住的地方告诉我就好。'
-                  : 'Reach out about full-time roles, freelance projects, PWAs, storefronts, admin systems, or payment flows. Tell me what is stuck and we can start there.'
+                  ? '有产品想法、现有系统需要改进，或者某段流程一直卡住？欢迎聊聊全职机会、合作项目，以及 PWA、电商、后台和支付系统。'
+                  : 'Have a product idea, a system that needs improving, or a workflow that keeps getting stuck? Let’s talk about full-time roles, collaborations, PWAs, commerce, admin tools, or payments.'
                 }
               </p>
               <p style={{ marginTop: 8 }}>
@@ -881,8 +881,8 @@ function HudFooter() {
             ))}
           </div>
           <div className="copy">
-            © {new Date().getFullYear()} · JUN HONG JEE
-            {lang === 'zh' ? ' · 系统运行正常' : ' · ALL SYSTEMS NOMINAL'}
+            © {new Date().getFullYear()} · JEE PRODUCTION
+            {lang === 'zh' ? ' · 保持好奇，继续折腾' : ' · STAY CURIOUS · KEEP MAKING'}
           </div>
         </div>
       </div>
