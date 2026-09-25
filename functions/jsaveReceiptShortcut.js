@@ -8,7 +8,7 @@ function parseReceiptScreenshot(ocrText, sourceHint = '') {
   if (sourceHint === 'cimb' || (!sourceHint && /Transaction\s+Details/i.test(text) && /\bMYR\b/i.test(text))) {
     return { ...parseCimbScreenshot(text), provider: 'cimb' }
   }
-  if (sourceHint === 'tng' || (!sourceHint && /(?:交易类型|钱包参考号|已转账)/.test(text) && /\bRM\s*[\d,]+/i.test(text))) {
+  if (sourceHint === 'tng' || (!sourceHint && /(?:交易类型|钱包参考号|电子钱包参考编号|已转账|已付)/.test(text) && /\bRM\s*[\d,]+/i.test(text))) {
     return { ...parseTngScreenshot(text), provider: 'tng', accountKind: 'wallet' }
   }
   throw new Error('unsupported-receipt')

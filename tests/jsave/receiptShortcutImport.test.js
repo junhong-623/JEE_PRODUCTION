@@ -24,6 +24,15 @@ const tngQr = `详情
 状态 成功
 交易编号 20260924TNGDMYNB0300QRTEST123`
 
+const tngPaid = `RM 16.90
+已付
+商家 SAMPLE RAMEN
+交易类型 DuitNow QR TNGD
+日期/时间 25/09/2026 12:20:38
+电子钱包参考编号 2026092510110000010000TNGOW3MYTEST123
+付款方式 电子钱包余额
+完成`
+
 const cimb = `Transaction Details
 Amount
 - MYR 43.60
@@ -74,6 +83,11 @@ describe('unified receipt shortcut', () => {
     expect(receiptAccountKey(draft)).toBe('tngAccountId')
     const reordered = tngQr.replace('交易编号 20260924TNGDMYNB0300QRTEST123', '20260924TNGDMYNB0300QRTEST123\n交易编号')
     expect(parseReceiptScreenshot(reordered).sourceTransactionId).toBe(draft.sourceTransactionId)
+  })
+
+  it('routes an 已付 confirmation even when OCR omits the transaction-type label', () => {
+    const draft = parseReceiptScreenshot(tngPaid.replace('交易类型 ', ''))
+    expect(draft).toMatchObject({ provider: 'tng', accountKind: 'wallet', type: 'expense', amount: 16.9, note: 'SAMPLE RAMEN' })
   })
 
   it('routes CIMB credit card pages and keeps legacy duplicate IDs', () => {

@@ -53,6 +53,26 @@ ELEVATE YOUR DRIVING EXPERIENCE
 MICHELIN
 Ad Elevate your driving experience with MICHELIN tyres made for every journey.`
 
+const paidConfirmation = `12:20
+RM 16.90
+已付
++16 分
+商家
+SAMPLE RAMEN AND DONBURI
+MALL AEON MALURI
+交易类型
+DuitNow QR TNGD
+日期/时间
+25/09/2026 12:20:38
+电子钱包参考编号
+2026092510110000010000TNG
+OW3MY171256347717885
+付款方式
+电子钱包余额
+无需充值即可付款!
+立即设置
+完成`
+
 describe('TNG shortcut import', () => {
   it('extracts a payment using the transaction date, merchant, and TNG ID', () => {
     expect(parseTngScreenshot(payment)).toEqual({
@@ -102,6 +122,26 @@ describe('TNG shortcut import', () => {
     expect(parsed.sourceTransactionId).toMatch(/^RECEIPT-[A-F0-9]{40}$/)
     expect(parseTngScreenshot(scanPayment.replace(/ELEVATE[\s\S]+$/, 'Other ad')).sourceTransactionId)
       .toBe(parsed.sourceTransactionId)
+  })
+
+  it('imports a successful TNG 已付 QR confirmation without a signed amount or transaction ID', () => {
+    const parsed = parseTngScreenshot(paidConfirmation)
+    expect(parsed).toMatchObject({
+      type: 'expense', amount: 16.9, currency: 'MYR',
+      date: '2026-09-25', time: '12:20:38',
+      note: 'SAMPLE RAMEN AND DONBURI MALL AEON MALURI',
+    })
+    expect(parsed.sourceTransactionId).toMatch(/^RECEIPT-[A-F0-9]{40}$/)
+    expect(parseTngScreenshot(paidConfirmation.replace('无需充值即可付款!', 'Other promotion')).sourceTransactionId)
+      .toBe(parsed.sourceTransactionId)
+    const columns = paidConfirmation.replace(
+      '商家\nSAMPLE RAMEN AND DONBURI\nMALL AEON MALURI\n交易类型\nDuitNow QR TNGD\n日期/时间',
+      '商家\n交易类型\n日期/时间\nSAMPLE RAMEN AND DONBURI\nMALL AEON MALURI\nDuitNow QR TNGD',
+    )
+    expect(parseTngScreenshot(columns).note).toBe(parsed.note)
+    expect(() => parseTngScreenshot(paidConfirmation.replace('已付', '付款处理中'))).toThrow('missing-amount')
+    expect(() => parseTngScreenshot(paidConfirmation.replace('商家', '店铺'))).toThrow('missing-party')
+    expect(() => parseTngScreenshot(paidConfirmation.replace('25/09/2026', '31/09/2026'))).toThrow('invalid-date')
   })
 
   it('finds a scan payment date when iPhone OCR separates or reorders its label', () => {

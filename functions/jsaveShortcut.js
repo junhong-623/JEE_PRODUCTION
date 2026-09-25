@@ -28,26 +28,46 @@ function scanPaymentParty(text, dateIndex) {
     !/^(?:接收|备注|日期|时间|状态|完成|已转账|RM\b)/i.test(line)) || ''
 }
 
+function paidPaymentParty(text, dateIndex) {
+  // Keep the merchant above the transaction date; promotions appear below the details.
+  // iPhone OCR may emit the left-column labels before the merchant's wrapped value.
+  const merchantIndex = text.indexOf('商家')
+  if (merchantIndex < 0 || merchantIndex >= dateIndex) return ''
+  const details = text.slice(merchantIndex + '商家'.length, dateIndex)
+  const names = []
+  for (const rawLine of details.split('\n')) {
+    const line = rawLine.trim()
+    if (/DuitNow\s*QR\s*TNGD/i.test(line)) break
+    if (!line || /^(?:交易类型|日期\/时间|电子钱包参考编号|付款方式|电子钱包余额)$/.test(line)) continue
+    if (/^20\d{6}[A-Z0-9\s]{16,}$/i.test(line)) continue
+    if (/[\p{L}]/u.test(line)) names.push(line)
+    if (names.length === 2) break
+  }
+  return names.join(' ')
+}
+
 function parseTngScreenshot(ocrText) {
   if (typeof ocrText !== 'string' || !ocrText.trim() || ocrText.length > 8000) {
     throw new Error('invalid-ocr')
   }
   const text = ocrText.normalize('NFKC').replace(/\r/g, '')
   const transferSuccess = /(?:^|\n)\s*已转账\s*(?=\n|$)/.test(text)
-  const amountMatch = transferSuccess
-    ? text.slice(0, text.indexOf('已转账')).match(/(?:^|\n)\s*RM\s*([\d,]+(?:\.\d{2})?)\s*(?=\n|$)/i)
+  const paidSuccess = /(?:^|\n)\s*已付\s*(?=\n|$)/.test(text)
+  const confirmationLabel = transferSuccess ? '已转账' : paidSuccess ? '已付' : ''
+  const amountMatch = confirmationLabel
+    ? text.slice(0, text.indexOf(confirmationLabel)).match(/\bRM\s*([\d,]+(?:\.\d{2})?)\b/i)
     : text.match(/(^|\n|\s)([+-])\s*RM\s*([\d,]+(?:\.\d{2})?)/i)
   if (!amountMatch) throw new Error('missing-amount')
-  const amount = Number((transferSuccess ? amountMatch[1] : amountMatch[3]).replace(/,/g, ''))
+  const amount = Number((confirmationLabel ? amountMatch[1] : amountMatch[3]).replace(/,/g, ''))
   if (!Number.isFinite(amount) || amount <= 0 || amount > 1000000) throw new Error('invalid-amount')
 
-  const type = transferSuccess || amountMatch[2] === '-' ? 'expense' : 'income'
+  const type = confirmationLabel || amountMatch[2] === '-' ? 'expense' : 'income'
   // TNG labels successful DuitNow QR payments with the rail name instead of "支付".
   // OCR can omit the adjacent "交易类型" label, so match the distinctive TNGD rail name.
   const duitNowQrPayment = /\bDuitNow\s*QR\s*TNGD\b/i.test(text)
-  if (type === 'expense' && !transferSuccess && !/支付/.test(text) && !duitNowQrPayment) throw new Error('invalid-type')
+  if (type === 'expense' && !confirmationLabel && !/支付/.test(text) && !duitNowQrPayment) throw new Error('invalid-type')
   if (type === 'income' && !/(从钱包接收|接收转账)/.test(text)) throw new Error('invalid-type')
-  if (!transferSuccess && fieldAfter(text, '状态') !== '成功') throw new Error('not-successful')
+  if (!confirmationLabel && fieldAfter(text, '状态') !== '成功') throw new Error('not-successful')
 
   // iPhone OCR may read the date value before its label or split date and time
   // across lines. The successful transfer page has one complete transaction date.
@@ -64,7 +84,9 @@ function parseTngScreenshot(ocrText) {
   const date = `${yearText}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
   const time = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:${String(second).padStart(2, '0')}`
 
-  let note = transferSuccess ? scanPaymentParty(text, dateMatch.index) : type === 'expense' ? fieldAfter(text, '商家') : fieldAfter(text, '接收转账')
+  let note = transferSuccess ? scanPaymentParty(text, dateMatch.index)
+    : paidSuccess ? paidPaymentParty(text, dateMatch.index)
+      : type === 'expense' ? fieldAfter(text, '商家') : fieldAfter(text, '接收转账')
   if (type === 'expense' && !note) {
     note = text.match(/支付\s*[-–—]\s*([^\n]+)/)?.[1]?.trim() || ''
   }
@@ -73,7 +95,7 @@ function parseTngScreenshot(ocrText) {
   }
 
   let sourceTransactionId
-  if (transferSuccess) {
+  if (confirmationLabel) {
     // The confirmation page has no TNG transaction ID. Hash only verified transaction fields,
     // so ad text and OCR line wrapping cannot affect deduplication.
     const fingerprint = `${date}T${time}|${amount.toFixed(2)}|${note.replace(/\s+/g, ' ').trim().toUpperCase()}`
