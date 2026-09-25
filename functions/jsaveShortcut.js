@@ -79,7 +79,13 @@ function parseTngScreenshot(ocrText) {
     const fingerprint = `${date}T${time}|${amount.toFixed(2)}|${note.replace(/\s+/g, ' ').trim().toUpperCase()}`
     sourceTransactionId = `RECEIPT-${crypto.createHash('sha256').update(fingerprint).digest('hex').slice(0, 40).toUpperCase()}`
   } else {
-    sourceTransactionId = fieldAfter(text, '交易编号')
+    // iPhone OCR may read the right-column ID before the left-column label, or
+    // split this long QR ID across lines. Its date-prefixed TNGD shape is unique
+    // on this detail page (the wallet reference uses a different prefix).
+    const qrTransactionId = duitNowQrPayment
+      ? text.toUpperCase().replace(/\s+/g, '').match(/20\d{6}TNGD[A-Z0-9]{8,64}/)?.[0]
+      : ''
+    sourceTransactionId = qrTransactionId || fieldAfter(text, '交易编号')
     if (sourceTransactionId.endsWith('-')) {
       const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean)
       const index = lines.findIndex(line => line.includes(sourceTransactionId))

@@ -73,6 +73,18 @@ describe('TNG shortcut import', () => {
     expect(() => parseTngScreenshot(duitNowQrPayment.replace('交易类型\nDuitNow QR TNGD', '交易类型\nOther QR'))).toThrow('invalid-type')
   })
 
+  it('finds a DuitNow QR transaction ID when OCR reorders or splits the right column', () => {
+    const id = '20260924TNGDMYNB0300QRTEST123'
+    const reordered = duitNowQrPayment.replace(`状态 成功\n交易编号 ${id}`, `交易编号\n状态 成功\n${id}`)
+    const beforeLabel = duitNowQrPayment.replace(`交易编号 ${id}`, `${id}\n交易编号`)
+    const split = duitNowQrPayment.replace(id, '20260924TNGDMYNB0300QR\nTEST123')
+    expect(parseTngScreenshot(reordered).sourceTransactionId).toBe(id)
+    expect(parseTngScreenshot(beforeLabel).sourceTransactionId).toBe(id)
+    expect(parseTngScreenshot(split).sourceTransactionId).toBe(id)
+    expect(() => parseTngScreenshot(duitNowQrPayment.replace(`交易编号 ${id}`, '交易编号')))
+      .toThrow('missing-transaction-id')
+  })
+
   it('extracts a receipt and rejoins a wrapped transaction ID', () => {
     expect(parseTngScreenshot(receipt)).toEqual({
       type: 'income', amount: 250, currency: 'MYR',

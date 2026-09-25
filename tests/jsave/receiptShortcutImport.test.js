@@ -72,6 +72,8 @@ describe('unified receipt shortcut', () => {
     const draft = parseReceiptScreenshot(tngQr)
     expect(draft).toMatchObject({ provider: 'tng', accountKind: 'wallet', type: 'expense', amount: 8.5, note: 'SAMPLE SHOP' })
     expect(receiptAccountKey(draft)).toBe('tngAccountId')
+    const reordered = tngQr.replace('交易编号 20260924TNGDMYNB0300QRTEST123', '20260924TNGDMYNB0300QRTEST123\n交易编号')
+    expect(parseReceiptScreenshot(reordered).sourceTransactionId).toBe(draft.sourceTransactionId)
   })
 
   it('routes CIMB credit card pages and keeps legacy duplicate IDs', () => {
