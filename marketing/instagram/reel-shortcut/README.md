@@ -2,7 +2,9 @@
 
 Vertical Instagram Reel built from two real iPhone demonstrations: a screenshot automation and a Photos share-sheet import. The finished video is `jsave-shortcut-demo.mp4` (1080 × 1920, 30 fps, 15.9 seconds).
 
-Published on the JSave Instagram account: https://www.instagram.com/j._save/reel/DdsSWVtRLlP/
+Published on the JSave Instagram account: https://www.instagram.com/j._save/reel/DdsTEjXxvUt/
+
+When uploading through Instagram's desktop composer, choose **9:16** in the Crop menu. The default 1:1 crop truncates the top and bottom of this video. The earlier square-cropped post was removed after the corrected Reel was verified.
 
 | Time | Scene | Message |
 | --- | --- | --- |
