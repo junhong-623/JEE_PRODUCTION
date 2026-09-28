@@ -139,7 +139,7 @@ describe('TNG shortcut import', () => {
       '商家\n交易类型\n日期/时间\nSAMPLE RAMEN AND DONBURI\nMALL AEON MALURI\nDuitNow QR TNGD',
     )
     expect(parseTngScreenshot(columns).note).toBe(parsed.note)
-    expect(() => parseTngScreenshot(paidConfirmation.replace('已付', '付款处理中'))).toThrow('missing-amount')
+    expect(() => parseTngScreenshot(paidConfirmation.replace('已付', '付款处理中'))).toThrow('not-successful')
     expect(() => parseTngScreenshot(paidConfirmation.replace('商家', '店铺'))).toThrow('missing-party')
     expect(() => parseTngScreenshot(paidConfirmation.replace('25/09/2026', '31/09/2026'))).toThrow('invalid-date')
   })
@@ -160,15 +160,24 @@ describe('TNG shortcut import', () => {
   })
 
   it('rejects incomplete scan payment confirmations', () => {
-    expect(() => parseTngScreenshot(scanPayment.replace('已转账', '转账处理中'))).toThrow('missing-amount')
+    expect(() => parseTngScreenshot(scanPayment.replace('已转账', '转账处理中'))).toThrow('not-successful')
     expect(() => parseTngScreenshot(scanPayment.replaceAll('TEST PERSON', ''))).toThrow('missing-party')
     expect(() => parseTngScreenshot(scanPayment.replace('23/09/2026', '31/02/2026'))).toThrow('invalid-date')
   })
 
   it('rejects failed and incomplete screenshots before they can become transactions', () => {
     expect(() => parseTngScreenshot(payment.replace('状态 成功', '状态 失败'))).toThrow('not-successful')
+    expect(() => parseTngScreenshot(payment.replace('状态 成功', '状态 失败\n广告：已付款可得优惠')))
+      .toThrow('not-successful')
     expect(() => parseTngScreenshot(payment.replace('交易编号 TNGTEST12345678', ''))).toThrow('missing-transaction-id')
     expect(() => parseTngScreenshot(receipt.replace('19/09/2026', '31/02/2026'))).toThrow('invalid-date')
+  })
+
+  it('reads OCR variations in amounts and paid confirmations', () => {
+    expect(parseTngScreenshot(payment.replace('-RM4.00', '− R M 4.00')).amount).toBe(4)
+    expect(parseTngScreenshot(payment.replace('-RM4.00', '-RM4,00')).amount).toBe(4)
+    expect(parseTngScreenshot(paidConfirmation.replace('RM 16.90', '16.90').replace('已付', '已 付')).amount)
+      .toBe(16.9)
   })
 
   it('limits categories to the detected transaction direction and gives repeat imports the same ID', () => {

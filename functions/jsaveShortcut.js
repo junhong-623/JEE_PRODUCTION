@@ -16,34 +16,86 @@ function fieldAfter(text, label) {
   return inline || lines[index + 1] || ''
 }
 
-function scanPaymentParty(text, dateIndex) {
+function parseAmountValue(value) {
+  let normalized = value.replace(/\s/g, '')
+  if (normalized.includes('.')) {
+    normalized = normalized.replace(/,/g, '')
+  } else if (/^\d+,\d{2}$/.test(normalized)) {
+    normalized = normalized.replace(',', '.')
+  } else {
+    normalized = normalized.replace(/,/g, '')
+  }
+  return Number(normalized)
+}
+
+function continuedFieldAfter(text, label) {
+  const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean)
+  const labelIndex = lines.findIndex(line => line === label || line.startsWith(`${label} `) || line.startsWith(`${label}：`) || line.startsWith(`${label}:`))
+  if (labelIndex < 0) return ''
+
+  const inline = lines[labelIndex].slice(label.length).replace(/^[\s:：]+/, '').trim()
+  let valueIndex = labelIndex
+  let value = inline
+  if (!value) {
+    valueIndex += 1
+    value = lines[valueIndex] || ''
+  }
+  if (!/^[A-Z0-9-]+$/i.test(value)) return value
+
+  // Long TNG IDs can wrap without a hyphen. Join only adjacent ID-shaped lines;
+  // the next Chinese field label naturally stops the scan.
+  for (let index = valueIndex + 1; index < lines.length; index += 1) {
+    const continuation = lines[index]
+    if (!/^[A-Z0-9-]+$/i.test(continuation) || value.length + continuation.length > 80) break
+    value += continuation
+  }
+  return value
+}
+
+function scanPaymentParty(text, dateIndex, confirmationEnd) {
   // Vision can emit the three left-column labels before the right-column values.
   // Only inspect the transaction details above the date; the ad begins below it.
-  const details = text.slice(text.indexOf('已转账') + '已转账'.length, dateIndex)
+  const details = text.slice(confirmationEnd, dateIndex)
   const candidates = details.split('\n').map(line => line.trim()
-    .replace(/^(?:接收者|备注)\s*[:：]?\s*/, '')
+    .replace(/^(?:接收者|接纳者|备注)\s*[:：]?\s*/, '')
     .replace(/\s*(?:备注|日期与时间)\s*[:：]?$/, '')
     .trim())
   return candidates.find(line => line && line.length <= 120 && /[\p{L}]/u.test(line) &&
-    !/^(?:接收|备注|日期|时间|状态|完成|已转账|RM\b)/i.test(line)) || ''
+    !/^(?:[+-]?\s*\d+\s*分|接收|接纳|备注|日期|时间|状态|完成|已转账|已付|RM\b)/i.test(line)) || ''
 }
 
-function paidPaymentParty(text, dateIndex) {
-  // Keep the merchant above the transaction date; promotions appear below the details.
-  // iPhone OCR may emit the left-column labels before the merchant's wrapped value.
+function scanMerchantConfirmationParty(text, dateIndex) {
+  const invalidParty = /^(?:交易类型|DuitNow\s*参考编号|日期\/时间|日期与时间|电子钱包参考编号|付款方式|DuitNow\s*QR|电子钱包余额)$/i
   const merchantIndex = text.indexOf('商家')
-  if (merchantIndex < 0 || merchantIndex >= dateIndex) return ''
-  const details = text.slice(merchantIndex + '商家'.length, dateIndex)
-  const names = []
-  for (const rawLine of details.split('\n')) {
-    const line = rawLine.trim()
-    if (/DuitNow\s*QR\s*TNGD/i.test(line)) break
-    if (!line || /^(?:交易类型|日期\/时间|电子钱包参考编号|付款方式|电子钱包余额)$/.test(line)) continue
-    if (/^20\d{6}[A-Z0-9\s]{16,}$/i.test(line)) continue
-    if (/[\p{L}]/u.test(line)) names.push(line)
-    if (names.length === 2) break
+  const typeIndex = text.indexOf('交易类型', merchantIndex)
+  if (merchantIndex >= 0 && merchantIndex < dateIndex && typeIndex > merchantIndex) {
+    const merchantLines = text.slice(merchantIndex + '商家'.length, typeIndex).split('\n')
+      .map(line => line.trim()).filter(line => line && !invalidParty.test(line))
+    if (merchantLines.length) return merchantLines.slice(0, 2).join(' ')
   }
-  return names.join(' ')
+  const direct = fieldAfter(text, '商家')
+  if (direct && !invalidParty.test(direct)) return direct
+
+  // Vision often reads all left-column labels first and all right-column values
+  // afterwards. In that layout the merchant is the first useful value after the
+  // final label and before the transaction date.
+  const lines = text.slice(0, dateIndex).split('\n').map(line => line.trim()).filter(Boolean)
+  const labelPattern = /^(?:商家|交易类型|DuitNow\s*参考编号|日期\/时间|日期与时间|电子钱包参考编号|付款方式)$/i
+  let lastLabelIndex = -1
+  lines.forEach((line, index) => {
+    if (labelPattern.test(line)) lastLabelIndex = index
+  })
+  const values = lines.slice(lastLabelIndex + 1)
+  const first = values.findIndex(line =>
+    line.length <= 120 && /[\p{L}]/u.test(line) && !invalidParty.test(line) &&
+    !/^(?:[eE][1Il][tT]|[+-]?\s*\d+\s*分|RM\b|\W*\d+:\d+|\W*4G\b)/i.test(line) &&
+    !/^[A-Z0-9-]{8,}$/i.test(line))
+  if (first < 0) return ''
+  const merchantLines = [values[first]]
+  const next = values[first + 1]
+  if (next && /[\p{L}]/u.test(next) && !invalidParty.test(next) &&
+      !/^DuitNow\b/i.test(next) && !/^[A-Z0-9-]{8,}$/i.test(next)) merchantLines.push(next)
+  return merchantLines.join(' ')
 }
 
 function parseTngScreenshot(ocrText) {
@@ -51,23 +103,47 @@ function parseTngScreenshot(ocrText) {
     throw new Error('invalid-ocr')
   }
   const text = ocrText.normalize('NFKC').replace(/\r/g, '')
-  const transferSuccess = /(?:^|\n)\s*已转账\s*(?=\n|$)/.test(text)
-  const paidSuccess = /(?:^|\n)\s*已付\s*(?=\n|$)/.test(text)
-  const confirmationLabel = transferSuccess ? '已转账' : paidSuccess ? '已付' : ''
-  const amountMatch = confirmationLabel
-    ? text.slice(0, text.indexOf(confirmationLabel)).match(/\bRM\s*([\d,]+(?:\.\d{2})?)\b/i)
-    : text.match(/(^|\n|\s)([+-])\s*RM\s*([\d,]+(?:\.\d{2})?)/i)
-  if (!amountMatch) throw new Error('missing-amount')
-  const amount = Number((confirmationLabel ? amountMatch[1] : amountMatch[3]).replace(/,/g, ''))
+  if (/(?:^|\n)\s*(?:失败|付款处理中|转账处理中|处理中|待处理|已取消|交易已取消|退款中)\s*(?=\n|$)/.test(text)) {
+    throw new Error('not-successful')
+  }
+  const confirmationMatch = text.match(/(?:^|\n)[ \t]*(?:已[ \t]*转[ \t]*账|[已己][ \t]*付(?:[ \t]*款)?)[ \t]*(?=\n|$)/)
+  const confirmationPartyMatch = text.match(/(?:接收者|接纳者)/)
+  const hasMerchantConfirmationFields = /商家/.test(text) && /交易类型/.test(text) &&
+    /电子钱包参考编号/.test(text) && /付款方式/.test(text) && /完成/.test(text)
+  const hasConfirmationFields = (Boolean(confirmationPartyMatch) && /完成/.test(text)) ||
+    (/电子钱包参考编号/.test(text) && /商家编号/.test(text)) || hasMerchantConfirmationFields
+  const status = fieldAfter(text, '状态')
+  // A detail page carries an explicit status and transaction ID. Text in an ad
+  // must not turn it into a confirmation page with a synthetic duplicate ID.
+  const transferSuccess = !status && Boolean(confirmationMatch || hasConfirmationFields)
+  const signedAmountMatch = text.match(/(?:^|[^\p{L}\p{N}])([+\-−‒–—―])\s*R\s*M\s*([0-9][0-9,]*(?:\s*\.\s*[0-9]{1,2})?)/iu)
+  const currencyAmountMatch = text.match(/\bR\s*M\s*([0-9][0-9,]*(?:\s*\.\s*[0-9]{1,2})?)/i)
+  const decimalAmountMatch = text.match(/(?:^|[^\d/:])(\d{1,7}\s*[.,]\s*\d{2})(?!\d)/)
+  const detailExpense = /商家/.test(text) && /(?:付款|DuitNow)/i.test(text)
+  const duitNowQrPayment = /\bDuitNow\s*QR\s*TNGD\b/i.test(text)
+
+  let amountText = ''
+  let type = ''
+  if (transferSuccess) {
+    amountText = currencyAmountMatch?.[1] || decimalAmountMatch?.[1] || ''
+    type = 'expense'
+  } else if (signedAmountMatch) {
+    amountText = signedAmountMatch[2]
+    type = signedAmountMatch[1] === '+' ? 'income' : 'expense'
+  } else if (detailExpense) {
+    // Vision occasionally drops the minus sign or the RM prefix, while the
+    // successful detail page still has enough structure to verify an expense.
+    amountText = currencyAmountMatch?.[1] || decimalAmountMatch?.[1] || ''
+    type = 'expense'
+  }
+  if (!amountText) throw new Error('missing-amount')
+  const amount = parseAmountValue(amountText)
   if (!Number.isFinite(amount) || amount <= 0 || amount > 1000000) throw new Error('invalid-amount')
 
-  const type = confirmationLabel || amountMatch[2] === '-' ? 'expense' : 'income'
-  // TNG labels successful DuitNow QR payments with the rail name instead of "支付".
-  // OCR can omit the adjacent "交易类型" label, so match the distinctive TNGD rail name.
-  const duitNowQrPayment = /\bDuitNow\s*QR\s*TNGD\b/i.test(text)
-  if (type === 'expense' && !confirmationLabel && !/支付/.test(text) && !duitNowQrPayment) throw new Error('invalid-type')
   if (type === 'income' && !/(从钱包接收|接收转账)/.test(text)) throw new Error('invalid-type')
-  if (!confirmationLabel && fieldAfter(text, '状态') !== '成功') throw new Error('not-successful')
+  if (type === 'expense' && !transferSuccess && !/支付/.test(text) && !duitNowQrPayment) throw new Error('invalid-type')
+  if (status && status !== '成功') throw new Error('not-successful')
+  if (!transferSuccess && status !== '成功') throw new Error('not-successful')
 
   // iPhone OCR may read the date value before its label or split date and time
   // across lines. The successful transfer page has one complete transaction date.
@@ -84,9 +160,14 @@ function parseTngScreenshot(ocrText) {
   const date = `${yearText}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
   const time = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:${String(second).padStart(2, '0')}`
 
-  let note = transferSuccess ? scanPaymentParty(text, dateMatch.index)
-    : paidSuccess ? paidPaymentParty(text, dateMatch.index)
-      : type === 'expense' ? fieldAfter(text, '商家') : fieldAfter(text, '接收转账')
+  const confirmationEnd = confirmationMatch
+    ? confirmationMatch.index + confirmationMatch[0].length
+    : confirmationPartyMatch?.index || 0
+  let note = transferSuccess
+    ? (confirmationPartyMatch
+        ? scanPaymentParty(text, dateMatch.index, confirmationEnd)
+        : scanMerchantConfirmationParty(text, dateMatch.index))
+    : type === 'expense' ? fieldAfter(text, '商家') : fieldAfter(text, '接收转账')
   if (type === 'expense' && !note) {
     note = text.match(/支付\s*[-–—]\s*([^\n]+)/)?.[1]?.trim() || ''
   }
@@ -95,24 +176,17 @@ function parseTngScreenshot(ocrText) {
   }
 
   let sourceTransactionId
-  if (confirmationLabel) {
+  if (transferSuccess) {
     // The confirmation page has no TNG transaction ID. Hash only verified transaction fields,
     // so ad text and OCR line wrapping cannot affect deduplication.
     const fingerprint = `${date}T${time}|${amount.toFixed(2)}|${note.replace(/\s+/g, ' ').trim().toUpperCase()}`
     sourceTransactionId = `RECEIPT-${crypto.createHash('sha256').update(fingerprint).digest('hex').slice(0, 40).toUpperCase()}`
   } else {
-    // iPhone OCR may read the right-column ID before the left-column label, or
-    // split this long QR ID across lines. Its date-prefixed TNGD shape is unique
-    // on this detail page (the wallet reference uses a different prefix).
+    // TNGD QR IDs remain recognizable when OCR moves them before their label.
     const qrTransactionId = duitNowQrPayment
       ? text.toUpperCase().replace(/\s+/g, '').match(/20\d{6}TNGD[A-Z0-9]{8,64}/)?.[0]
       : ''
-    sourceTransactionId = qrTransactionId || fieldAfter(text, '交易编号')
-    if (sourceTransactionId.endsWith('-')) {
-      const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean)
-      const index = lines.findIndex(line => line.includes(sourceTransactionId))
-      sourceTransactionId += lines[index + 1] || ''
-    }
+    sourceTransactionId = qrTransactionId || continuedFieldAfter(text, '交易编号')
     sourceTransactionId = sourceTransactionId.replace(/\s+/g, '').toUpperCase()
   }
   if (!/^[A-Z0-9-]{8,80}$/.test(sourceTransactionId)) throw new Error('missing-transaction-id')
