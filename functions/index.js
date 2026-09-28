@@ -117,10 +117,22 @@ exports.jsaveReceiptShortcutImport = onRequest({ invoker: 'public', cors: false 
   const input = req.body || {}
   if (typeof input !== 'object' || JSON.stringify(input).length > 10000 ||
       !['preview', 'commit'].includes(input.action)) return res.status(400).json({ error: 'invalid-request' })
+  if (input.action === 'preview') {
+    console.info(`[jsave-receipt-shortcut] OCR preview ${JSON.stringify({
+      sourceHint: input.sourceHint || '',
+      ocrText: typeof input.text === 'string' ? input.text.slice(0, 8000) : input.text,
+    })}`)
+  }
   let draft
   try {
     draft = parseReceiptScreenshot(input.text, input.sourceHint || '')
   } catch (error) {
+    console.warn(`[jsave-receipt-shortcut] OCR parse failed ${JSON.stringify({
+      action: input.action,
+      sourceHint: input.sourceHint || '',
+      error: error.message,
+      ocrText: typeof input.text === 'string' ? input.text.slice(0, 8000) : input.text,
+    })}`)
     return res.status(422).json({ error: error.message, ...(error.sources ? { sources: error.sources } : {}) })
   }
   const accountIds = keySnapshot.data().accountIds || {}

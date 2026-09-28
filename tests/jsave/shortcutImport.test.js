@@ -93,6 +93,15 @@ describe('TNG shortcut import', () => {
     expect(() => parseTngScreenshot(duitNowQrPayment.replace('交易类型\nDuitNow QR TNGD', '交易类型\nOther QR'))).toThrow('invalid-type')
   })
 
+  it('accepts a DuitNow QR label without TNGD and stops the wrapped ID before the next label', () => {
+    const plainLabel = duitNowQrPayment
+      .replace('DuitNow QR TNGD', 'DuitNow QR')
+      .replace('20260924TNGDMYNB0300QRTEST123', '20260924TNGDMYNB0300QRTEST12\n3\nDuitNow 参考编号 20260924TNGDMYNB0300QRTEST123')
+    expect(parseTngScreenshot(plainLabel)).toMatchObject({
+      type: 'expense', sourceTransactionId: '20260924TNGDMYNB0300QRTEST123',
+    })
+  })
+
   it('finds a DuitNow QR transaction ID when OCR reorders or splits the right column', () => {
     const id = '20260924TNGDMYNB0300QRTEST123'
     const reordered = duitNowQrPayment.replace(`状态 成功\n交易编号 ${id}`, `交易编号\n状态 成功\n${id}`)

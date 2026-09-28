@@ -52,6 +52,21 @@ function continuedFieldAfter(text, label) {
   return value
 }
 
+function findTngQrTransactionId(text) {
+  const lines = text.toUpperCase().split(/\r?\n/).map(line => line.trim())
+  for (let index = 0; index < lines.length; index += 1) {
+    const match = lines[index].replace(/\s+/g, '').match(/20\d{6}TNGD[A-Z0-9]{8,64}/)
+    if (!match) continue
+    let value = match[0]
+    const continuation = lines[index + 1] || ''
+    if (/^[A-Z0-9]{1,16}$/.test(continuation) &&
+        !/^(?:DUITNOW|QR|RM|SUCCESS|STATUS)$/.test(continuation) &&
+        value.length + continuation.length <= 80) value += continuation
+    return value
+  }
+  return ''
+}
+
 function scanPaymentParty(text, dateIndex, confirmationEnd) {
   // Vision can emit the three left-column labels before the right-column values.
   // Only inspect the transaction details above the date; the ad begins below it.
@@ -120,7 +135,12 @@ function parseTngScreenshot(ocrText) {
   const currencyAmountMatch = text.match(/\bR\s*M\s*([0-9][0-9,]*(?:\s*\.\s*[0-9]{1,2})?)/i)
   const decimalAmountMatch = text.match(/(?:^|[^\d/:])(\d{1,7}\s*[.,]\s*\d{2})(?!\d)/)
   const detailExpense = /商家/.test(text) && /(?:付款|DuitNow)/i.test(text)
-  const duitNowQrPayment = /\bDuitNow\s*QR\s*TNGD\b/i.test(text)
+  // Some TNG layouts only say "DuitNow QR" in the type while the transaction
+  // reference carries TNGD. Treat that combination as the same verified flow.
+  const qrTransactionId = findTngQrTransactionId(text)
+  const hasDuitNowQrType = /\bDuitNow\s*Q\s*R\b/i.test(text)
+  const duitNowQrPayment = hasDuitNowQrType &&
+    (/\bDuitNow\s*Q\s*R\s*TNGD\b/i.test(text) || Boolean(qrTransactionId))
 
   let amountText = ''
   let type = ''
@@ -183,10 +203,7 @@ function parseTngScreenshot(ocrText) {
     sourceTransactionId = `RECEIPT-${crypto.createHash('sha256').update(fingerprint).digest('hex').slice(0, 40).toUpperCase()}`
   } else {
     // TNGD QR IDs remain recognizable when OCR moves them before their label.
-    const qrTransactionId = duitNowQrPayment
-      ? text.toUpperCase().replace(/\s+/g, '').match(/20\d{6}TNGD[A-Z0-9]{8,64}/)?.[0]
-      : ''
-    sourceTransactionId = qrTransactionId || continuedFieldAfter(text, '交易编号')
+    sourceTransactionId = (duitNowQrPayment ? qrTransactionId : '') || continuedFieldAfter(text, '交易编号')
     sourceTransactionId = sourceTransactionId.replace(/\s+/g, '').toUpperCase()
   }
   if (!/^[A-Z0-9-]{8,80}$/.test(sourceTransactionId)) throw new Error('missing-transaction-id')
