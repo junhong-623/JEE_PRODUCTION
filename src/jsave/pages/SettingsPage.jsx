@@ -697,7 +697,7 @@ export default function SettingsPage({ onOpenAdmin }) {
   }, [lang]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="jsave-page">
+    <div className="jsave-page jsave-settings-page">
 
       <PageHeader code={`05 / ${lang === 'zh' ? '设置' : 'SETTINGS'}`} title={t('settingsTitle')} />
 

@@ -78,6 +78,9 @@ export default function CalendarPage({ onOpenSettings }) {
     <div className="jsave-page">
       <PageHeader code={`02 / ${lang === 'zh' ? '日历' : 'CALENDAR'}`} title={t('navCalendar')} onOpenSettings={onOpenSettings} settingsLabel={t('navSettings')} />
 
+      <div className="jsave-calendar-layout">
+        <div className="jsave-calendar-main">
+
       {/* Month nav */}
       <div className="jsave-cal-header">
         <button className="jsave-icon-btn" onClick={prevMonth}>‹</button>
@@ -141,6 +144,8 @@ export default function CalendarPage({ onOpenSettings }) {
         })}
       </div>
 
+        </div>
+        <div className="jsave-calendar-side">
       {/* Day detail */}
       {selectedDay && (
         <GlassCard className="jsave-day-detail">
@@ -171,6 +176,15 @@ export default function CalendarPage({ onOpenSettings }) {
           )}
         </GlassCard>
       )}
+
+          {!selectedDay && (
+            <div className="jsave-calendar-prompt">
+              <span>↖</span>
+              <p>{lang === 'zh' ? '选择一天，查看当天的交易' : 'Select a day to view its transactions'}</p>
+            </div>
+          )}
+        </div>
+      </div>
 
       {showForm && (
         <TransactionForm

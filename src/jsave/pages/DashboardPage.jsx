@@ -238,6 +238,9 @@ export default function DashboardPage({ onOpenSettings, onNavigate }) {
 
       <PageHeader code="00 / HOME" title="JSave" onOpenSettings={onOpenSettings} settingsLabel={t('navSettings')} />
 
+      <div className="jsave-dashboard-layout">
+        <div className="jsave-dashboard-overview">
+
       {/* ── Balance Hero Card ── */}
       <div style={{
         padding: '22px 22px 18px',
@@ -336,6 +339,9 @@ export default function DashboardPage({ onOpenSettings, onNavigate }) {
         </div>
       )}
 
+        </div>
+        <div className="jsave-dashboard-activity">
+
       {/* ── Categories grid ── */}
       <div style={{ marginBottom: 14 }}>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: 1.8, color: 'rgba(241,245,249,0.4)', textTransform: 'uppercase', marginBottom: 10 }}>{t('categories')}</div>
@@ -372,6 +378,9 @@ export default function DashboardPage({ onOpenSettings, onNavigate }) {
             ))}
           </div>
         )}
+      </div>
+
+        </div>
       </div>
 
       {showForm && (

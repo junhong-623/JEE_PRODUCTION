@@ -4,6 +4,7 @@ import { LangProvider, languageFromPath } from './contexts/LangContext'
 import { JSaveProvider } from './contexts/JSaveContext'
 import { useLang } from './contexts/LangContext'
 import BottomNav from './components/BottomNav'
+import DesktopNav from './components/DesktopNav'
 import OfflineBanner from './components/OfflineBanner'
 import LoadingScreen from './components/LoadingScreen'
 import { installState, isStandalone, setupPwaInstall, doInstall } from './installPrompt'
@@ -16,6 +17,7 @@ import { SUPPORTED_CURRENCIES, currencyName, currencySymbol } from './utils/curr
 import { needsCurrencyOnboarding } from './utils/onboarding'
 import './design-system.css'
 import './App.css'
+import './Desktop.css'
 
 const IntroPage = lazy(() => import('./pages/IntroPage'))
 const LoginPage = lazy(() => import('./pages/LoginPage'))
@@ -346,12 +348,15 @@ function JSaveShell() {
           <AdminPage zh={lang === 'zh'} onClose={() => setShowAdmin(false)} />
         </Suspense>
       )}
-      <OfflineBanner />
-      <Suspense fallback={<PageFallback />}>
-        <div key={page} className="jsave-page-anim">
-          {pages[page] ?? pages['dashboard']}
-        </div>
-      </Suspense>
+      <DesktopNav active={page} onChange={navigatePage} onAdd={() => setShowTransactionForm(true)} />
+      <main className="jsave-workspace">
+        <OfflineBanner />
+        <Suspense fallback={<PageFallback />}>
+          <div key={page} className="jsave-page-anim">
+            {pages[page] ?? pages['dashboard']}
+          </div>
+        </Suspense>
+      </main>
       {showTransactionForm && (
         <Suspense fallback={null}>
           <TransactionForm initial={null} onClose={() => setShowTransactionForm(false)} />

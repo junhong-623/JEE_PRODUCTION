@@ -114,7 +114,7 @@ function InsightsView({ filtered, cur, t, lang }) {
   if (filtered.length === 0) return <p className="jsave-empty-msg">{t('noData')}</p>
 
   return (
-    <>
+    <div className="jsave-insights-layout">
       {/* Donut — spend breakdown */}
       <Card>
         <div style={{ marginBottom: 14 }}>
@@ -174,7 +174,7 @@ function InsightsView({ filtered, cur, t, lang }) {
         <div className="jsave-report-observation-label">{t('aiSuggestion')}</div>
         <p style={{ fontSize: 13, lineHeight: 1.65, color: 'rgba(241,245,249,0.85)', margin: 0 }}>{aiTip}</p>
       </div>
-    </>
+    </div>
   )
 }
 
@@ -297,6 +297,7 @@ export default function ReportsPage({ onOpenSettings }) {
     <div className="jsave-page">
       <PageHeader code={`03 / ${VIEW_LABELS[view]}`} title={t('reportsTitle')} onOpenSettings={onOpenSettings} settingsLabel={t('navSettings')} />
 
+      <div className="jsave-report-toolbar">
       <div className="jsave-report-tabs" role="tablist" aria-label={t('reportsTitle')}>
         {VIEWS.map(v => (
           <button key={v} role="tab" aria-selected={view === v} className={view === v ? 'active' : ''} onClick={() => setView(v)}>
@@ -313,6 +314,7 @@ export default function ReportsPage({ onOpenSettings }) {
           </select>
         </label>
       )}
+      </div>
 
       {view === 'insights'  && <InsightsView filtered={filtered} cur={cur} t={t} lang={lang} />}
       {view === 'balances'  && <BalancesView accounts={accounts} getAccountBalance={getAccountBalance} cur={cur} t={t} />}

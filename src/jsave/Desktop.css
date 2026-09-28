@@ -1,0 +1,178 @@
+/* Desktop layout is isolated from the existing phone experience. */
+.jsave-desktop-sidebar,
+.jsave-calendar-prompt {
+  display: none;
+}
+
+.jsave-workspace {
+  min-width: 0;
+  flex: 1;
+}
+
+@media (min-width: 1024px) {
+  .jsave-root.jsave-shell {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    padding-top: 0;
+    background:
+      radial-gradient(900px 580px at 87% 4%, rgba(16, 185, 129, .07), transparent 70%),
+      #07101b;
+  }
+
+  .jsave-desktop-sidebar {
+    position: sticky;
+    top: 0;
+    width: 228px;
+    height: 100vh;
+    height: 100dvh;
+    flex: 0 0 228px;
+    padding: 30px 17px 22px;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid rgba(241, 245, 249, .08);
+    background: linear-gradient(160deg, #091b20, #091522 42%, #08111c);
+    box-sizing: border-box;
+    z-index: 210;
+  }
+
+  .jsave-desktop-brand {
+    padding: 3px 10px 39px;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    color: #f1f5f9;
+  }
+
+  .jsave-desktop-brand-mark {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border-radius: 12px;
+    color: #04140d;
+    background: linear-gradient(135deg, #42d9a7, #079669);
+    box-shadow: 0 8px 25px rgba(16, 185, 129, .2);
+    font: 700 22px var(--font-display);
+  }
+
+  .jsave-desktop-brand strong,
+  .jsave-desktop-brand small { display: block; }
+  .jsave-desktop-brand strong { font: 400 22px var(--font-display); letter-spacing: -.6px; }
+  .jsave-desktop-brand small { margin-top: 2px; color: rgba(241, 245, 249, .42); font-size: 9px; white-space: nowrap; }
+  .jsave-desktop-nav-label { margin: 0 13px 12px; color: rgba(241, 245, 249, .3); font: 600 9px var(--font-mono); letter-spacing: 1.7px; }
+  .jsave-desktop-nav { display: flex; flex-direction: column; gap: 4px; }
+
+  .jsave-desktop-nav-item {
+    width: 100%;
+    min-height: 45px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    background: transparent;
+    color: rgba(241, 245, 249, .55);
+    font: 500 13px var(--font-sans);
+    text-align: left;
+    cursor: pointer;
+    transition: color .2s, background .2s, border-color .2s;
+  }
+
+  .jsave-desktop-nav-item:hover { color: #f1f5f9; background: rgba(255, 255, 255, .045); }
+  .jsave-desktop-nav-item.active { border-color: rgba(16, 185, 129, .22); color: #d8faeb; background: rgba(16, 185, 129, .12); }
+  .jsave-desktop-nav-number { min-width: 19px; color: rgba(241, 245, 249, .3); font: 600 10px var(--font-mono); }
+  .jsave-desktop-nav-item.active .jsave-desktop-nav-number { color: #10b981; }
+  .jsave-desktop-nav-arrow { margin-left: auto; color: #10b981; opacity: 0; }
+  .jsave-desktop-nav-item.active .jsave-desktop-nav-arrow { opacity: 1; }
+
+  .jsave-desktop-add {
+    width: 100%;
+    min-height: 45px;
+    margin-top: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border: 0;
+    border-radius: 12px;
+    color: #042015;
+    background: linear-gradient(135deg, #3bd9a3, #10b981);
+    box-shadow: 0 8px 24px rgba(16, 185, 129, .18);
+    font: 700 12px var(--font-sans);
+    cursor: pointer;
+  }
+
+  .jsave-desktop-add:hover { filter: brightness(1.08); }
+  .jsave-desktop-add span { font-size: 20px; line-height: 1; }
+  .jsave-desktop-sidebar-foot { margin-top: auto; padding: 20px 11px 0; color: rgba(241, 245, 249, .23); font: 9px var(--font-mono); letter-spacing: 1.7px; }
+  .jsave-mobile-nav { display: none !important; }
+
+  .jsave-workspace { min-height: 100vh; min-height: 100dvh; }
+  .jsave-page { max-width: 1440px; padding: 24px clamp(28px, 4vw, 72px) 72px; box-sizing: border-box; }
+  .jsave-page-header { min-height: 64px; padding-top: 0; margin-bottom: 29px; border-bottom: 1px solid rgba(241, 245, 249, .07); padding-bottom: 20px; }
+  .jsave-page-mark { width: 42px; height: 42px; font-size: 24px; }
+  .jsave-page-code { font-size: 10px; }
+  .jsave-page-title { font-size: 25px; }
+  .jsave-page-anim { min-width: 0; }
+
+  .jsave-dashboard-layout { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr); gap: 24px; align-items: start; }
+  .jsave-dashboard-overview,
+  .jsave-dashboard-activity { min-width: 0; }
+  .jsave-dashboard-overview svg { max-width: 100%; }
+  .jsave-dashboard-activity > div { margin-bottom: 23px !important; }
+  .jsave-dashboard-activity > div:nth-child(2) { padding: 18px; border: 1px solid rgba(241, 245, 249, .07); border-radius: 18px; background: rgba(255, 255, 255, .025); }
+
+  .jsave-calendar-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, .44fr); gap: 24px; align-items: start; }
+  .jsave-calendar-main { min-width: 0; }
+  .jsave-calendar-side { min-width: 0; position: sticky; top: 24px; }
+  .jsave-cal-header { min-height: 40px; }
+  .jsave-cal-month { font: 400 26px var(--font-display); }
+  .jsave-calendar-main .jsave-stat-row { gap: 12px; }
+  .jsave-calendar-main .jsave-stat-card { padding: 18px 14px; }
+  .jsave-calendar-main .jsave-stat-value { font-size: 18px; }
+  .jsave-cal-grid { gap: 6px; }
+  .jsave-cal-day { min-height: 56px; border-radius: 12px; }
+  .jsave-cal-day-num { font-size: 15px; }
+  .jsave-cal-day-amt { font-size: 10px; }
+  .jsave-day-detail { margin-top: 0; min-height: 290px; padding: 20px; box-sizing: border-box; }
+  .jsave-calendar-prompt { min-height: 290px; padding: 26px; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 1px dashed rgba(16, 185, 129, .2); border-radius: 20px; color: rgba(241, 245, 249, .48); text-align: center; }
+  .jsave-calendar-prompt span { color: #10b981; font: 46px var(--font-display); }
+  .jsave-calendar-prompt p { max-width: 190px; font-size: 13px; line-height: 1.6; }
+
+  .jsave-insights-layout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
+  .jsave-insights-layout > div { min-width: 0; margin-bottom: 0 !important; }
+  .jsave-insights-layout > .jsave-report-observation { grid-column: 1 / -1; }
+  .jsave-report-toolbar { display: flex; align-items: start; gap: 20px; }
+  .jsave-report-toolbar .jsave-report-tabs { width: min(620px, 70%); flex: 0 1 620px; }
+  .jsave-report-toolbar .jsave-report-range { margin: 0 0 20px auto; }
+  .jsave-report-chart-head h3 { font-size: 23px; }
+  .jsave-report-area-chart svg { max-width: none !important; }
+
+  .jsave-goal-tabs { max-width: 450px; }
+  .jsave-goal-list,
+  .jsave-things-list { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px !important; }
+  .jsave-goal-list > div,
+  .jsave-things-list > div { min-width: 0; }
+  .jsave-goal-hero { min-height: 180px; }
+
+  .jsave-settings-page { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; align-content: start; }
+  .jsave-settings-page > .jsave-page-header,
+  .jsave-settings-page > .jsave-settings-card { grid-column: 1 / -1; }
+  .jsave-settings-page > .jsave-settings-card { margin-bottom: 18px; }
+  .jsave-settings-page > .jsave-accordion-card { align-self: start; }
+  .jsave-settings-page > .jsave-signout { grid-column: 1 / -1; max-width: 260px; justify-self: end; }
+
+  .jsave-modal-overlay:not(.centered) { align-items: center; }
+}
+
+@media (min-width: 1440px) {
+  .jsave-desktop-sidebar { width: 250px; flex-basis: 250px; padding-inline: 23px; }
+  .jsave-page { padding-top: 32px; }
+  .jsave-dashboard-layout { gap: 32px; }
+  .jsave-calendar-layout { gap: 30px; }
+  .jsave-goal-list,
+  .jsave-things-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

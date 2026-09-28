@@ -42,7 +42,7 @@ export default function BottomNav({ active, onChange }) {
   const { t } = useLang()
 
   return (
-    <nav aria-label={t('mainNavigation')} style={{
+    <nav className="jsave-mobile-nav" aria-label={t('mainNavigation')} style={{
       position: 'fixed',
       bottom: 0, left: 14, right: 14,
       marginBottom: 'env(safe-area-inset-bottom, 12px)',

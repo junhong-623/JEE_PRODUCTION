@@ -626,7 +626,7 @@ function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null })
           <p className="jsave-empty-msg">{t('noItems')}</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+        <div className="jsave-things-list" style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
           {sortedItems.map((item, i) => {
             const days = item.isGroup ? null : daysTotal(item.purchaseDate, endDate(item))
             const cpd  = item.cpd
@@ -856,7 +856,7 @@ export default function GoalsPage({ onOpenSettings, initialItemId = null }) {
               {otherGoals.length > 0 && (
                 <>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: 1.8, color: 'rgba(241,245,249,0.4)', textTransform: 'uppercase', marginBottom: 10 }}>{t('activeGoals')}</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+                  <div className="jsave-goal-list" style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
                     {otherGoals.map((goal, i) => {
                       const pct = Math.min(1, (goal.currentAmount || 0) / (goal.targetAmount || 1))
                       return (
