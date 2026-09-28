@@ -4,6 +4,10 @@
   display: none;
 }
 
+.jsave-goal-card-track {
+  display: none;
+}
+
 .jsave-workspace {
   min-width: 0;
   flex: 1;
@@ -148,6 +152,34 @@
   .jsave-report-toolbar { display: flex; align-items: start; gap: 20px; }
   .jsave-report-toolbar .jsave-report-tabs { width: min(620px, 70%); flex: 0 1 620px; }
   .jsave-report-toolbar .jsave-report-range { margin: 0 0 20px auto; }
+  .jsave-reports-page .jsave-report-tabs { padding: 5px; gap: 5px; border: 1px solid rgba(241, 245, 249, .1); border-radius: 15px; background: rgba(255, 255, 255, .035); }
+  .jsave-reports-page .jsave-report-tabs button { min-height: 48px; flex: 1; padding: 12px 18px; border-radius: 10px; font-family: var(--font-sans); font-size: 16px; font-weight: 650; letter-spacing: 0; text-align: center; text-transform: none; }
+  .jsave-reports-page .jsave-report-tabs button::after { display: none; }
+  .jsave-reports-page .jsave-report-tabs button.active { color: #d8faeb; background: rgba(16, 185, 129, .16); }
+  .jsave-reports-page .jsave-report-range { font-size: 12px; letter-spacing: .4px; }
+  .jsave-reports-page .jsave-report-range select { min-height: 42px; font-size: 13px; }
+  .jsave-reports-page .jsave-report-card { padding: 23px 22px !important; }
+  .jsave-reports-page .jsave-report-eyebrow { font-size: 12px !important; letter-spacing: 1.2px !important; }
+  .jsave-reports-page .jsave-report-total-label { font-size: 11px !important; }
+  .jsave-reports-page .jsave-report-total-value { font-size: 23px !important; }
+  .jsave-reports-page .jsave-report-category-name { font-size: 14px !important; }
+  .jsave-reports-page .jsave-report-category-value { font-size: 12px !important; }
+  .jsave-reports-page .jsave-report-week-title { font-size: 23px !important; }
+  .jsave-reports-page .jsave-report-week-total { font-size: 14px !important; }
+  .jsave-reports-page .jsave-report-observation { padding: 20px 24px; }
+  .jsave-reports-page .jsave-report-observation-label { font-size: 12px; }
+  .jsave-reports-page .jsave-report-observation-text { font-size: 16px !important; }
+  .jsave-reports-page .jsave-report-balance-total { font-size: 15px; }
+  .jsave-reports-page .jsave-report-balance-total strong { font-size: 29px; }
+  .jsave-reports-page .jsave-report-balance-row > div:first-child { font-size: 15px; }
+  .jsave-reports-page .jsave-report-balance-row strong { font-size: 14px; }
+  .jsave-reports-page .jsave-report-trend-summary { gap: 14px !important; }
+  .jsave-reports-page .jsave-report-trend-summary .jsave-report-card { padding: 20px 14px !important; }
+  .jsave-reports-page .jsave-report-trend-label { font-size: 11px !important; }
+  .jsave-reports-page .jsave-report-trend-value { font-size: 17px !important; }
+  .jsave-reports-page .jsave-report-chart-legend { font-size: 11px; }
+  .jsave-reports-page svg text { font-size: 11px !important; }
+  .jsave-reports-page .jsave-empty-msg { font-size: 15px; }
   .jsave-report-chart-head h3 { font-size: 23px; }
   .jsave-report-area-chart svg { max-width: none !important; }
 
@@ -156,7 +188,20 @@
   .jsave-things-list { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px !important; }
   .jsave-goal-list > div,
   .jsave-things-list > div { min-width: 0; }
-  .jsave-goal-hero { min-height: 180px; }
+  .jsave-goal-hero { min-height: 250px; padding: 30px !important; border-radius: 24px !important; }
+  .jsave-goal-hero-title { font-size: 31px !important; }
+  .jsave-goal-hero-amount { font-size: 34px !important; }
+  .jsave-goal-hero .jsave-goal-meta { font-size: 13px; }
+  .jsave-goal-list { gap: 18px !important; }
+  .jsave-goal-card { min-height: 180px; padding: 22px !important; display: grid !important; grid-template-columns: 56px minmax(0, 1fr) 12px; align-items: start !important; gap: 15px !important; border: 1px solid rgba(16, 185, 129, .2) !important; border-radius: 22px !important; background: radial-gradient(110% 100% at 0 0, rgba(16, 185, 129, .12), transparent 65%), rgba(255, 255, 255, .035) !important; box-sizing: border-box; }
+  .jsave-goal-card:hover { border-color: rgba(16, 185, 129, .42) !important; }
+  .jsave-goal-card > div:first-child { margin-top: 8px; transform: scale(1.12); transform-origin: top left; }
+  .jsave-goal-card-copy { align-self: stretch; display: flex; flex-direction: column; justify-content: space-between; }
+  .jsave-goal-card-name { font-size: 20px !important; }
+  .jsave-goal-card-amount { margin-top: 12px !important; font-size: 13px !important; line-height: 1.5; }
+  .jsave-goal-card-track { height: 6px; margin-top: 17px; display: block; overflow: hidden; border-radius: 99px; background: rgba(241, 245, 249, .09); }
+  .jsave-goal-card-track span { height: 100%; display: block; border-radius: inherit; }
+  .jsave-goal-card-arrow { font-size: 22px !important; }
 
   .jsave-settings-page { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; align-content: start; }
   .jsave-settings-page > .jsave-page-header,
@@ -173,6 +218,5 @@
   .jsave-page { padding-top: 32px; }
   .jsave-dashboard-layout { gap: 32px; }
   .jsave-calendar-layout { gap: 30px; }
-  .jsave-goal-list,
   .jsave-things-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }

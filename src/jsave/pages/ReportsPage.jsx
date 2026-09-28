@@ -49,7 +49,7 @@ function trendBuckets(range, lang) {
 // ── Card wrapper ────────────────────────────────────────────────────────────
 function Card({ children, style = {} }) {
   return (
-    <div style={{
+    <div className="jsave-report-card" style={{
       padding: '18px 16px', borderRadius: 18,
       background: 'rgba(255,255,255,0.025)',
       border: '1px solid rgba(241,245,249,0.06)',
@@ -63,7 +63,7 @@ function Card({ children, style = {} }) {
 
 function Eyebrow({ children }) {
   return (
-    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: 1.8, color: 'rgba(241,245,249,0.4)', textTransform: 'uppercase', marginBottom: 10 }}>
+    <div className="jsave-report-eyebrow" style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: 1.8, color: 'rgba(241,245,249,0.4)', textTransform: 'uppercase', marginBottom: 10 }}>
       {children}
     </div>
   )
@@ -130,10 +130,10 @@ function InsightsView({ filtered, cur, t, lang }) {
             <div style={{ width: 140, flex: '0 0 140px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <Donut data={donutData} size={130} thickness={16} />
               <div style={{ width: '100%', marginTop: 10, textAlign: 'center' }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8.5, letterSpacing: 1.6, color: 'rgba(241,245,249,0.4)', textTransform: 'uppercase' }}>
+                <div className="jsave-report-total-label" style={{ fontFamily: 'var(--font-mono)', fontSize: 8.5, letterSpacing: 1.6, color: 'rgba(241,245,249,0.4)', textTransform: 'uppercase' }}>
                   {lang === 'zh' ? '总额' : 'Total'}
                 </div>
-                <div style={{ marginTop: 4, fontFamily: 'var(--font-display)', fontSize: 'clamp(14px, 4vw, 18px)', lineHeight: 1.2, color: '#f1f5f9', overflowWrap: 'anywhere' }}>
+                <div className="jsave-report-total-value" style={{ marginTop: 4, fontFamily: 'var(--font-display)', fontSize: 'clamp(14px, 4vw, 18px)', lineHeight: 1.2, color: '#f1f5f9', overflowWrap: 'anywhere' }}>
                   {fmtFull(totalExpense, cur)}
                 </div>
               </div>
@@ -142,8 +142,8 @@ function InsightsView({ filtered, cur, t, lang }) {
               {donutData.map(d => (
                 <div key={d.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ width: 8, height: 8, borderRadius: 2, background: d.color, boxShadow: `0 0 6px ${d.color}`, flexShrink: 0 }}></span>
-                  <div style={{ flex: 1, fontSize: 11, color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.label}</div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(241,245,249,0.6)' }}>{d.value}</div>
+                  <div className="jsave-report-category-name" style={{ flex: 1, fontSize: 11, color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.label}</div>
+                  <div className="jsave-report-category-value" style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(241,245,249,0.6)' }}>{d.value}</div>
                 </div>
               ))}
             </div>
@@ -157,10 +157,10 @@ function InsightsView({ filtered, cur, t, lang }) {
       <Card>
         <Eyebrow>{t('weeklyTrend')}</Eyebrow>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, letterSpacing: -0.4, color: '#f1f5f9' }}>
+          <div className="jsave-report-week-title" style={{ fontFamily: 'var(--font-display)', fontSize: 18, letterSpacing: -0.4, color: '#f1f5f9' }}>
             {lang === 'zh' ? '七日支出' : '7-Day Spending'}
           </div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#10b981' }}>
+          <div className="jsave-report-week-total" style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#10b981' }}>
             {formatCurrency(weekData.reduce((s, d) => s + d.value, 0), cur, lang, { maximumFractionDigits: 0 })}
           </div>
         </div>
@@ -172,7 +172,7 @@ function InsightsView({ filtered, cur, t, lang }) {
       {/* Deterministic observation based on this period's entries */}
       <div className="jsave-report-observation">
         <div className="jsave-report-observation-label">{t('aiSuggestion')}</div>
-        <p style={{ fontSize: 13, lineHeight: 1.65, color: 'rgba(241,245,249,0.85)', margin: 0 }}>{aiTip}</p>
+        <p className="jsave-report-observation-text" style={{ fontSize: 13, lineHeight: 1.65, color: 'rgba(241,245,249,0.85)', margin: 0 }}>{aiTip}</p>
       </div>
     </div>
   )
@@ -232,15 +232,15 @@ function TrendView({ filtered, cur, t, lang, range }) {
 
   return (
     <>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
+      <div className="jsave-report-trend-summary" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
         {[
           { label: t('totalIncome'), value: fmt(totalIncome, cur), color: '#10b981' },
           { label: t('totalExpense'), value: fmt(totalExpense, cur), color: '#f43f5e' },
           { label: t('savingsRateLabel'), value: `${savingsRate}%`, color: savingsRate >= 0 ? '#10b981' : '#f43f5e' },
         ].map(item => (
           <Card key={item.label} style={{ padding: '12px 10px', textAlign: 'center', marginBottom: 0 }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, letterSpacing: 1.2, color: 'rgba(241,245,249,0.4)', textTransform: 'uppercase', marginBottom: 6 }}>{item.label}</div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: item.color }}>{item.value}</div>
+            <div className="jsave-report-trend-label" style={{ fontFamily: 'var(--font-mono)', fontSize: 8, letterSpacing: 1.2, color: 'rgba(241,245,249,0.4)', textTransform: 'uppercase', marginBottom: 6 }}>{item.label}</div>
+            <div className="jsave-report-trend-value" style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: item.color }}>{item.value}</div>
           </Card>
         ))}
       </div>
@@ -294,7 +294,7 @@ export default function ReportsPage({ onOpenSettings }) {
   )
 
   return (
-    <div className="jsave-page">
+    <div className="jsave-page jsave-reports-page">
       <PageHeader code={`03 / ${VIEW_LABELS[view]}`} title={t('reportsTitle')} onOpenSettings={onOpenSettings} settingsLabel={t('navSettings')} />
 
       <div className="jsave-report-toolbar">

@@ -721,7 +721,7 @@ function HeroGoalCard({ goal, onClick, t, lang, cur }) {
         <GoalThumbnail goal={goal} size={46} />
         <div>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: 1.8, color: 'rgba(241,245,249,0.5)', textTransform: 'uppercase' }}>{t('activeGoals')}</div>
-          <div style={{ marginTop: 2, fontFamily: 'var(--font-display)', fontSize: 22, letterSpacing: -0.6, color: '#f1f5f9' }}>{goal.name}</div>
+          <div className="jsave-goal-hero-title" style={{ marginTop: 2, fontFamily: 'var(--font-display)', fontSize: 22, letterSpacing: -0.6, color: '#f1f5f9' }}>{goal.name}</div>
         </div>
       </div>
       <div style={{ marginTop: 18, position: 'relative', height: 10, borderRadius: 999, background: 'rgba(255,255,255,0.07)', overflow: 'hidden' }}>
@@ -729,7 +729,7 @@ function HeroGoalCard({ goal, onClick, t, lang, cur }) {
       </div>
       <div style={{ marginTop: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <div>
-          <span style={{ fontFamily: 'var(--font-display)', fontSize: 24, letterSpacing: -0.8, color: '#f1f5f9' }}>{formatCurrency(goal.currentAmount || 0, cur, lang, { maximumFractionDigits: 0 })}</span>
+          <span className="jsave-goal-hero-amount" style={{ fontFamily: 'var(--font-display)', fontSize: 24, letterSpacing: -0.8, color: '#f1f5f9' }}>{formatCurrency(goal.currentAmount || 0, cur, lang, { maximumFractionDigits: 0 })}</span>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'rgba(241,245,249,0.5)' }}> / {fmtAmt(goal.targetAmount || 0)}</span>
         </div>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#10b981', fontWeight: 600 }}>{Math.round(pct * 100)}%</div>
@@ -860,24 +860,25 @@ export default function GoalsPage({ onOpenSettings, initialItemId = null }) {
                     {otherGoals.map((goal, i) => {
                       const pct = Math.min(1, (goal.currentAmount || 0) / (goal.targetAmount || 1))
                       return (
-                        <div key={goal.id} onClick={() => setQuickGoal(goal)} style={{ padding: 14, borderRadius: 18, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(241,245,249,0.06)', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', transition: 'background 0.15s, transform 0.2s' }}
+                        <div key={goal.id} className="jsave-goal-card" role="button" tabIndex={0} onClick={() => setQuickGoal(goal)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setQuickGoal(goal) } }} style={{ padding: 14, borderRadius: 18, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(241,245,249,0.06)', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', transition: 'background 0.15s, transform 0.2s' }}
                           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
                           onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.025)'; e.currentTarget.style.transform = 'none' }}
                         >
                           <ProgressRing value={pct} size={52} thickness={5} color={RING_COLORS[i % RING_COLORS.length]}>
                             {Math.round(pct * 100)}%
                           </ProgressRing>
-                          <div style={{ flex: 1, minWidth: 0 }}>
+                          <div className="jsave-goal-card-copy" style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                               <GoalThumbnail goal={goal} size={24} />
-                              <span style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{goal.name}</span>
+                              <span className="jsave-goal-card-name" style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{goal.name}</span>
                             </div>
-                            <div style={{ marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'rgba(241,245,249,0.5)' }}>
+                            <div className="jsave-goal-card-amount" style={{ marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'rgba(241,245,249,0.5)' }}>
                               {formatCurrency(goal.currentAmount || 0, cur, lang, { maximumFractionDigits: 0 })} / {formatCurrency(goal.targetAmount || 0, cur, lang, { maximumFractionDigits: 0 })}
                               {goal.deadline && ` · ${Math.max(0, calendarDayDifference(goal.deadline, new Date()))}d`}
                             </div>
+                            <div className="jsave-goal-card-track" aria-hidden="true"><span style={{ width: `${pct * 100}%`, background: RING_COLORS[i % RING_COLORS.length] }} /></div>
                           </div>
-                          <div style={{ color: 'rgba(241,245,249,0.3)', fontSize: 16 }}>›</div>
+                          <div className="jsave-goal-card-arrow" style={{ color: 'rgba(241,245,249,0.3)', fontSize: 16 }}>›</div>
                         </div>
                       )
                     })}
