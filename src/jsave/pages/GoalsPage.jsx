@@ -345,9 +345,9 @@ function ItemForm({ initial, cur, t, onSave, onDelete, onClose, groupMode = fals
   }
 
   return (
-    <div className="jsave-modal-overlay centered" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="jsave-modal glass-card" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()} style={{ borderRadius: 24 }}>
-        <h2 className="jsave-modal-title">{groupMode ? (initial?.id ? t('itemGroupEdit') : t('itemGroupAdd')) : (initial?.id ? t('itemEdit') : t('addItem'))}
+    <div className="jsave-modal-overlay centered jsave-item-form-overlay" onClick={e => e.target === e.currentTarget && onClose()} onKeyDown={e => e.key === 'Escape' && onClose()}>
+      <div className="jsave-modal glass-card jsave-item-form-panel" role="dialog" aria-modal="true" aria-labelledby="jsave-item-form-title" onClick={e => e.stopPropagation()} style={{ borderRadius: 24 }}>
+        <h2 id="jsave-item-form-title" className="jsave-modal-title">{groupMode ? (initial?.id ? t('itemGroupEdit') : t('itemGroupAdd')) : (initial?.id ? t('itemEdit') : t('addItem'))}
           <button onClick={onClose} aria-label={t('close')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(241,245,249,0.5)', fontSize: 20 }}>✕</button>
         </h2>
         <form onSubmit={handleSubmit} className="jsave-form">
@@ -490,6 +490,18 @@ function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null })
     onShowAddChange(false)
   }
 
+  function startNewItem() {
+    setEditing(null)
+    setPendingParentId(null)
+    onShowAddChange(true)
+  }
+
+  function startNewGroup() {
+    setEditing({ kind: 'group', emoji: '🖥️' })
+    setPendingParentId(null)
+    onShowAddChange(false)
+  }
+
   async function syncGroupMembers(groupId, selectedIds) {
     const selected = new Set(selectedIds)
     const changes = regularItems.filter(item =>
@@ -616,8 +628,14 @@ function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null })
       )}
 
       {/* Item list */}
-      <div className="jsave-things-list-label" style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: 1.8, color: 'rgba(241,245,249,0.4)', textTransform: 'uppercase', marginBottom: 10 }}>
-        {lang === 'zh' ? '全部用品 · 按日均排序' : 'All things · sorted by cost/day'}
+      <div className="jsave-things-toolbar">
+        <div className="jsave-things-list-label" style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: 1.8, color: 'rgba(241,245,249,0.4)', textTransform: 'uppercase', marginBottom: 10 }}>
+          {lang === 'zh' ? '全部用品 · 按日均排序' : 'All things · sorted by cost/day'}
+        </div>
+        <div className="jsave-things-toolbar-actions">
+          <button type="button" className="jsave-things-add-group" onClick={startNewGroup}>{t('itemGroupAdd')}</button>
+          <button type="button" className="jsave-things-add-item" onClick={startNewItem}>+ {t('addItem')}</button>
+        </div>
       </div>
 
       {itemEntries.length === 0 ? (
@@ -679,8 +697,8 @@ function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null })
 
       {/* Add item / group */}
       <div className="jsave-item-add-actions">
-        <button onClick={() => { setEditing(null); setPendingParentId(null); onShowAddChange(true) }}>+ {t('addItem')}</button>
-        <button onClick={() => { setEditing({ kind: 'group', emoji: '🖥️' }); setPendingParentId(null); onShowAddChange(false) }}>+ {t('itemGroupAdd')}</button>
+        <button type="button" onClick={startNewItem}>+ {t('addItem')}</button>
+        <button type="button" onClick={startNewGroup}>+ {t('itemGroupAdd')}</button>
       </div>
 
       {(showAdd || editing) && (
