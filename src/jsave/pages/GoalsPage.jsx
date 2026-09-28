@@ -563,24 +563,24 @@ function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null })
       {/* Hero stats */}
       {items.length > 0 && (
         <>
-          <div style={{ padding: '22px', borderRadius: 26, background: 'radial-gradient(140% 80% at 0% 0%, rgba(16,185,129,0.28), transparent 60%), rgba(8,18,32,0.6)', border: '1px solid rgba(16,185,129,0.26)', position: 'relative', overflow: 'hidden', marginBottom: 12 }}>
+          <div className="jsave-things-summary" style={{ padding: '22px', borderRadius: 26, background: 'radial-gradient(140% 80% at 0% 0%, rgba(16,185,129,0.28), transparent 60%), rgba(8,18,32,0.6)', border: '1px solid rgba(16,185,129,0.26)', position: 'relative', overflow: 'hidden', marginBottom: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: 1.8, color: 'rgba(241,245,249,0.5)', textTransform: 'uppercase' }}>{t('itemsTotalAssets')}</div>
+                <div className="jsave-things-summary-label" style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: 1.8, color: 'rgba(241,245,249,0.5)', textTransform: 'uppercase' }}>{t('itemsTotalAssets')}</div>
                 <div style={{ marginTop: 6, display: 'flex', alignItems: 'baseline', gap: 5 }}>
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 14, color: 'rgba(241,245,249,0.5)' }}>{symbol}</span>
-                  <span style={{ fontFamily: 'var(--font-display)', fontSize: 34, letterSpacing: -1.4, color: '#f1f5f9', lineHeight: 1 }}>{fmtAmt(totalAssets)}</span>
+                  <span className="jsave-things-summary-value" style={{ fontFamily: 'var(--font-display)', fontSize: 34, letterSpacing: -1.4, color: '#f1f5f9', lineHeight: 1 }}>{fmtAmt(totalAssets)}</span>
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: 1.5, color: 'rgba(241,245,249,0.4)', textTransform: 'uppercase' }}>{t('itemsTotalCPD')}</div>
-                <div style={{ marginTop: 4, fontFamily: 'var(--font-display)', fontSize: 24, letterSpacing: -0.8, color: '#10b981' }}>
+                <div className="jsave-things-summary-label" style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: 1.5, color: 'rgba(241,245,249,0.4)', textTransform: 'uppercase' }}>{t('itemsTotalCPD')}</div>
+                <div className="jsave-things-summary-cpd" style={{ marginTop: 4, fontFamily: 'var(--font-display)', fontSize: 24, letterSpacing: -0.8, color: '#10b981' }}>
                   {symbol} {totalCPD.toFixed(2)}
                 </div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#10b981' }}>▼ {lang === 'zh' ? '持续下降' : 'dropping'}</div>
+                <div className="jsave-things-summary-note" style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#10b981' }}>▼ {lang === 'zh' ? '持续下降' : 'dropping'}</div>
               </div>
             </div>
-            <div style={{ marginTop: 10, fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: 0.6, color: 'rgba(241,245,249,0.5)' }}>
+            <div className="jsave-things-summary-count" style={{ marginTop: 10, fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: 0.6, color: 'rgba(241,245,249,0.5)' }}>
               {activeItems.length} {lang === 'zh' ? '件 · 越用越便宜' : 'items · cheaper every day'}
             </div>
             <i className="js-tick" style={{ position: 'absolute', top: 10, right: 10, width: 12, height: 12, color: '#10b981', opacity: 0.5 }}></i>
@@ -589,24 +589,24 @@ function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null })
 
           {/* Best / Worst callouts */}
           {sortedItems.length >= 2 && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-              <div style={{ padding: 14, borderRadius: 16, background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.24)' }}>
+            <div className="jsave-things-callouts" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+              <div className="jsave-things-callout" style={{ padding: 14, borderRadius: 16, background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.24)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                   <span style={{ fontSize: 13 }}>🏆</span>
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: '#10b981', letterSpacing: 1.5, textTransform: 'uppercase' }}>{t('itemGreatValue')}</span>
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9', marginBottom: 4 }}>{best.name}</div>
-                <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: '#10b981' }}>
+                <div className="jsave-things-callout-name" style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9', marginBottom: 4 }}>{best.name}</div>
+                <div className="jsave-things-callout-value" style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: '#10b981' }}>
                   {symbol} {best.cpd.toFixed(2)}<span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(241,245,249,0.4)' }}> / {lang === 'zh' ? '天' : 'day'}</span>
                 </div>
               </div>
-              <div style={{ padding: 14, borderRadius: 16, background: 'rgba(245,213,112,0.07)', border: '1px solid rgba(245,213,112,0.22)' }}>
+              <div className="jsave-things-callout" style={{ padding: 14, borderRadius: 16, background: 'rgba(245,213,112,0.07)', border: '1px solid rgba(245,213,112,0.22)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                   <span style={{ fontSize: 13 }}>👀</span>
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: '#f5d570', letterSpacing: 1.5, textTransform: 'uppercase' }}>{lang === 'zh' ? '该用了' : 'Use more'}</span>
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9', marginBottom: 4 }}>{worst.name}</div>
-                <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: '#f5d570' }}>
+                <div className="jsave-things-callout-name" style={{ fontSize: 13, fontWeight: 600, color: '#f1f5f9', marginBottom: 4 }}>{worst.name}</div>
+                <div className="jsave-things-callout-value" style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: '#f5d570' }}>
                   {symbol} {worst.cpd.toFixed(2)}<span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(241,245,249,0.4)' }}> / {lang === 'zh' ? '天' : 'day'}</span>
                 </div>
               </div>
@@ -616,7 +616,7 @@ function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null })
       )}
 
       {/* Item list */}
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: 1.8, color: 'rgba(241,245,249,0.4)', textTransform: 'uppercase', marginBottom: 10 }}>
+      <div className="jsave-things-list-label" style={{ fontFamily: 'var(--font-mono)', fontSize: 9, letterSpacing: 1.8, color: 'rgba(241,245,249,0.4)', textTransform: 'uppercase', marginBottom: 10 }}>
         {lang === 'zh' ? '全部用品 · 按日均排序' : 'All things · sorted by cost/day'}
       </div>
 
@@ -635,20 +635,21 @@ function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null })
             const status = item.isGroup ? 'active' : itemStatus(item)
 
             return (
-              <div key={item.id} onClick={() => { setEditing(item); onShowAddChange(false) }}
+              <div key={item.id} className="jsave-thing-card" role="button" tabIndex={0} onClick={() => { setEditing(item); onShowAddChange(false) }}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setEditing(item); onShowAddChange(false) } }}
                 style={{ padding: '12px 14px', borderRadius: 16, background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(241,245,249,0.06)', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', transition: 'background 0.15s' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.025)'}
               >
                 <ItemThumbnail item={item} size={38} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-                    <span style={{ fontSize: 12.5, fontWeight: 600, color: '#f1f5f9' }}>{item.name}</span>
+                <div className="jsave-thing-card-copy" style={{ flex: 1, minWidth: 0 }}>
+                  <div className="jsave-thing-card-heading" style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                    <span className="jsave-thing-card-name" style={{ fontSize: 12.5, fontWeight: 600, color: '#f1f5f9' }}>{item.name}</span>
                     {item.isGroup && <span className="jsave-item-group-badge">{t('itemGroup')}</span>}
                     {settings?.homeItemId === item.id && <span className="jsave-item-home-badge">{t('itemFeaturedOnHome')}</span>}
-                    {status !== 'active' && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'rgba(241,245,249,0.4)', letterSpacing: 1, textTransform: 'uppercase', background: 'rgba(241,245,249,0.06)', padding: '1px 6px', borderRadius: 4 }}>{t(status === 'sold' ? 'itemSold' : 'itemRetired')}</span>}
+                    {status !== 'active' && <span className="jsave-thing-status" style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'rgba(241,245,249,0.4)', letterSpacing: 1, textTransform: 'uppercase', background: 'rgba(241,245,249,0.06)', padding: '1px 6px', borderRadius: 4 }}>{t(status === 'sold' ? 'itemSold' : 'itemRetired')}</span>}
                   </div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(241,245,249,0.45)' }}>
+                  <div className="jsave-thing-card-meta" style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(241,245,249,0.45)' }}>
                     {item.isGroup
                       ? <span className="jsave-item-group-summary">
                           <span>{t('itemGroupTotalCost')} {cur} {fmtAmt(item.totalCost)}</span>
@@ -658,15 +659,15 @@ function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null })
                       : `${symbol} ${fmtAmt(item.cost)} · ${days} ${lang === 'zh' ? '天' : 'd'}`}
                   </div>
                   {/* amortization bar */}
-                  <div style={{ marginTop: 6, height: 4, borderRadius: 999, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                  <div className="jsave-thing-card-track" style={{ marginTop: 6, height: 4, borderRadius: 999, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
                     <div style={{ height: '100%', width: `${fill * 100}%`, borderRadius: 999, background: isBest ? 'linear-gradient(90deg, #10b981, #34d399)' : 'rgba(16,185,129,0.45)', transition: 'width 0.8s' }}></div>
                   </div>
                 </div>
-                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, letterSpacing: -0.5, color: isBest ? '#10b981' : '#f1f5f9' }}>
+                <div className="jsave-thing-card-metric" style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div className="jsave-thing-card-cpd" style={{ fontFamily: 'var(--font-display)', fontSize: 18, letterSpacing: -0.5, color: isBest ? '#10b981' : '#f1f5f9' }}>
                     {cpd.toFixed(2)}
                   </div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 8, letterSpacing: 0.5, color: 'rgba(241,245,249,0.4)' }}>
+                  <div className="jsave-thing-card-unit" style={{ fontFamily: 'var(--font-mono)', fontSize: 8, letterSpacing: 0.5, color: 'rgba(241,245,249,0.4)' }}>
                     {symbol} / {lang === 'zh' ? '天' : 'day'}
                   </div>
                 </div>

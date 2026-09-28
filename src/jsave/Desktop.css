@@ -184,6 +184,7 @@
   .jsave-report-area-chart svg { max-width: none !important; }
 
   .jsave-goal-tabs { max-width: 450px; }
+  .jsave-goal-tabs button { min-height: 48px; font-size: 16px; }
   .jsave-goal-list,
   .jsave-things-list { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px !important; }
   .jsave-goal-list > div,
@@ -203,6 +204,39 @@
   .jsave-goal-card-track span { height: 100%; display: block; border-radius: inherit; }
   .jsave-goal-card-arrow { font-size: 22px !important; }
 
+  .jsave-things-summary { min-height: 185px; padding: 30px !important; box-sizing: border-box; }
+  .jsave-things-summary-label { font-size: 12px !important; letter-spacing: 1.2px !important; }
+  .jsave-things-summary-value { font-size: 43px !important; }
+  .jsave-things-summary-cpd { font-size: 32px !important; }
+  .jsave-things-summary-note { margin-top: 7px; font-size: 11px !important; }
+  .jsave-things-summary-count { margin-top: 18px !important; font-size: 13px !important; }
+  .jsave-things-callouts { gap: 18px !important; margin-bottom: 26px !important; }
+  .jsave-things-callout { min-height: 125px; padding: 22px !important; border-radius: 20px !important; box-sizing: border-box; }
+  .jsave-things-callout > div:first-child > span:last-child { font-size: 11px !important; }
+  .jsave-things-callout-name { margin-top: 8px; font-size: 17px !important; }
+  .jsave-things-callout-value { font-size: 26px !important; }
+  .jsave-things-callout-value span { font-size: 11px !important; }
+  .jsave-things-list-label { margin-bottom: 15px !important; font-size: 12px !important; letter-spacing: 1.2px !important; }
+  .jsave-things-list { gap: 18px !important; }
+  .jsave-thing-card { min-height: 220px; padding: 22px !important; display: grid !important; grid-template-columns: 82px minmax(0, 1fr); grid-template-rows: 1fr auto; align-items: start !important; gap: 16px 18px !important; border: 1px solid rgba(16, 185, 129, .19) !important; border-radius: 22px !important; background: radial-gradient(110% 90% at 0 0, rgba(16, 185, 129, .1), transparent 65%), rgba(255, 255, 255, .03) !important; box-sizing: border-box; }
+  .jsave-thing-card:hover { border-color: rgba(16, 185, 129, .42) !important; }
+  .jsave-thing-card .jsave-item-thumbnail { width: 82px !important; height: 82px !important; border-radius: 17px; }
+  .jsave-thing-card .jsave-item-thumbnail.fallback { font-size: 39px !important; }
+  .jsave-thing-card-copy { min-width: 0; align-self: stretch; display: flex; flex-direction: column; }
+  .jsave-thing-card-heading { flex-wrap: wrap; gap: 7px !important; }
+  .jsave-thing-card-name { max-width: 100%; font-size: 20px !important; line-height: 1.25; overflow-wrap: anywhere; }
+  .jsave-thing-card .jsave-item-group-badge,
+  .jsave-thing-card .jsave-item-home-badge { font-size: 10px; padding: 3px 7px; }
+  .jsave-thing-card .jsave-thing-status { font-size: 10px !important; padding: 3px 7px !important; }
+  .jsave-thing-card-meta { margin-top: 10px; font-size: 13px !important; line-height: 1.6; overflow-wrap: anywhere; }
+  .jsave-thing-card .jsave-item-group-summary { gap: 4px 12px; }
+  .jsave-thing-card-track { height: 6px !important; margin-top: auto !important; }
+  .jsave-thing-card-metric { grid-column: 1 / -1; width: 100%; padding-top: 14px; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; border-top: 1px solid rgba(241, 245, 249, .09); text-align: left !important; }
+  .jsave-thing-card-cpd { font-size: 31px !important; line-height: 1; }
+  .jsave-thing-card-unit { font-size: 12px !important; }
+  .jsave-item-add-actions { max-width: 520px; margin-top: 8px; }
+  .jsave-item-add-actions button { min-height: 50px; font-size: 14px; }
+
   .jsave-settings-page { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; align-content: start; }
   .jsave-settings-page > .jsave-page-header,
   .jsave-settings-page > .jsave-settings-card { grid-column: 1 / -1; }
@@ -218,5 +252,5 @@
   .jsave-page { padding-top: 32px; }
   .jsave-dashboard-layout { gap: 32px; }
   .jsave-calendar-layout { gap: 30px; }
-  .jsave-things-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .jsave-things-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
