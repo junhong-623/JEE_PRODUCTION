@@ -173,7 +173,7 @@ export default function DashboardPage({ onOpenSettings, onNavigate }) {
   const budgetPercent = dailyBudget > 0 ? Math.min(100, (todayExpense / dailyBudget) * 100) : 0
 
   const totalBalance = getTotalBalance()
-  const recent = transactions.slice(0, 12)
+  const recent = transactions.slice(0, 8)
   const pendingSplits = useMemo(() => transactions.filter(transaction =>
     transaction.type === 'split' && transaction.splitWith?.some(friend => !friend.settled)
   ), [transactions])
