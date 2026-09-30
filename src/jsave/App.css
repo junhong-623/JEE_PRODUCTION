@@ -1240,6 +1240,92 @@ input[type="number"].jsave-input::-webkit-outer-spin-button { -webkit-appearance
 .jsave-item-home-setting small { max-width: 280px; color: rgba(241,245,249,0.43); font-size: 10px; line-height: 1.45; }
 .jsave-item-home-badge { flex-shrink: 0; padding: 2px 6px; color: #6ee7b7; border: 1px solid rgba(16,185,129,0.22); border-radius: 999px; background: rgba(16,185,129,0.08); font-family: var(--font-mono); font-size: 7px; letter-spacing: .05em; text-transform: uppercase; }
 
+/* Item installments */
+.jsave-installment-overview { margin: 0 0 16px; padding: 17px 19px; border: 1px solid rgba(52,211,153,.25); border-radius: 20px; background: radial-gradient(120% 130% at 100% 0, rgba(16,185,129,.16), transparent 65%), #0d1c26; }
+.jsave-installment-overview > div { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 6px 16px; }
+.jsave-installment-overview span { color: #a7f3d0; font-size: 13px; font-weight: 650; }
+.jsave-installment-overview strong { color: #f1f5f9; font: 27px var(--font-display); font-variant-numeric: tabular-nums; }
+.jsave-installment-overview small { display: block; max-width: 600px; margin-top: 7px; color: #9bb7ae; font-size: 11px; line-height: 1.5; }
+.jsave-installment-badge { display: inline-block; padding: 3px 7px; border-radius: 999px; color: #b9e5d4; background: rgba(16,185,129,.14); border: 1px solid rgba(16,185,129,.23); font: 500 10px var(--font-sans); white-space: nowrap; }
+.jsave-installment-badge.settled { color: #9ca9b9; border-color: rgba(156,169,185,.25); background: rgba(156,169,185,.08); }
+.jsave-thing-payment-line { display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 7px; margin: 6px 0 2px; color: #9bb7ae; font: 500 11px var(--font-sans); }
+.jsave-thing-payment-line strong { color: #a7f3d0; font-size: 12px; font-variant-numeric: tabular-nums; }
+.jsave-thing-payment-line small { color: #81969b; font-size: 10px; }
+.jsave-installment-open { padding: 2px 0 2px 7px; border: 0; background: transparent; color: #6ee7b7; font: 600 11px var(--font-sans); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.jsave-installment-open-from-form, .jsave-installment-edit-plan { width: 100%; display: flex; justify-content: space-between; align-items: center; min-height: 42px; padding: 10px 13px; border: 1px solid rgba(16,185,129,.28); border-radius: 12px; background: rgba(16,185,129,.08); color: #a7f3d0; font: 600 12px var(--font-sans); cursor: pointer; }
+.jsave-installment-edit-plan { margin-top: 16px; justify-content: center; }
+.jsave-installment-close { flex-shrink: 0; padding: 4px 7px; color: #a7b9ba; border: 0; background: transparent; font-size: 19px; cursor: pointer; }
+.jsave-installment-panel { padding: 24px 20px; }
+.jsave-installment-panel .jsave-modal-title { gap: 12px; }
+.jsave-installment-panel .jsave-modal-title span { overflow-wrap: anywhere; }
+.jsave-installment-editor, .jsave-installment-manager { border: 1px solid rgba(16,185,129,.2); border-radius: 18px; background: rgba(16,185,129,.045); padding: 16px; min-width: 0; }
+.jsave-installment-toggle { display: flex; justify-content: space-between; align-items: center; gap: 15px; }
+.jsave-installment-toggle > span { display: grid; gap: 4px; min-width: 0; }
+.jsave-installment-toggle strong, .jsave-installment-manager-heading strong { color: #eafaf3; font-size: 14px; }
+.jsave-installment-toggle small, .jsave-installment-manager-heading small { display: block; color: #9bb7ae; font-size: 11px; line-height: 1.45; }
+.jsave-installment-editor-body { margin-top: 17px; border-top: 1px solid rgba(241,245,249,.08); padding-top: 15px; }
+.jsave-installment-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.jsave-installment-fields label { display: grid; gap: 6px; min-width: 0; }
+.jsave-installment-fields label:nth-child(-n+5) { grid-column: 1 / -1; }
+.jsave-installment-fields label > span { color: #b8c9d2; font-size: 11px; font-weight: 600; }
+.jsave-installment-fields .jsave-input { width: 100%; min-width: 0; box-sizing: border-box; }
+.jsave-installment-fields .jsave-input:disabled, .jsave-installment-schedule-edit-row .jsave-input:disabled { opacity: .62; cursor: not-allowed; }
+.jsave-installment-cost-breakdown { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; margin-top: 14px; padding: 11px 12px; border-radius: 11px; background: rgba(255,255,255,.035); }
+.jsave-installment-cost-breakdown span { color: #9bb7ae; font-size: 11px; }
+.jsave-installment-cost-breakdown strong { margin-left: auto; color: #eafaf3; font-size: 14px; font-variant-numeric: tabular-nums; }
+.jsave-installment-cost-breakdown small { flex-basis: 100%; color: #f5d570; font-size: 10px; }
+.jsave-installment-hint { margin: 12px 0 0; color: #8fa6a8; font-size: 11px; line-height: 1.5; }
+.jsave-installment-details-toggle { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding: 10px 0 0; color: #6ee7b7; border: 0; border-top: 1px solid rgba(241,245,249,.07); background: transparent; font: 600 12px var(--font-sans); text-align: left; cursor: pointer; }
+.jsave-installment-details-toggle span { font-size: 18px; }
+.jsave-installment-schedule-edit { display: grid; gap: 8px; margin-top: 12px; }
+.jsave-installment-schedule-edit-row { display: grid; grid-template-columns: 58px minmax(0, 1fr) 105px; align-items: center; gap: 7px; }
+.jsave-installment-schedule-edit-row strong { color: #bed8cd; font-size: 11px; }
+.jsave-installment-schedule-edit-row .jsave-input { min-width: 0; width: 100%; box-sizing: border-box; padding: 9px 8px; font-size: 13px; }
+.jsave-installment-schedule-total { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 10px; color: #9bb7ae; font-size: 11px; }
+.jsave-installment-schedule-total strong { color: #eafaf3; font-variant-numeric: tabular-nums; }
+.jsave-installment-manager-heading { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.jsave-installment-manager-heading > div { display: grid; gap: 4px; }
+.jsave-installment-status { flex-shrink: 0; padding: 4px 8px; border-radius: 999px; color: #7ae0ac; background: rgba(16,185,129,.11); font: 600 10px var(--font-sans); }
+.jsave-installment-status.settled { color: #adb6c2; background: rgba(241,245,249,.07); }
+.jsave-installment-manager-meta { display: flex; flex-wrap: wrap; gap: 6px 15px; margin-top: 11px; color: #819f9d; font-size: 10px; }
+.jsave-installment-manager-meta span { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.jsave-installment-manager-meta strong { color: #bed8cd; font-weight: 600; }
+.jsave-installment-manager-total { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-top: 17px; }
+.jsave-installment-manager-total span { color: #9bb7ae; font-size: 12px; }
+.jsave-installment-manager-total strong { color: #86efac; font: 26px var(--font-display); font-variant-numeric: tabular-nums; }
+.jsave-installment-payment-list { display: grid; gap: 8px; margin-top: 14px; }
+.jsave-installment-payment { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 9px; padding: 11px; border: 1px solid rgba(241,245,249,.07); border-radius: 13px; background: rgba(255,255,255,.025); }
+.jsave-installment-payment.is-paid { opacity: .76; }
+.jsave-installment-payment-main { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.jsave-installment-payment-number { display: grid; place-items: center; flex: 0 0 26px; width: 26px; height: 26px; border-radius: 9px; color: #7ce3ad; background: rgba(16,185,129,.11); font: 600 11px var(--font-mono); }
+.jsave-installment-payment-main > div { display: grid; gap: 3px; min-width: 0; }
+.jsave-installment-payment-main strong { color: #f1f5f9; font-size: 13px; }
+.jsave-installment-payment-main small { color: #93a8a8; font-size: 10px; }
+.jsave-installment-actual { flex-basis: 100%; color: #f5d570; font-size: 10px; }
+.jsave-installment-payment-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+.jsave-installment-record, .jsave-installment-text-button { min-height: 35px; padding: 7px 9px; border-radius: 9px; font: 600 11px var(--font-sans); cursor: pointer; }
+.jsave-installment-record { color: #062016; background: #34d399; border: 1px solid #34d399; }
+.jsave-installment-text-button { color: #7ae0ac; background: transparent; border: 1px solid rgba(16,185,129,.25); }
+.jsave-installment-linker { display: grid; gap: 7px; flex-basis: 100%; width: 100%; padding-top: 9px; border-top: 1px solid rgba(241,245,249,.07); }
+.jsave-installment-linker > small, .jsave-installment-linker > p { color: #93a8a8; font-size: 11px; margin: 0; }
+.jsave-installment-candidate { display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; padding: 9px; border: 1px solid rgba(241,245,249,.08); border-radius: 10px; background: rgba(255,255,255,.03); color: #eafaf3; text-align: left; cursor: pointer; }
+.jsave-installment-candidate:hover, .jsave-installment-text-button:hover { background: rgba(16,185,129,.1); }
+.jsave-installment-candidate span { min-width: 0; overflow-wrap: anywhere; font-size: 12px; }
+.jsave-installment-candidate small { display: block; margin-top: 2px; color: #93a8a8; font-size: 10px; }
+.jsave-installment-candidate strong { flex-shrink: 0; font-size: 12px; }
+.jsave-tx-installment-field { display: grid; gap: 6px; margin: 14px 16px 0; padding: 13px; border: 1px solid rgba(16,185,129,.2); border-radius: 13px; background: rgba(16,185,129,.06); }
+.jsave-tx-installment-field label { color: #eafaf3; font-size: 12px; font-weight: 600; }
+.jsave-tx-installment-field small { color: #9bb7ae; font-size: 11px; line-height: 1.4; }
+.jsave-tx-installment-field .jsave-input { width: 100%; min-width: 0; }
+
+@media (max-width: 480px) {
+  .jsave-installment-fields { grid-template-columns: 1fr 1fr; }
+  .jsave-installment-schedule-edit-row { grid-template-columns: 1fr; padding: 9px; border: 1px solid rgba(241,245,249,.07); border-radius: 11px; }
+  .jsave-installment-schedule-edit-row strong { grid-column: auto; }
+  .jsave-installment-payment-actions { width: 100%; }
+  .jsave-installment-payment-actions button { flex: 1; }
+}
+
 .jsave-acc-row {
   display: flex;
   align-items: center;

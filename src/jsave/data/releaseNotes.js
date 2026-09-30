@@ -1,8 +1,23 @@
 export const RELEASE_NOTES = [
   {
+    version: '3.8.0',
+    date: '2026-09-30',
+    isLatest: true,
+    items: [
+      'Add optional installment plans to items, with a full payment schedule, past-payment starting point, and a future-payments total',
+      'Record each installment as an expense or link an existing expense; credit card repayments remain transfers and are not counted twice',
+      'Manage payments from item cards on phone and desktop, with the preferred charge account ready when recording',
+    ],
+    itemsZh: [
+      '物品可设置分期计划、每期金额与日期、过去已付期数，并汇总未来待扣款',
+      '每期可新增支出或关联已有支出；还信用卡仍记转账，避免重复计算',
+      '手机和电脑都可从物品卡片直接管理分期，并在记账时预选扣款账户',
+    ],
+  },
+  {
     version: '3.7.5',
     date: '2026-09-24',
-    isLatest: true,
+    isLatest: false,
     items: [
       'Make the amount entered manually large and centered on phones across expense, income, transfer, and split entries',
     ],

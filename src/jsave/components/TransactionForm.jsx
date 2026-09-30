@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useLang } from '../contexts/LangContext'
 import { useJSave } from '../hooks/useJSave'
 import { toLocalDateString } from '../utils/date'
 import { allocateEqualShares, customSplitRemaining, fillSplitRemainder, isCustomSplitValid } from '../utils/split'
 import { currencySymbol, formatCurrency } from '../utils/currency'
+import { installmentProgress } from '../utils/installments'
 
 const INCOME_CATS  = ['catSalary', 'catFreelance', 'catInvestment', 'catGift', 'catOtherIncome']
 const EXPENSE_CATS = ['catFood', 'catTransport', 'catBills', 'catEntertainment', 'catHealth', 'catShopping', 'catOther']
@@ -251,7 +252,7 @@ export default function TransactionForm(props) {
 
 function StandardTransactionForm({ initial, onClose }) {
   const { t, lang } = useLang()
-  const { accounts, addTransaction, updateTransaction, deleteTransaction, settings } = useJSave()
+  const { accounts, items, transactions, addTransaction, updateTransaction, deleteTransaction, settings } = useJSave()
 
   const [type, setType]           = useState(initial?.type ?? 'expense')
   const [amount, setAmount]       = useState(initial?.amount?.toString() ?? '')
@@ -263,6 +264,8 @@ function StandardTransactionForm({ initial, onClose }) {
   const [note, setNote]           = useState(initial?.recurringBaseNote ?? initial?.note ?? '')
   const [recurring, setRecurring] = useState(initial?.recurring ?? false)
   const [saving, setSaving]       = useState(false)
+  const [installmentKey, setInstallmentKey] = useState(initial?.installmentItemId && initial?.installmentNumber ? `${initial.installmentItemId}:${initial.installmentNumber}` : '')
+  const [installmentError, setInstallmentError] = useState('')
   const [splitCount, setSplitCount]     = useState(2)
   const [splitMode, setSplitMode]       = useState('equal')
   const [customShares, setCustomShares] = useState(['', ''])
@@ -276,6 +279,10 @@ function StandardTransactionForm({ initial, onClose }) {
   const splitShares = splitMode === 'equal' ? equalShares : customShares
   const myShare = Number(splitShares[0]) || 0
   const customSplitValid = splitMode === 'equal' || isCustomSplitValid(totalAmt, splitShares)
+  const installmentOptions = useMemo(() => items.flatMap(item => {
+    const progress = installmentProgress(item, transactions, initial?.id)
+    return progress?.rows.filter(row => !row.paid).map(row => ({ item, row, key: `${item.id}:${row.number}` })) || []
+  }).sort((a, b) => a.row.dueDate.localeCompare(b.row.dueDate)), [items, transactions, initial?.id])
 
   const amtNum = parseFloat(amount) || 0
   const amtInt = Math.floor(amtNum).toString()
@@ -283,6 +290,7 @@ function StandardTransactionForm({ initial, onClose }) {
 
   function switchType(tp) {
     setType(tp); setCategory('')
+    if (tp !== 'expense') setInstallmentKey('')
     if (tp === 'split') { setSplitCount(2); setSplitMode('equal'); setFriendNames(['']); setCustomShares(['', '']) }
   }
 
@@ -318,23 +326,30 @@ function StandardTransactionForm({ initial, onClose }) {
     const amt = Number(amount)
     if (!amt || amt <= 0) return
     if (type === 'split' && !customSplitValid) return
+    const selectedInstallment = type === 'expense' && !recurring ? installmentOptions.find(option => option.key === installmentKey) : null
+    if (type === 'expense' && installmentKey && !selectedInstallment) {
+      setInstallmentError(lang === 'zh' ? '这期已被其他交易关联，请重新选择。' : 'This payment is already linked. Choose another installment.')
+      return
+    }
     setSaving(true)
 
     let data
     if (type === 'transfer') {
       if (fromAccountId === toAccountId) { setSaving(false); return }
-      data = { type, amount: amt, fromAccountId, toAccountId, date, note, category: 'txTransfer' }
+      data = { type, amount: amt, fromAccountId, toAccountId, date, note, category: 'txTransfer', installmentItemId: null, installmentNumber: null }
     } else if (type === 'split') {
       const splitWith = friendNames.map((name, i) => ({
         id: crypto.randomUUID(),
         name: name.trim() || `Person ${i + 2}`,
         share: Number(splitShares[i + 1]), settled: false, settledAccountId: null,
       }))
-      data = { type: 'split', splitMode, amount: amt, myShare: Number(splitShares[0]), splitWith, accountId, category, date, note }
+      data = { type: 'split', splitMode, amount: amt, myShare: Number(splitShares[0]), splitWith, accountId, category, date, note, installmentItemId: null, installmentNumber: null }
     } else {
       const finalNote = (type === 'expense' && recurring && note) ? `${monthPrefix(lang)} - ${note}` : note
       data = {
         type, amount: amt, category, accountId, date, note: finalNote,
+        installmentItemId: selectedInstallment?.item.id || null,
+        installmentNumber: selectedInstallment?.row.number || null,
         ...(type === 'expense' && recurring && { recurring: true, recurringBaseNote: note }),
       }
     }
@@ -513,6 +528,17 @@ function StandardTransactionForm({ initial, onClose }) {
             </MetaRow>
           </div>
 
+          {type === 'expense' && !recurring && (installmentOptions.length > 0 || installmentKey) && <div className="jsave-tx-installment-field">
+            <label htmlFor="jsave-tx-installment">{lang === 'zh' ? '关联物品分期（可选）' : 'Link to an item installment (optional)'}</label>
+            <select id="jsave-tx-installment" className="jsave-input" value={installmentKey} onChange={event => { setInstallmentKey(event.target.value); setInstallmentError('') }}>
+              <option value="">{lang === 'zh' ? '普通支出，不关联分期' : 'Regular expense, no installment'}</option>
+              {installmentKey && !installmentOptions.some(option => option.key === installmentKey) && <option value={installmentKey}>{lang === 'zh' ? '原有分期关联已失效，请重新选择' : 'Previous installment link is unavailable'}</option>}
+              {installmentOptions.map(({ item, row, key }) => <option key={key} value={key}>{item.name} · {row.number}/{item.installmentPlan.installments.length} · {row.dueDate} · {formatCurrency(row.amount, cur, lang)}</option>)}
+            </select>
+            <small>{lang === 'zh' ? '这里只记录实际扣款；未来期数不会提前计入本月支出。' : 'Only recorded charges count as spending. Future payments stay out of this month’s totals.'}</small>
+            {installmentError && <p className="jsave-error" role="alert">{installmentError}</p>}
+          </div>}
+
           {/* ── Recurring toggle ── */}
           {type === 'expense' && (
             <div style={{ margin: '12px 16px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
@@ -524,7 +550,7 @@ function StandardTransactionForm({ initial, onClose }) {
                 )}
               </div>
               <label className="jsave-toggle">
-                <input type="checkbox" checked={recurring} onChange={e => setRecurring(e.target.checked)} />
+                <input type="checkbox" checked={recurring} onChange={e => { setRecurring(e.target.checked); if (e.target.checked) setInstallmentKey('') }} />
                 <span className="jsave-toggle-track" />
               </label>
             </div>

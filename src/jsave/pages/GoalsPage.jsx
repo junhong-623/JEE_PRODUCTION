@@ -12,6 +12,9 @@ import { deleteGoalCover, deleteItemCover, MAX_COVER_SOURCE_MB, uploadGoalCover,
 import { isSingleEmoji, singleEmoji } from '../utils/emoji'
 import { buildItemEntries, isItemGroup } from '../utils/itemGroups'
 import { currencySymbol, formatCurrency } from '../utils/currency'
+import { fromCents, installmentProgress, toCents, validateInstallmentPlan } from '../utils/installments'
+import { InstallmentPaymentManager, InstallmentPlanFields } from '../components/InstallmentSection'
+import TransactionForm from '../components/TransactionForm'
 
 /* ──────────────────────────────────────────────────────────────────────
    Helpers
@@ -277,7 +280,8 @@ function GoalSettingsModal({ initial, onSave, onDelete, onClose, t, cur }) {
 /* ──────────────────────────────────────────────────────────────────────
    Things view — Cost Per Day (uses existing items from JSaveContext)
    ────────────────────────────────────────────────────────────────────── */
-function ItemForm({ initial, cur, t, onSave, onDelete, onClose, groupMode = false, availableItems = [], initialMemberIds = [], initiallyFeatured = false, onAddComponent, onEditComponent }) {
+function ItemForm({ initial, cur, t, lang, onSave, onDelete, onClose, onManageInstallments, groupMode = false, availableItems = [], initialMemberIds = [], initiallyFeatured = false, onAddComponent, onEditComponent }) {
+  const { transactions, accounts } = useJSave()
   const initStatus = itemStatus(initial ?? {})
   const initialEmoji = initial?.emoji ?? '📦'
   const [emoji,        setEmoji]       = useState(initialEmoji)
@@ -299,6 +303,9 @@ function ItemForm({ initial, cur, t, onSave, onDelete, onClose, groupMode = fals
   const [saveError,    setSaveError]   = useState(null)
   const [memberIds,    setMemberIds]   = useState(initialMemberIds)
   const [featured,     setFeatured]    = useState(initiallyFeatured)
+  const [installmentPlan, setInstallmentPlan] = useState(initial?.installmentPlan ?? null)
+  const [planError, setPlanError] = useState('')
+  const installmentRef = useRef(null)
   const customEmojiValid = !customEmoji || isSingleEmoji(customEmoji)
 
   useEffect(() => () => {
@@ -326,13 +333,23 @@ function ItemForm({ initial, cur, t, onSave, onDelete, onClose, groupMode = fals
   async function handleSubmit(e) {
     e.preventDefault(); setSaving(true); setSaveError(null)
     if (!customEmojiValid) { setSaving(false); return }
+    if (!groupMode) {
+      const error = validateInstallmentPlan(installmentPlan, cost)
+      if (error) {
+        setPlanError({ amount: lang === 'zh' ? '请检查物品价格、首付与分期总额。' : 'Check the item price, down payment and installment total.', schedule: lang === 'zh' ? '请填写有效的期数、每期金额与日期。' : 'Enter valid dates, amounts and payment count.', total: lang === 'zh' ? '每期金额的合计必须等于分期总额。' : 'Payment amounts must add up to the installment total.', opening: lang === 'zh' ? '过去已付期数不能超过总期数。' : 'Past payments cannot exceed the number of installments.' }[error])
+        requestAnimationFrame(() => installmentRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }))
+        setSaving(false)
+        return
+      }
+    }
+    setPlanError('')
     try {
       if (groupMode) {
         await onSave({ kind: 'group', name: name.trim(), emoji, note, status: 'active' }, { file: coverFile, remove: removeCover }, memberIds, featured)
       } else {
         const status = retired ? 'retired' : sold ? 'sold' : 'active'
         await onSave(
-          { name: name.trim(), emoji, cost: Number(cost), purchaseDate, status, retiredDate: retired ? (retiredDate || todayStr()) : null, salePrice: sold ? Number(salePrice) : null, saleDate: sold ? (saleDate || todayStr()) : null, disposeDate: retired ? (retiredDate || todayStr()) : null, note },
+          { name: name.trim(), emoji, cost: Number(cost), purchaseDate, status, retiredDate: retired ? (retiredDate || todayStr()) : null, salePrice: sold ? Number(salePrice) : null, saleDate: sold ? (saleDate || todayStr()) : null, disposeDate: retired ? (retiredDate || todayStr()) : null, note, installmentPlan },
           { file: coverFile, remove: removeCover },
           [],
           featured,
@@ -400,6 +417,13 @@ function ItemForm({ initial, cur, t, onSave, onDelete, onClose, groupMode = fals
             <div><label className="jsave-label">{t('itemPurchaseDate')}</label>
               <input className="jsave-input" type="date" value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)} required /></div>
           </>}
+          {!groupMode && <>
+            <div ref={installmentRef}><InstallmentPlanFields plan={installmentPlan} onChange={value => { setInstallmentPlan(value); setPlanError('') }} cost={cost} purchaseDate={purchaseDate} transactions={transactions} accounts={accounts} itemId={initial?.id} lang={lang} cur={cur} /></div>
+            {planError && <p className="jsave-error" role="alert">{planError}</p>}
+            {initial?.id && installmentPlan && (JSON.stringify(installmentPlan) === JSON.stringify(initial.installmentPlan)
+              ? <button type="button" className="jsave-installment-open-from-form" onClick={() => onManageInstallments(initial.id)}>{lang === 'zh' ? '查看进度与管理付款' : 'View progress and manage payments'} <span>→</span></button>
+              : <p className="jsave-installment-hint">{lang === 'zh' ? '先保存计划更改，再记录或关联付款。' : 'Save your plan changes before recording or linking payments.'}</p>)}
+          </>}
           <div><label className="jsave-label">{t('itemNote')}</label>
             <input className="jsave-input" value={note} onChange={e => setNote(e.target.value)} /></div>
           <div className="jsave-setting-row jsave-item-home-setting">
@@ -452,10 +476,12 @@ function ItemForm({ initial, cur, t, onSave, onDelete, onClose, groupMode = fals
 }
 
 function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null }) {
-  const { items, addItem, updateItem, deleteItem, settings, updateSettings } = useJSave()
+  const { items, accounts, transactions, addItem, updateItem, deleteItem, updateTransaction, settings, updateSettings } = useJSave()
   const { user } = useAuth()
   const [editing, setEditing] = useState(null)
   const [pendingParentId, setPendingParentId] = useState(null)
+  const [installmentDraft, setInstallmentDraft] = useState(null)
+  const [managingItemId, setManagingItemId] = useState(null)
   const openedInitialItem = useRef(null)
   const cur = settings?.currency ?? 'MYR'
   const symbol = currencySymbol(cur, lang)
@@ -467,6 +493,8 @@ function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null })
   const activeItems  = regularItems.filter(i => itemStatus(i) === 'active')
   const totalAssets  = activeItems.reduce((s, i) => s + (Number(i.cost) || 0), 0)
   const totalCPD     = activeItems.reduce((s, i) => s + i.cost / daysTotal(i.purchaseDate, endDate(i)), 0)
+  const installmentsByItem = useMemo(() => new Map(regularItems.filter(item => item.installmentPlan).map(item => [item.id, installmentProgress(item, transactions)])), [regularItems, transactions])
+  const futurePayments = fromCents([...installmentsByItem.values()].reduce((sum, progress) => sum + toCents(progress?.futureAmount), 0))
 
   const maxCPD = Math.max(...sortedItems.map(i => i.cpd), 0.01)
   const best   = sortedItems[0]
@@ -551,6 +579,7 @@ function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null })
     if (isItemGroup(editing)) {
       await Promise.all(regularItems.filter(item => item.parentItemId === editing.id).map(item => updateItem(item.id, { parentItemId: null })))
     }
+    await Promise.all(transactions.filter(tx => tx.installmentItemId === editing.id).map(tx => updateTransaction(tx.id, { installmentItemId: null, installmentNumber: null })))
     await deleteItem(editing.id)
     if (settings?.homeItemId === editing.id) await updateSettings({ homeItemId: null })
     if (coverPath) await deleteItemCover(coverPath).catch(() => {})
@@ -569,6 +598,23 @@ function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null })
     setPendingParentId(item.parentItemId || null)
     onShowAddChange(false)
   }
+
+  function recordInstallment(item, row) {
+    const preferredAccountId = item.installmentPlan.chargeAccountId || settings?.defaultAccountId
+    setInstallmentDraft({
+      type: 'expense', amount: row.amount, category: 'catShopping',
+      ...(accounts.some(account => account.id === preferredAccountId) && { accountId: preferredAccountId }), date: todayStr(),
+      note: `${item.name} · ${row.number}/${item.installmentPlan.installments.length}`,
+      installmentItemId: item.id, installmentNumber: row.number,
+    })
+  }
+
+  function manageInstallments(itemId) {
+    closeForm()
+    setManagingItemId(itemId)
+  }
+
+  const managingItem = items.find(item => item.id === managingItemId)
 
   return (
     <>
@@ -598,6 +644,11 @@ function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null })
             <i className="js-tick" style={{ position: 'absolute', top: 10, right: 10, width: 12, height: 12, color: '#10b981', opacity: 0.5 }}></i>
             <i className="js-tick" style={{ position: 'absolute', bottom: 10, left: 10, width: 12, height: 12, color: '#10b981', opacity: 0.5 }}></i>
           </div>
+
+          {installmentsByItem.size > 0 && <div className="jsave-installment-overview">
+            <div><span>{lang === 'zh' ? '全部分期 · 未来待扣款' : 'All installments · future payments'}</span><strong>{formatCurrency(futurePayments, cur, lang)}</strong></div>
+            <small>{lang === 'zh' ? '仅含尚未入账的期数；已扣信用卡的金额在信用卡账户查看。' : 'Only upcoming payments. Charges already on a card appear in its account balance.'}</small>
+          </div>}
 
           {/* Best / Worst callouts */}
           {sortedItems.length >= 2 && (
@@ -651,6 +702,7 @@ function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null })
             const fill = Math.min(cpd / maxCPD, 1)
             const isBest = i === 0
             const status = item.isGroup ? 'active' : itemStatus(item)
+            const payment = item.isGroup ? null : installmentsByItem.get(item.id)
 
             return (
               <div key={item.id} className="jsave-thing-card" role="button" tabIndex={0} onClick={() => { setEditing(item); onShowAddChange(false) }}
@@ -666,7 +718,9 @@ function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null })
                     {item.isGroup && <span className="jsave-item-group-badge">{t('itemGroup')}</span>}
                     {settings?.homeItemId === item.id && <span className="jsave-item-home-badge">{t('itemFeaturedOnHome')}</span>}
                     {status !== 'active' && <span className="jsave-thing-status" style={{ fontFamily: 'var(--font-mono)', fontSize: 8, color: 'rgba(241,245,249,0.4)', letterSpacing: 1, textTransform: 'uppercase', background: 'rgba(241,245,249,0.06)', padding: '1px 6px', borderRadius: 4 }}>{t(status === 'sold' ? 'itemSold' : 'itemRetired')}</span>}
+                    {payment && <span className={`jsave-installment-badge ${payment.status}`}>{lang === 'zh' ? (payment.status === 'settled' ? '分期已结清' : payment.status === 'notStarted' ? '分期未开始' : '分期中') : (payment.status === 'settled' ? 'Paid off' : payment.status === 'notStarted' ? 'Not started' : 'Installments')}</span>}
                   </div>
+                  {payment && <div className="jsave-thing-payment-line">{lang === 'zh' ? '未来待扣款' : 'Future payments'} <strong>{formatCurrency(payment.futureAmount, cur, lang)}</strong><small>{payment.remainingCount}/{payment.rows.length} {lang === 'zh' ? '期未扣' : 'left'}</small><button type="button" className="jsave-installment-open" onClick={event => { event.stopPropagation(); manageInstallments(item.id) }} onKeyDown={event => event.stopPropagation()}>{lang === 'zh' ? '查看分期' : 'View plan'} →</button></div>}
                   <div className="jsave-thing-card-meta" style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'rgba(241,245,249,0.45)' }}>
                     {item.isGroup
                       ? <span className="jsave-item-group-summary">
@@ -704,7 +758,7 @@ function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null })
       {(showAdd || editing) && (
         <ItemForm
           key={editing?.id ? `edit:${editing.id}` : groupMode ? 'new:group' : `new:item:${pendingParentId || 'root'}`}
-          initial={editing} cur={cur} t={t}
+          initial={editing} cur={cur} t={t} lang={lang}
           onSave={saveItem}
           onDelete={removeItem}
           onClose={closeForm}
@@ -714,8 +768,17 @@ function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null })
           initiallyFeatured={Boolean(editing?.id && settings?.homeItemId === editing.id)}
           onAddComponent={addComponentToGroup}
           onEditComponent={editGroupComponent}
+          onManageInstallments={manageInstallments}
         />
       )}
+      {managingItem?.installmentPlan && <div className="jsave-modal-overlay centered jsave-item-form-overlay" onClick={event => event.target === event.currentTarget && setManagingItemId(null)} onKeyDown={event => event.key === 'Escape' && setManagingItemId(null)}>
+        <div className="jsave-modal glass-card jsave-item-form-panel jsave-installment-panel" role="dialog" aria-modal="true" aria-label={lang === 'zh' ? `${managingItem.name} 分期` : `${managingItem.name} installments`}>
+          <div className="jsave-modal-title"><span>{managingItem.name}</span><button type="button" className="jsave-installment-close" aria-label={t('close')} onClick={() => setManagingItemId(null)}>✕</button></div>
+          <InstallmentPaymentManager item={managingItem} onRecord={recordInstallment} lang={lang} cur={cur} />
+          <button type="button" className="jsave-installment-edit-plan" onClick={() => { setManagingItemId(null); setEditing(managingItem); onShowAddChange(false) }}>{lang === 'zh' ? '编辑物品与分期计划' : 'Edit item and payment plan'}</button>
+        </div>
+      </div>}
+      {installmentDraft && <div className="jsave-installment-transaction-overlay"><TransactionForm initial={installmentDraft} onClose={() => setInstallmentDraft(null)} /></div>}
     </>
   )
 }

@@ -1,0 +1,75 @@
+import { toLocalDateString } from './date'
+
+export const toCents = value => Math.round((Number(value) || 0) * 100)
+export const fromCents = cents => Math.round(cents) / 100
+
+export function monthDueDate(startDate, offset) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate || '')) return ''
+  const [year, month, day] = startDate.split('-').map(Number)
+  if (year < 1900 || month < 1 || month > 12 || day < 1 || day > new Date(year, month, 0).getDate()) return ''
+  const target = new Date(year, month - 1 + offset, 1)
+  const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate()
+  target.setDate(Math.min(day, lastDay))
+  return toLocalDateString(target)
+}
+
+export function makeInstallments(total, count, startDate) {
+  const cents = toCents(total)
+  const length = Math.trunc(Number(count))
+  if (!Number.isFinite(cents) || cents <= 0 || length < 1 || length > 120 || !monthDueDate(startDate, 0)) return []
+  const base = Math.floor(cents / length)
+  return Array.from({ length }, (_, index) => ({
+    number: index + 1,
+    dueDate: monthDueDate(startDate, index),
+    amount: fromCents(base + (index === length - 1 ? cents - base * length : 0)),
+  }))
+}
+
+export function validateInstallmentPlan(plan, itemCost) {
+  if (!plan) return null
+  const upfront = toCents(plan.upfrontAmount)
+  const price = toCents(itemCost)
+  const payable = toCents(plan.totalPayable)
+  const rows = plan.installments || []
+  if (price <= 0 || upfront < 0 || upfront >= price || payable < price - upfront) return 'amount'
+  if (!rows.length || rows.length > 120 || !/^\d{4}-\d{2}-\d{2}$/.test(plan.startDate || '')) return 'schedule'
+  if (!monthDueDate(plan.startDate, 0) || rows[0].dueDate !== plan.startDate || rows.some((row, index) => row.number !== index + 1 || !monthDueDate(row.dueDate, 0) || toCents(row.amount) <= 0 || (index > 0 && row.dueDate <= rows[index - 1].dueDate))) return 'schedule'
+  if (rows.reduce((sum, row) => sum + toCents(row.amount), 0) !== payable) return 'total'
+  if (!Number.isInteger(Number(plan.openingPaidCount)) || Number(plan.openingPaidCount) < 0 || Number(plan.openingPaidCount) > rows.length) return 'opening'
+  return null
+}
+
+export function installmentLink(tx) {
+  if (tx?.type !== 'expense' || !tx.installmentItemId || !Number.isInteger(Number(tx.installmentNumber)) || Number(tx.installmentNumber) <= 0) return null
+  return `${tx.installmentItemId}:${Number(tx.installmentNumber)}`
+}
+
+export function installmentProgress(item, transactions = [], excludeTransactionId = null) {
+  const plan = item?.installmentPlan
+  if (!plan?.installments?.length) return null
+  const linked = new Map()
+  for (const tx of transactions) {
+    if (tx.id === excludeTransactionId || tx.type !== 'expense' || tx.installmentItemId !== item.id) continue
+    const number = Number(tx.installmentNumber)
+    if (!linked.has(number)) linked.set(number, tx)
+  }
+  const rows = plan.installments.map(row => {
+    const tx = linked.get(row.number)
+    const opening = row.number <= Number(plan.openingPaidCount || 0)
+    return { ...row, transaction: tx || null, opening, paid: Boolean(tx) || opening }
+  })
+  const pending = rows.filter(row => !row.paid)
+  return {
+    rows,
+    paidCount: rows.length - pending.length,
+    remainingCount: pending.length,
+    futureAmount: fromCents(pending.reduce((sum, row) => sum + toCents(row.amount), 0)),
+    paidAmount: fromCents(rows.reduce((sum, row) => sum + (row.opening ? toCents(row.amount) : row.transaction ? toCents(row.transaction.amount) : 0), 0)),
+    next: pending[0] || null,
+    status: pending.length === 0 ? 'settled' : rows.length === pending.length ? 'notStarted' : 'active',
+  }
+}
+
+export function totalFutureInstallments(items = [], transactions = []) {
+  return fromCents(items.reduce((sum, item) => sum + toCents(installmentProgress(item, transactions)?.futureAmount), 0))
+}
