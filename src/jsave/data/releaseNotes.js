@@ -1,8 +1,21 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.8.9',
+    version: '3.8.10',
     date: '2026-09-30',
     isLatest: true,
+    items: [
+      'Replace the browser confirmation with a JSave dialog before rotating the unified shortcut key',
+      'Explain the impact on existing iPhone shortcuts and offer clear cancel and regenerate actions',
+    ],
+    itemsZh: [
+      '重新生成统一快捷指令密钥前，改用 JSave 自己的确认弹窗',
+      '清楚说明旧指令受到的影响，并提供取消及确认重新生成按钮',
+    ],
+  },
+  {
+    version: '3.8.9',
+    date: '2026-09-30',
+    isLatest: false,
     items: [
       'Confirm before rotating an existing unified iPhone shortcut key and explain that the old key stops working immediately',
       'Wait for the key status before allowing first-time key creation',

@@ -25,6 +25,53 @@ import { SUPPORTED_CURRENCIES, currencyName } from '../utils/currency'
 const ACC_TYPES  = ['accCash', 'accBank', 'accEwallet', 'accCredit']
 const ACC_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6']
 
+function RotateShortcutKeyDialog({ zh, onCancel, onConfirm }) {
+  const cancelRef = useRef(null)
+  const confirmRef = useRef(null)
+
+  useEffect(() => {
+    const previousFocus = document.activeElement
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    cancelRef.current?.focus()
+    const onKeyDown = event => {
+      if (event.key === 'Escape') onCancel()
+      if (event.key === 'Tab') {
+        const first = cancelRef.current
+        const last = confirmRef.current
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.removeEventListener('keydown', onKeyDown)
+      previousFocus?.focus?.()
+    }
+  }, [onCancel])
+
+  return createPortal(
+    <div className="jsave-modal-overlay centered" onClick={event => event.target === event.currentTarget && onCancel()}>
+      <div className="jsave-modal jsave-key-rotation-dialog" role="alertdialog" aria-modal="true" aria-labelledby="jsave-key-rotation-title" aria-describedby="jsave-key-rotation-description">
+        <div className="jsave-key-rotation-icon" aria-hidden="true">!</div>
+        <h2 id="jsave-key-rotation-title">{zh ? '重新生成统一密钥？' : 'Regenerate unified key?'}</h2>
+        <p id="jsave-key-rotation-description">{zh
+          ? '现有密钥会立即失效。手机上使用旧密钥的快捷指令将无法导入交易。'
+          : 'Your current key will stop working immediately. Shortcuts using the old key will no longer import transactions.'}</p>
+        <p className="jsave-key-rotation-hint">{zh
+          ? '确认后，请复制新密钥并填入 iPhone 快捷指令。'
+          : 'After confirming, copy the new key into your iPhone shortcut.'}</p>
+        <div className="jsave-key-rotation-actions">
+          <button ref={cancelRef} type="button" className="jsave-btn-ghost" onClick={onCancel}>{zh ? '取消' : 'Cancel'}</button>
+          <button ref={confirmRef} type="button" className="jsave-btn-danger" onClick={onConfirm}>{zh ? '确认重新生成' : 'Regenerate key'}</button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  )
+}
+
 function ReceiptShortcutSettings({ accounts, user, lang }) {
   const zh = lang === 'zh'
   const emptyIds = { tngAccountId: '', cimbBankAccountId: '', cimbCreditAccountId: '', uobCreditAccountId: '' }
@@ -36,6 +83,7 @@ function ReceiptShortcutSettings({ accounts, user, lang }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [showRotationConfirm, setShowRotationConfirm] = useState(false)
   const hasAccount = Object.values(accountIds).some(Boolean)
   const changed = Object.keys(emptyIds).some(name => accountIds[name] !== savedIds[name])
   const choices = [
@@ -108,13 +156,17 @@ function ReceiptShortcutSettings({ accounts, user, lang }) {
 
   function confirmKeyRotation() {
     if (busy || !statusReady || !enabled) return
-    const confirmed = window.confirm(zh
-      ? '重新生成后，现有统一密钥会立即失效。使用旧密钥的 iPhone 快捷指令将无法导入交易，直到你把新密钥填入指令。确定重新生成吗？'
-      : 'Regenerating will immediately invalidate the current unified key. iPhone shortcuts using the old key cannot import transactions until you enter the new key. Regenerate now?')
-    if (confirmed) run('jsaveCreateReceiptShortcutKey', zh ? '新密钥已生成，请更新手机指令。' : 'New key created. Update the shortcut on your phone.')
+    setShowRotationConfirm(true)
+  }
+
+  function rotateKey() {
+    if (busy || !statusReady || !enabled) return
+    setShowRotationConfirm(false)
+    run('jsaveCreateReceiptShortcutKey', zh ? '新密钥已生成，请更新手机指令。' : 'New key created. Update the shortcut on your phone.')
   }
 
   return (
+    <>
     <Accordion title={zh ? '📱 统一收据截图快捷指令 · TNG / CIMB' : '📱 One receipt shortcut · TNG / CIMB'}>
       <p className="jsave-section-sub" style={{ marginBottom: 12 }}>
         {zh
@@ -186,6 +238,8 @@ function ReceiptShortcutSettings({ accounts, user, lang }) {
       {message && <p className="jsave-section-sub" style={{ marginTop: 10 }}>{message}</p>}
       {error && <p className="jsave-error" style={{ marginTop: 10 }}>{error}</p>}
     </Accordion>
+    {showRotationConfirm && <RotateShortcutKeyDialog zh={zh} onCancel={() => setShowRotationConfirm(false)} onConfirm={rotateKey} />}
+    </>
   )
 }
 
