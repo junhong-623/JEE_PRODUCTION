@@ -1322,7 +1322,10 @@ input[type="number"].jsave-input::-webkit-outer-spin-button { -webkit-appearance
 .jsave-installment-open-from-form, .jsave-installment-edit-plan { width: 100%; display: flex; justify-content: space-between; align-items: center; min-height: 42px; padding: 10px 13px; border: 1px solid rgba(16,185,129,.28); border-radius: 12px; background: rgba(16,185,129,.08); color: #a7f3d0; font: 600 12px var(--font-sans); cursor: pointer; }
 .jsave-installment-edit-plan { margin-top: 16px; justify-content: center; }
 .jsave-installment-close { display: grid; place-items: center; width: 38px; height: 38px; flex-shrink: 0; padding: 0; color: #a7b9ba; border: 0; background: transparent; font-size: 19px; cursor: pointer; }
-.jsave-installment-panel { padding: 24px 20px; }
+.jsave-item-form-panel { display: flex; flex-direction: column; max-height: 90vh; max-height: 90dvh; padding: 0; overflow: hidden; }
+.jsave-item-form-panel .jsave-item-form-header { flex: 0 0 auto; margin: 0; padding: 16px 20px; border-bottom: 1px solid rgba(241,245,249,.09); background: #0b1723; }
+.jsave-item-form-panel .jsave-item-form-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 20px 20px 24px; }
+.jsave-installment-panel { padding: 0; }
 .jsave-installment-panel .jsave-installment-panel-heading { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; }
 .jsave-installment-panel-name { min-width: 0; overflow-wrap: anywhere; text-align: center; }
 .jsave-installment-back { display: inline-flex; align-items: center; gap: 5px; min-height: 38px; padding: 0 8px; border: 1px solid rgba(16,185,129,.25); border-radius: 10px; background: rgba(16,185,129,.08); color: #a7f3d0; font: 600 12px var(--font-sans); white-space: nowrap; cursor: pointer; }

@@ -364,10 +364,10 @@ function ItemForm({ initial, cur, t, lang, onSave, onDelete, onClose, onManageIn
   return (
     <div className="jsave-modal-overlay centered jsave-item-form-overlay" style={hidden ? { display: 'none' } : undefined} onClick={e => e.target === e.currentTarget && onClose()} onKeyDown={e => e.key === 'Escape' && onClose()}>
       <div className="jsave-modal glass-card jsave-item-form-panel" role="dialog" aria-modal="true" aria-labelledby="jsave-item-form-title" onClick={e => e.stopPropagation()} style={{ borderRadius: 24 }}>
-        <h2 id="jsave-item-form-title" className="jsave-modal-title">{groupMode ? (initial?.id ? t('itemGroupEdit') : t('itemGroupAdd')) : (initial?.id ? t('itemEdit') : t('addItem'))}
+        <h2 id="jsave-item-form-title" className="jsave-modal-title jsave-item-form-header">{groupMode ? (initial?.id ? t('itemGroupEdit') : t('itemGroupAdd')) : (initial?.id ? t('itemEdit') : t('addItem'))}
           <button onClick={onClose} aria-label={t('close')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(241,245,249,0.5)', fontSize: 20 }}>✕</button>
         </h2>
-        <form onSubmit={handleSubmit} className="jsave-form">
+        <form onSubmit={handleSubmit} className="jsave-form jsave-item-form-scroll">
           <div className="jsave-goal-cover-field">
             <div className="jsave-goal-cover-preview">
               {coverPreview ? <img src={coverPreview} alt="" /> : <span>{emoji}</span>}
@@ -786,12 +786,14 @@ function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null })
       )}
       {managingItem?.installmentPlan && <div className="jsave-modal-overlay centered jsave-item-form-overlay" onClick={event => event.target === event.currentTarget && closeInstallmentProgress()} onKeyDown={event => event.key === 'Escape' && closeInstallmentProgress()}>
         <div className="jsave-modal glass-card jsave-item-form-panel jsave-installment-panel" role="dialog" aria-modal="true" aria-label={lang === 'zh' ? `${managingItem.name} 分期` : `${managingItem.name} installments`}>
-          <div className="jsave-modal-title jsave-installment-panel-heading">
+          <div className="jsave-modal-title jsave-item-form-header jsave-installment-panel-heading">
             <button type="button" className="jsave-installment-back" onClick={backToInstallmentItem}><span aria-hidden="true">←</span>{lang === 'zh' ? '返回编辑' : 'Back to edit'}</button>
             <span className="jsave-installment-panel-name">{managingItem.name}</span>
             <button type="button" className="jsave-installment-close" aria-label={t('close')} onClick={closeInstallmentProgress}>✕</button>
           </div>
-          <InstallmentPaymentManager item={managingItem} onRecord={recordInstallment} lang={lang} cur={cur} />
+          <div className="jsave-item-form-scroll">
+            <InstallmentPaymentManager item={managingItem} onRecord={recordInstallment} lang={lang} cur={cur} />
+          </div>
         </div>
       </div>}
       {installmentDraft && <div className="jsave-installment-transaction-overlay"><TransactionForm initial={installmentDraft} onClose={() => setInstallmentDraft(null)} /></div>}

@@ -1,8 +1,21 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.8.11',
+    version: '3.8.12',
     date: '2026-09-30',
     isLatest: true,
+    items: [
+      'Keep the Edit Item and Installment Progress headers fixed while their content scrolls',
+      'Remove the desktop drawer gap that let scrolled content appear above the header',
+    ],
+    itemsZh: [
+      '编辑物品与分期进度的标题固定显示，内容在下方独立滚动',
+      '移除电脑版抽屉顶部空隙，避免滚动内容穿到标题上方',
+    ],
+  },
+  {
+    version: '3.8.11',
+    date: '2026-09-30',
+    isLatest: false,
     items: [
       'Refresh the offline app cache with each deployment while keeping recent page files available to open tabs',
       'Show a recovery screen instead of a blank page if navigation fails to load',
