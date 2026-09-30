@@ -249,9 +249,9 @@
   .jsave-item-add-actions { display: none; }
 
   .jsave-item-form-overlay { align-items: stretch !important; justify-content: flex-end; padding: 0; background: rgba(2, 9, 17, .48); backdrop-filter: blur(2px); }
-  .jsave-item-form-panel { width: min(520px, 100vw); max-width: none; height: 100vh; height: 100dvh; max-height: none; padding: 30px 32px 36px; border-radius: 24px 0 0 24px !important; border-color: rgba(16, 185, 129, .26); background: radial-gradient(85% 35% at 100% 0, rgba(16, 185, 129, .11), transparent 80%), #0b1723; box-shadow: -20px 0 60px rgba(0, 0, 0, .35); box-sizing: border-box; animation: jsaveItemDrawerIn .3s cubic-bezier(.22, 1, .36, 1); }
+  .jsave-item-form-panel { width: min(520px, 100vw); max-width: none; height: 100vh; height: 100dvh; max-height: none; padding: 18px 32px 36px; border-radius: 24px 0 0 24px !important; border-color: rgba(16, 185, 129, .26); background: radial-gradient(85% 35% at 100% 0, rgba(16, 185, 129, .11), transparent 80%), #0b1723; box-shadow: -20px 0 60px rgba(0, 0, 0, .35); box-sizing: border-box; animation: jsaveItemDrawerIn .3s cubic-bezier(.22, 1, .36, 1); }
   .jsave-item-form-panel:hover { transform: none; }
-  .jsave-item-form-panel .jsave-modal-title { position: sticky; top: 0; z-index: 2; margin: -30px -32px 24px; padding: 30px 32px 20px; border-bottom: 1px solid rgba(241, 245, 249, .09); background: #0b1723; font-size: 22px; }
+  .jsave-item-form-panel .jsave-modal-title { position: sticky; top: 0; z-index: 2; margin: -18px -32px 30px; padding: 18px 32px 18px; border-bottom: 1px solid rgba(241, 245, 249, .09); background: #0b1723; font-size: 22px; }
   .jsave-item-form-panel .jsave-form { gap: 18px; }
   .jsave-item-form-panel .jsave-label { font-size: 12px; }
   .jsave-item-form-panel .jsave-input { min-height: 46px; font-size: 16px; }

@@ -280,7 +280,7 @@ function GoalSettingsModal({ initial, onSave, onDelete, onClose, t, cur }) {
 /* ──────────────────────────────────────────────────────────────────────
    Things view — Cost Per Day (uses existing items from JSaveContext)
    ────────────────────────────────────────────────────────────────────── */
-function ItemForm({ initial, cur, t, lang, onSave, onDelete, onClose, onManageInstallments, groupMode = false, availableItems = [], initialMemberIds = [], initiallyFeatured = false, onAddComponent, onEditComponent }) {
+function ItemForm({ initial, cur, t, lang, onSave, onDelete, onClose, onManageInstallments, hidden = false, groupMode = false, availableItems = [], initialMemberIds = [], initiallyFeatured = false, onAddComponent, onEditComponent }) {
   const { transactions, accounts } = useJSave()
   const initStatus = itemStatus(initial ?? {})
   const initialEmoji = initial?.emoji ?? '📦'
@@ -362,7 +362,7 @@ function ItemForm({ initial, cur, t, lang, onSave, onDelete, onClose, onManageIn
   }
 
   return (
-    <div className="jsave-modal-overlay centered jsave-item-form-overlay" onClick={e => e.target === e.currentTarget && onClose()} onKeyDown={e => e.key === 'Escape' && onClose()}>
+    <div className="jsave-modal-overlay centered jsave-item-form-overlay" style={hidden ? { display: 'none' } : undefined} onClick={e => e.target === e.currentTarget && onClose()} onKeyDown={e => e.key === 'Escape' && onClose()}>
       <div className="jsave-modal glass-card jsave-item-form-panel" role="dialog" aria-modal="true" aria-labelledby="jsave-item-form-title" onClick={e => e.stopPropagation()} style={{ borderRadius: 24 }}>
         <h2 id="jsave-item-form-title" className="jsave-modal-title">{groupMode ? (initial?.id ? t('itemGroupEdit') : t('itemGroupAdd')) : (initial?.id ? t('itemEdit') : t('addItem'))}
           <button onClick={onClose} aria-label={t('close')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(241,245,249,0.5)', fontSize: 20 }}>✕</button>
@@ -418,7 +418,7 @@ function ItemForm({ initial, cur, t, lang, onSave, onDelete, onClose, onManageIn
               <input className="jsave-input" type="date" value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)} required /></div>
           </>}
           {!groupMode && <>
-            <div ref={installmentRef}><InstallmentPlanFields plan={installmentPlan} initialPlan={initial?.installmentPlan} onChange={value => { setInstallmentPlan(value); setPlanError('') }} cost={cost} purchaseDate={purchaseDate} transactions={transactions} accounts={accounts} itemId={initial?.id} lang={lang} cur={cur} /></div>
+            <div ref={installmentRef}><InstallmentPlanFields plan={installmentPlan} initialPlan={initial?.installmentPlan} onChange={value => { setInstallmentPlan(value); setPlanError('') }} cost={cost} purchaseDate={purchaseDate} transactions={transactions} accounts={accounts} itemId={initial?.id} lang={lang} cur={cur} validationError={planError} /></div>
             {planError && <p className="jsave-error" role="alert">{planError}</p>}
             {initial?.id && installmentPlan && (JSON.stringify(installmentPlan) === JSON.stringify(initial.installmentPlan)
               ? <button type="button" className="jsave-installment-open-from-form" onClick={() => onManageInstallments(initial.id)}>{lang === 'zh' ? '查看进度与管理付款' : 'View progress and manage payments'} <span>→</span></button>
@@ -610,8 +610,20 @@ function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null })
   }
 
   function manageInstallments(itemId) {
-    closeForm()
     setManagingItemId(itemId)
+  }
+
+  function backToInstallmentItem() {
+    if (!managingItem) return
+    setManagingItemId(null)
+    if (editing?.id !== managingItem.id) setEditing(managingItem)
+    setPendingParentId(managingItem.parentItemId || null)
+    onShowAddChange(false)
+  }
+
+  function closeInstallmentProgress() {
+    setManagingItemId(null)
+    closeForm()
   }
 
   const managingItem = items.find(item => item.id === managingItemId)
@@ -769,17 +781,17 @@ function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null })
           onAddComponent={addComponentToGroup}
           onEditComponent={editGroupComponent}
           onManageInstallments={manageInstallments}
+          hidden={Boolean(managingItemId)}
         />
       )}
-      {managingItem?.installmentPlan && <div className="jsave-modal-overlay centered jsave-item-form-overlay" onClick={event => event.target === event.currentTarget && setManagingItemId(null)} onKeyDown={event => event.key === 'Escape' && setManagingItemId(null)}>
+      {managingItem?.installmentPlan && <div className="jsave-modal-overlay centered jsave-item-form-overlay" onClick={event => event.target === event.currentTarget && closeInstallmentProgress()} onKeyDown={event => event.key === 'Escape' && closeInstallmentProgress()}>
         <div className="jsave-modal glass-card jsave-item-form-panel jsave-installment-panel" role="dialog" aria-modal="true" aria-label={lang === 'zh' ? `${managingItem.name} 分期` : `${managingItem.name} installments`}>
           <div className="jsave-modal-title jsave-installment-panel-heading">
-            <button type="button" className="jsave-installment-back" onClick={() => setManagingItemId(null)}><span aria-hidden="true">←</span>{lang === 'zh' ? '返回' : 'Back'}</button>
+            <button type="button" className="jsave-installment-back" onClick={backToInstallmentItem}><span aria-hidden="true">←</span>{lang === 'zh' ? '返回编辑' : 'Back to edit'}</button>
             <span className="jsave-installment-panel-name">{managingItem.name}</span>
-            <button type="button" className="jsave-installment-close" aria-label={t('close')} onClick={() => setManagingItemId(null)}>✕</button>
+            <button type="button" className="jsave-installment-close" aria-label={t('close')} onClick={closeInstallmentProgress}>✕</button>
           </div>
           <InstallmentPaymentManager item={managingItem} onRecord={recordInstallment} lang={lang} cur={cur} />
-          <button type="button" className="jsave-installment-edit-plan" onClick={() => { setManagingItemId(null); setEditing(managingItem); onShowAddChange(false) }}>{lang === 'zh' ? '编辑物品与分期计划' : 'Edit item and payment plan'}</button>
         </div>
       </div>}
       {installmentDraft && <div className="jsave-installment-transaction-overlay"><TransactionForm initial={installmentDraft} onClose={() => setInstallmentDraft(null)} /></div>}

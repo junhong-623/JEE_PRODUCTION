@@ -326,6 +326,21 @@ body.jsave-body {
 .jsave-report-chart-legend .income { color: var(--js-income); }
 .jsave-report-chart-legend .expense { color: var(--js-expense); }
 .jsave-report-area-chart { width: 100%; min-width: 0; margin-top: 14px; overflow: hidden; }
+.jsave-report-chart-legend .installment-scheduled { color: #34d399; }
+.jsave-report-chart-legend .installment-recorded { color: #f5d570; }
+.jsave-installment-report-note { margin: 8px 0 0; color: #8fa6a8; font-size: 11px; line-height: 1.5; }
+.jsave-installment-trend-months { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin-top: 14px; }
+.jsave-installment-trend-months button { display: grid; gap: 4px; min-width: 0; padding: 9px 7px; border: 1px solid rgba(241,245,249,.09); border-radius: 10px; background: rgba(255,255,255,.025); color: #a6bac0; text-align: center; cursor: pointer; }
+.jsave-installment-trend-months button.active { border-color: rgba(52,211,153,.55); background: rgba(16,185,129,.12); color: #eafaf3; }
+.jsave-installment-trend-months button:focus-visible { outline: 2px solid #6ee7b7; outline-offset: 2px; }
+.jsave-installment-trend-months span { font: 600 10px var(--font-mono); }
+.jsave-installment-trend-months strong { font-size: 12px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.jsave-installment-trend-detail { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px; margin-top: 12px; padding: 12px; border: 1px solid rgba(16,185,129,.14); border-radius: 11px; background: rgba(16,185,129,.05); }
+.jsave-installment-trend-detail > strong { grid-column: 1 / -1; color: #eafaf3; font-size: 12px; }
+.jsave-installment-trend-detail span { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 3px 8px; color: #9bb7ae; font-size: 11px; }
+.jsave-installment-trend-detail b { color: #eafaf3; font-variant-numeric: tabular-nums; }
+.jsave-installment-trend-insight { margin: 13px 0 0; color: #a7f3d0; font-size: 12px; line-height: 1.55; }
+@media (min-width: 700px) { .jsave-installment-trend-months { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
 .jsave-salary-status { margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid rgba(241,245,249,.07); border-bottom: 1px solid rgba(241,245,249,.07); }
 .jsave-salary-status > div { min-width: 0; padding: 11px 10px 11px 0; }
 .jsave-salary-status > div + div { padding-left: 12px; border-left: 1px solid rgba(241,245,249,.07); }
@@ -1267,6 +1282,15 @@ input[type="number"].jsave-input::-webkit-outer-spin-button { -webkit-appearance
 .jsave-installment-toggle strong, .jsave-installment-manager-heading strong { color: #eafaf3; font-size: 14px; }
 .jsave-installment-toggle small, .jsave-installment-manager-heading small { display: block; color: #9bb7ae; font-size: 11px; line-height: 1.45; }
 .jsave-installment-editor-body { margin-top: 17px; border-top: 1px solid rgba(241,245,249,.08); padding-top: 15px; }
+.jsave-installment-progress-summary { display: grid; gap: 9px; margin-bottom: 14px; }
+.jsave-installment-progress-summary > div:first-child { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.jsave-installment-progress-summary strong { color: #eafaf3; font-size: 12px; }
+.jsave-installment-progress-summary span { color: #a7f3d0; font-size: 11px; font-variant-numeric: tabular-nums; text-align: right; }
+.jsave-installment-progress-track { height: 8px; overflow: hidden; border-radius: 999px; background: rgba(241,245,249,.1); }
+.jsave-installment-progress-track i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg,#10b981,#6ee7b7); transition: width .25s ease; }
+.jsave-installment-fields-toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 40px; margin-bottom: 14px; padding: 8px 11px; border: 1px solid rgba(16,185,129,.2); border-radius: 10px; background: rgba(16,185,129,.06); color: #a7f3d0; font: 600 12px var(--font-sans); text-align: left; cursor: pointer; }
+.jsave-installment-fields-toggle span:last-child { font-size: 17px; line-height: 1; }
+.jsave-installment-fields-toggle:focus-visible { outline: 2px solid #6ee7b7; outline-offset: 2px; }
 .jsave-installment-mode { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; margin-bottom: 16px; padding: 4px; border: 1px solid rgba(16,185,129,.16); border-radius: 12px; background: rgba(0,0,0,.13); }
 .jsave-installment-mode button { min-width: 0; min-height: 42px; padding: 7px 9px; border: 0; border-radius: 9px; background: transparent; color: #9bb7ae; font: 600 12px var(--font-sans); cursor: pointer; }
 .jsave-installment-mode button.active { background: rgba(16,185,129,.2); color: #d6ffea; box-shadow: 0 1px 5px rgba(0,0,0,.12); }
@@ -1303,6 +1327,7 @@ input[type="number"].jsave-input::-webkit-outer-spin-button { -webkit-appearance
 .jsave-installment-schedule-total strong { color: #eafaf3; font-variant-numeric: tabular-nums; }
 .jsave-installment-manager-heading { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
 .jsave-installment-manager-heading > div { display: grid; gap: 4px; }
+.jsave-installment-manager-progress { margin: 16px 0 0; }
 .jsave-installment-status { flex-shrink: 0; padding: 4px 8px; border-radius: 999px; color: #7ae0ac; background: rgba(16,185,129,.11); font: 600 10px var(--font-sans); }
 .jsave-installment-status.settled { color: #adb6c2; background: rgba(241,245,249,.07); }
 .jsave-installment-manager-meta { display: flex; flex-wrap: wrap; gap: 6px 15px; margin-top: 11px; color: #819f9d; font-size: 10px; }

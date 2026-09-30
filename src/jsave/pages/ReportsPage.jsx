@@ -5,6 +5,7 @@ import { Donut, BarChart as JSBarChart, AreaChart } from '../components/JSaveCha
 import PageHeader from '../components/PageHeader'
 import { localDateDaysAgo, toLocalDateString } from '../utils/date'
 import { formatCurrency } from '../utils/currency'
+import { monthlyInstallmentTrend } from '../utils/installmentTrend'
 
 function fmt(amount, currency = 'MYR') {
   return new Intl.NumberFormat('en-MY', { style: 'currency', currency, maximumFractionDigits: 0 }).format(amount)
@@ -208,7 +209,43 @@ function BalancesView({ accounts, getAccountBalance, cur, t }) {
 }
 
 // ── Trend view ───────────────────────────────────────────────────────────────
-function TrendView({ filtered, cur, t, lang, range }) {
+function InstallmentTrendCard({ items, transactions, cur, lang }) {
+  const [selectedKey, setSelectedKey] = useState(null)
+  const months = useMemo(() => monthlyInstallmentTrend(items, transactions), [items, transactions])
+  const selected = months.find(month => month.key === selectedKey) || months[months.length - 1]
+  const previousAverage = months.slice(0, 3).reduce((sum, month) => sum + month.scheduled, 0) / 3
+  const recentAverage = months.slice(3).reduce((sum, month) => sum + month.scheduled, 0) / 3
+  const difference = recentAverage - previousAverage
+  const direction = Math.abs(difference) < 0.005 ? 'flat' : difference > 0 ? 'up' : 'down'
+  const recentNewPlans = months.slice(3).reduce((sum, month) => sum + month.newPlans, 0)
+
+  return <Card>
+    <div className="jsave-report-chart-head" style={{ flexWrap: 'wrap' }}>
+      <div><Eyebrow>{lang === 'zh' ? '分期趋势 · 近六个月' : 'Installment trend · last six months'}</Eyebrow><h3>{lang === 'zh' ? '每月分期负担' : 'Monthly installment load'}</h3></div>
+      <div className="jsave-report-chart-legend"><span className="installment-scheduled">{lang === 'zh' ? '计划应付' : 'Scheduled'}</span><span className="installment-recorded">{lang === 'zh' ? '已关联支出' : 'Linked expenses'}</span></div>
+    </div>
+    <p className="jsave-installment-report-note">{lang === 'zh' ? '计划应付按每期日期计算；已关联支出按实际交易日期计算。两者不是相加的金额。' : 'Scheduled uses due dates; linked expenses use transaction dates. These amounts are not added together.'}</p>
+    <div className="jsave-report-area-chart"><AreaChart width={620} height={210} padding={36} xLabels={months.map(month => month.key.slice(5))} series={[
+      { data: months.map(month => month.scheduled), color: '#34d399' },
+      { data: months.map(month => month.recorded), color: '#f5d570' },
+    ]} /></div>
+    <div className="jsave-installment-trend-months" role="group" aria-label={lang === 'zh' ? '选择月份' : 'Select month'}>
+      {months.map(month => <button type="button" key={month.key} className={selected.key === month.key ? 'active' : ''} aria-pressed={selected.key === month.key} onClick={() => setSelectedKey(month.key)}><span>{month.key}</span><strong>{formatCurrency(month.scheduled, cur, lang, { maximumFractionDigits: 0 })}</strong></button>)}
+    </div>
+    <div className="jsave-installment-trend-detail" aria-live="polite">
+      <strong>{selected.key}</strong>
+      <span>{lang === 'zh' ? '计划应付' : 'Scheduled'} <b>{formatCurrency(selected.scheduled, cur, lang)}</b></span>
+      <span>{lang === 'zh' ? '已关联支出' : 'Linked expenses'} <b>{formatCurrency(selected.recorded, cur, lang)}</b></span>
+      <span>{lang === 'zh' ? '新增分期物品' : 'New installment items'} <b>{selected.newPlans}</b></span>
+    </div>
+    <p className="jsave-installment-trend-insight">{lang === 'zh'
+      ? `近三个月平均每月计划应付 ${formatCurrency(recentAverage, cur, lang)}，比前三个月${direction === 'flat' ? '持平' : `${direction === 'up' ? '增加' : '减少'} ${formatCurrency(Math.abs(difference), cur, lang)}`}；近三个月新增 ${recentNewPlans} 件分期物品。`
+      : `Scheduled monthly average over the last three months: ${formatCurrency(recentAverage, cur, lang)}. ${direction === 'flat' ? 'Unchanged from' : `${formatCurrency(Math.abs(difference), cur, lang)} ${direction === 'up' ? 'higher' : 'lower'} than`} the prior three months. ${recentNewPlans} new installment item${recentNewPlans === 1 ? '' : 's'} in the last three months.`}</p>
+    <p className="jsave-installment-report-note">{lang === 'zh' ? '依据目前保留的分期计划和关联支出回看；修改或删除旧计划会改变历史估算。新增物品按购买日期统计。' : 'Based on current plans and linked expenses; editing or deleting an old plan changes the historical estimate. New items use purchase dates.'}</p>
+  </Card>
+}
+
+function TrendView({ filtered, cur, t, lang, range, items, transactions }) {
   const totalIncome  = filtered.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0)
   const totalExpense = filtered.filter(t => t.type === 'expense' || t.type === 'split')
     .reduce((s, t) => s + (t.type === 'split' ? (t.myShare ?? t.amount) : t.amount), 0)
@@ -228,7 +265,8 @@ function TrendView({ filtered, cur, t, lang, range }) {
     return { income: income.map(Math.round), expense: expense.map(Math.round) }
   }, [buckets, filtered])
 
-  if (filtered.length === 0) return <p className="jsave-empty-msg">{t('noData')}</p>
+  const hasInstallments = items.some(item => item.installmentPlan?.installments?.length)
+  if (filtered.length === 0 && !hasInstallments) return <p className="jsave-empty-msg">{t('noData')}</p>
 
   return (
     <>
@@ -262,6 +300,7 @@ function TrendView({ filtered, cur, t, lang, range }) {
           />
         </div>
       </Card>
+      {hasInstallments && <InstallmentTrendCard items={items} transactions={transactions} cur={cur} lang={lang} />}
     </>
   )
 }
@@ -269,7 +308,7 @@ function TrendView({ filtered, cur, t, lang, range }) {
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function ReportsPage({ onOpenSettings }) {
   const { t, lang } = useLang()
-  const { transactions, accounts, settings, getAccountBalance } = useJSave()
+  const { transactions, accounts, items, settings, getAccountBalance } = useJSave()
   const [view, setView] = useState('insights')
   const [range, setRange] = useState('last30')
   const cur = settings?.currency ?? 'MYR'
@@ -318,7 +357,7 @@ export default function ReportsPage({ onOpenSettings }) {
 
       {view === 'insights'  && <InsightsView filtered={filtered} cur={cur} t={t} lang={lang} />}
       {view === 'balances'  && <BalancesView accounts={accounts} getAccountBalance={getAccountBalance} cur={cur} t={t} />}
-      {view === 'trend'     && <TrendView filtered={filtered} cur={cur} t={t} lang={lang} range={range} />}
+      {view === 'trend'     && <TrendView filtered={filtered} cur={cur} t={t} lang={lang} range={range} items={items} transactions={transactions} />}
     </div>
   )
 }

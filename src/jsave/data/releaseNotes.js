@@ -1,8 +1,23 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.8.5',
+    version: '3.8.6',
     date: '2026-09-30',
     isLatest: true,
+    items: [
+      'Return from installment progress to the same item editor without losing unsaved form entries',
+      'Collapse saved installment settings while keeping payment progress and estimated totals visible',
+      'Improve desktop item drawer spacing and add a six-month installment trend to Reports',
+    ],
+    itemsZh: [
+      '从分期进度返回同一物品编辑页，并保留尚未保存的填写内容',
+      '已设定的分期内容默认收起，仍显示还款进度与预计总供款',
+      '改善电脑版侧栏间距，并在报告加入近六个月分期趋势',
+    ],
+  },
+  {
+    version: '3.8.5',
+    date: '2026-09-30',
+    isLatest: false,
     items: [
       'Collapse payment details and paid installments in the installment progress view',
       'Add a visible back button to return from installment progress',
