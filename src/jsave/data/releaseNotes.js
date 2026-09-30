@@ -1,8 +1,21 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.8.3',
+    version: '3.8.4',
     date: '2026-09-30',
     isLatest: true,
+    items: [
+      'Replace the full-term installment percentage with an estimated annual financing rate inferred from monthly payments',
+      'Keep the currency difference visible and explain the assumptions behind the annual estimate',
+    ],
+    itemsZh: [
+      '将整个期限的百分比改为根据每月供款推算的估算年化融资成本率',
+      '保留金额差额，并说明年化估算所用的条件',
+    ],
+  },
+  {
+    version: '3.8.3',
+    date: '2026-09-30',
+    isLatest: false,
     items: [
       'Show estimated financing cost as a percentage of the amount financed across the full term, while keeping the currency difference above it',
       'Clarify that this percentage is not an annual interest rate and may include other charges',

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useJSave } from '../hooks/useJSave'
 import { formatCurrency } from '../utils/currency'
-import { dueInstallmentCount, estimatedFinancingDifference, estimatedFinancingPercentage, fromCents, installmentLink, installmentProgress, makeFixedInstallments, makeInstallments, toCents } from '../utils/installments'
+import { dueInstallmentCount, estimatedAnnualFinancingRate, estimatedFinancingDifference, fromCents, installmentLink, installmentProgress, makeFixedInstallments, makeInstallments, toCents } from '../utils/installments'
 
 const textFor = (lang, zh, en) => lang === 'zh' ? zh : en
 
@@ -17,7 +17,7 @@ export function InstallmentPlanFields({ plan, initialPlan, onChange, cost, purch
   const amountMode = plan?.amountMode === 'monthly' ? 'monthly' : 'total'
   const suggestedPastCount = dueInstallmentCount(plan?.startDate, paymentCount)
   const financingDifference = estimatedFinancingDifference(cost, plan?.upfrontAmount, plan?.totalPayable)
-  const financingPercentage = estimatedFinancingPercentage(cost, plan?.upfrontAmount, plan?.totalPayable)
+  const annualFinancingRate = estimatedAnnualFinancingRate(cost, plan?.upfrontAmount, plan?.installments)
 
   function scheduleFor(next) {
     const count = Number(next.paymentCount ?? next.installments.length)
@@ -108,10 +108,10 @@ export function InstallmentPlanFields({ plan, initialPlan, onChange, cost, purch
       <div className="jsave-installment-cost-breakdown">
         <div><span>{label('预计总供款', 'Estimated installment total')}</span><strong>{plan.installments.length ? formatCurrency(plan.totalPayable, cur, lang) : '—'}</strong></div>
         <div><span>{label('加上首付后预计支付', 'Estimated total incl. down payment')}</span><strong>{plan.installments.length ? formatCurrency(Number(plan.upfrontAmount) + Number(plan.totalPayable), cur, lang) : '—'}</strong></div>
-        {plan.installments.length && financingDifference != null && financingPercentage != null ? <>
+        {plan.installments.length && financingDifference != null && annualFinancingRate != null ? <>
           <div><span>{label('与物品价格的差额', 'Difference from item price')}</span><strong>{formatCurrency(financingDifference, cur, lang)}</strong></div>
-          <div><span>{label('预计利息比例（整个期限）', 'Estimated interest share (full term)')}</span><strong>{financingPercentage.toFixed(2)}%</strong></div>
-          <small>{label('差额 ÷ 扣除首付后的物品价格；不是年利率。若供款含手续费或保险，实际利息比例会不同。', 'Difference ÷ item price after down payment; this is not an annual rate. Fees or insurance in payments change the actual interest share.')}</small>
+          <div><span>{label('估算年化融资成本率', 'Estimated annual financing rate')}</span><strong>{annualFinancingRate.toFixed(2)}%</strong></div>
+          <small>{label('按扣除首付后的物品价格及每月供款推算，假设首期在融资后一个月；若含手续费、保险或实际贷款额不同，不能当作银行合同利率。', 'Inferred from the item price after down payment and monthly payments, assuming the first payment is one month later. Fees, insurance or a different loan amount can change the contracted rate.')}</small>
         </> : <small>{plan.installments.length ? label('请检查物品价格、首付、期限及供款金额。', 'Check the item price, down payment, term and payment amount.') : label('填写每月供款和期限后显示预计金额。', 'Enter the monthly payment and term to see the estimate.')}</small>}
       </div>
       {hasRecorded && <p className="jsave-installment-hint">{label('已有付款后，基础期数与总额会锁定。未来各期的日期和金额仍可调整，但合计须保持相同。', 'Once payments are recorded, the basic terms are locked. You can adjust future dates and amounts if their total stays the same.')}</p>}

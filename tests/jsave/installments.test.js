@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dueInstallmentCount, estimatedFinancingDifference, estimatedFinancingPercentage, installmentProgress, makeFixedInstallments, makeInstallments, monthDueDate, totalFutureInstallments, validateInstallmentPlan } from '../../src/jsave/utils/installments'
+import { dueInstallmentCount, estimatedAnnualFinancingRate, estimatedFinancingDifference, installmentProgress, makeFixedInstallments, makeInstallments, monthDueDate, totalFutureInstallments, validateInstallmentPlan } from '../../src/jsave/utils/installments'
 
 const phone = {
   id: 'phone', cost: 7000,
@@ -41,16 +41,17 @@ describe('JSave item installments', () => {
     expect(dueInstallmentCount('2026-01-31', 3, '2026-02-30')).toBe(0)
   })
 
-  it('shows financing difference as interest only under a no-other-fees assumption', () => {
+  it('estimates an annualised financing rate from the complete payment schedule', () => {
+    const carPayments = makeFixedInstallments(877, 108, '2026-10-01')
     expect(estimatedFinancingDifference(82400, 0, 94716)).toBe(12316)
-    expect(estimatedFinancingPercentage(82400, 0, 94716)).toBe(14.95)
+    expect(estimatedAnnualFinancingRate(82400, 0, carPayments)).toBe(3.19)
+    expect(estimatedAnnualFinancingRate(82400, 0, makeFixedInstallments(877, 108, '2026-10-01', 800))).toBeLessThan(3.19)
     expect(estimatedFinancingDifference(82400, 10000, 84716)).toBe(12316)
-    expect(estimatedFinancingPercentage(82400, 10000, 84716)).toBe(17.01)
     expect(estimatedFinancingDifference(82400, 0, 82400)).toBe(0)
-    expect(estimatedFinancingPercentage(82400, 0, 82400)).toBe(0)
+    expect(estimatedAnnualFinancingRate(7000, 0, makeInstallments(7000, 7, '2026-10-01'))).toBe(0)
     expect(estimatedFinancingDifference(82400, 0, 2631)).toBeNull()
-    expect(estimatedFinancingPercentage(82400, 0, 2631)).toBeNull()
-    expect(estimatedFinancingPercentage(82400, 82400, 94716)).toBeNull()
+    expect(estimatedAnnualFinancingRate(82400, 0, makeFixedInstallments(877, 3, '2026-10-01'))).toBeNull()
+    expect(estimatedAnnualFinancingRate(82400, 82400, carPayments)).toBeNull()
   })
 
   it('tracks future payments from linked expenses without counting card repayments', () => {

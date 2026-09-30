@@ -53,11 +53,28 @@ export function estimatedFinancingDifference(itemCost, upfrontAmount, totalPayab
   return difference < 0 ? null : fromCents(difference)
 }
 
-export function estimatedFinancingPercentage(itemCost, upfrontAmount, totalPayable) {
+export function estimatedAnnualFinancingRate(itemCost, upfrontAmount, installments) {
   const principal = toCents(itemCost) - toCents(upfrontAmount)
-  const difference = estimatedFinancingDifference(itemCost, upfrontAmount, totalPayable)
-  if (principal <= 0 || difference == null) return null
-  return Math.round(toCents(difference) / principal * 10000) / 100
+  const payments = (installments || []).map(row => toCents(row.amount))
+  if (principal <= 0 || !payments.length || payments.length > 120 || payments.some(amount => !Number.isFinite(amount) || amount <= 0)) return null
+  const total = payments.reduce((sum, amount) => sum + amount, 0)
+  if (total < principal) return null
+  if (total === principal) return 0
+
+  // Infer a monthly rate from the scheduled cash flows, assuming the first
+  // payment is one month after financing. Annualise by compounding 12 months.
+  const presentValue = rate => payments.reduce((sum, amount, index) => sum + amount / (1 + rate) ** (index + 1), 0)
+  let low = 0
+  let high = 0.01
+  while (presentValue(high) > principal && high < 100) high *= 2
+  if (presentValue(high) > principal) return null
+  for (let index = 0; index < 80; index += 1) {
+    const midpoint = (low + high) / 2
+    if (presentValue(midpoint) > principal) low = midpoint
+    else high = midpoint
+  }
+  const monthlyRate = (low + high) / 2
+  return Math.round(((1 + monthlyRate) ** 12 - 1) * 10000) / 100
 }
 
 export function validateInstallmentPlan(plan, itemCost) {
