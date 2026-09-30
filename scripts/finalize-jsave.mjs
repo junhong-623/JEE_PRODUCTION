@@ -8,7 +8,7 @@ const outputDirectory = resolve('dist-jsave')
 const localePages = {
   en: {
     title: 'JSave — Offline Expense Tracker &amp; AA Bill Splitter for Malaysia',
-    description: 'Track expenses offline, split AA bills, plan budgets and savings goals, calculate cost per day, and export CSV with JSave.',
+    description: 'Track expenses offline, split AA bills, plan budgets and savings goals, and follow item installment payments with JSave.',
     url: 'https://jsave.jeeprod.com/en/',
     fallback: `
       <main id="jsave-seo-fallback">
@@ -28,6 +28,7 @@ const localePages = {
             <li>Repayment tracking without distorted spending</li>
             <li>Multiple savings goals and quick deposits</li>
             <li>True item cost per day and item groups</li>
+            <li>Item installment plans with payment schedules and paid progress</li>
             <li>Calendar and category reports</li>
             <li>Spreadsheet-ready CSV export</li>
           </ul>
@@ -47,7 +48,7 @@ const localePages = {
   },
   zh: {
     title: 'JSave（J省）— 马来西亚离线记账与 AA 分账工具',
-    description: 'JSave 是为马来西亚日常生活设计的个人理财工具：离线记账、AA 分账、预算反馈、储蓄目标、物品日均成本与 CSV 导出。',
+    description: 'JSave 是为马来西亚日常生活设计的个人理财工具：离线记账、AA 分账、预算反馈、储蓄目标、物品分期付款与日均成本。',
     url: 'https://jsave.jeeprod.com/zh/',
     fallback: `
       <main id="jsave-seo-fallback">
@@ -67,6 +68,7 @@ const localePages = {
             <li>追踪还款，只计算自己的实际支出</li>
             <li>多个储蓄目标与快速存入</li>
             <li>物品日均成本与物品组合</li>
+            <li>物品分期计划、逐期明细与已付进度</li>
             <li>日历及分类报告</li>
             <li>随时导出 CSV</li>
           </ul>

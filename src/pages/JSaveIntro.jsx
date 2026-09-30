@@ -15,7 +15,7 @@ import './JSaveIntro.css'
 
 const COPY = {
   en: {
-    nav: ['Overview', 'How it works', 'Product', 'Guides', 'Principles'],
+    nav: ['Overview', 'How it works', 'Installments', 'Product', 'Guides', 'Principles'],
     open: 'Open JSave', install: 'Install',
     eyebrow: 'Personal finance, without the noise',
     heroA: 'Spend clearly.', heroB: 'Save calmly.',
@@ -34,6 +34,21 @@ const COPY = {
       { title: 'Adjust', body: 'Move at your own pace with simple feedback—not warnings designed to create anxiety.' },
       { title: 'Keep', body: 'Export a clean CSV whenever you need your records somewhere else.' },
     ],
+    installmentsKicker: 'NEW · THINGS + INSTALLMENTS',
+    installmentsTitle: 'Enjoy the purchase. Know every payment ahead.',
+    installmentsBody: 'In JSave, a Thing can hold its installment plan alongside its purchase price. See the full picture: what it costs, what you have paid, and what is still coming.',
+    installmentsPoints: [
+      { title: 'Set up the plan', body: 'Enter a down payment, monthly amount or total, and the payment term.' },
+      { title: 'See the true total', body: 'Compare all planned payments with the item price and review each due date.' },
+      { title: 'Follow real progress', body: 'Link each payment to its transaction so paid and upcoming installments stay clear.' },
+    ],
+    installmentsPhotoOne: 'A laptop and notebook on a sunlit desk in Kuala Lumpur',
+    installmentsPhotoTwo: 'A person holding a camera they use and value',
+    installmentsExample: 'INTERACTIVE EXAMPLE', installmentsItem: 'My laptop',
+    installmentsPrice: 'Item price', installmentsTerm: 'Payment term', installmentsMonths: 'months',
+    installmentsPaid: 'payments made', installmentsProgress: 'Payment progress', installmentsNext: 'Per month', installmentsRemaining: 'Still to pay',
+    installmentsRecord: 'Mark next paid', installmentsComplete: 'All payments made', installmentsCelebrated: 'Paid in full!', installmentsReset: 'Reset example', installmentsRetry: 'Try again',
+    installmentsNote: 'Example assumes equal monthly payments, with no down payment or fees. Changes here are not saved; actual spending in JSave follows each recorded payment transaction.',
     shortcutKicker: 'TNG + CIMB · IPHONE SHORTCUT',
     shortcutTitle: 'From payment screenshot to JSave entry.',
     shortcutBody: 'Use one iPhone shortcut for supported TNG confirmations and CIMB transaction details. It reads the amount, date and payee, then lets you check the category and account before saving.',
@@ -81,7 +96,7 @@ const COPY = {
       { no: '01', title: 'Accounts', body: 'Cash, bank and savings balances stay separate and easy to understand.' },
       { no: '02', title: 'Calendar', body: 'Review the month day by day and find a transaction without digging.' },
       { no: '03', title: 'Reports', body: 'Compare categories, income and spending with charts grounded in your own entries.' },
-      { no: '04', title: 'Things', body: 'Track what a purchase really costs for every day you continue to use it.' },
+      { no: '04', title: 'Things', body: 'See an item’s cost per day, add its installment plan, and follow what is paid or still due.' },
       { no: '05', title: 'Recurring', body: 'Let predictable monthly entries appear once, reliably, across your devices.' },
       { no: '06', title: 'Your data', body: 'Use it offline, sync it privately, and export it when you choose.' },
     ],
@@ -105,7 +120,7 @@ const COPY = {
     footer: 'Designed and built in Kuala Lumpur.', close: 'Close', menu: 'Menu',
   },
   zh: {
-    nav: ['概览', '使用方式', '产品', '指南', '原则'], open: '打开 JSave', install: '安装',
+    nav: ['概览', '使用方式', '分期付款', '产品', '指南', '原则'], open: '打开 JSave', install: '安装',
     eyebrow: '个人理财，不需要噪音', heroA: '花得清楚。', heroB: '存得从容。',
     heroBody: '为马来西亚日常生活而做的专注理财伙伴。几秒记下一笔，看懂自己的节奏，继续走向真正重要的目标。',
     start: '免费开始', explore: '看看产品', assurances: ['无需连接银行', '离线可用', '中文 + English'],
@@ -120,6 +135,21 @@ const COPY = {
       { title: '调整', body: '用简单反馈找到自己的节奏，而不是用警告制造焦虑。' },
       { title: '保留', body: '需要在其他地方使用时，随时导出干净的 CSV。' },
     ],
+    installmentsKicker: '新功能 · 物品与分期付款',
+    installmentsTitle: '喜欢的物品买回家，接下来的每一期也心中有数。',
+    installmentsBody: 'JSave 让你在「物品」中把分期计划和购买价格放在一起，同时看清物品价格、已经支付多少，以及未来还要付多少。',
+    installmentsPoints: [
+      { title: '填好分期计划', body: '记录首付、每月供款或分期总额，以及供款期限。' },
+      { title: '看清真正总额', body: '比较预计总付款与物品价格，并逐期查看付款日期。' },
+      { title: '跟上实际进度', body: '把每期付款关联到交易，已付与待付款项一目了然。' },
+    ],
+    installmentsPhotoOne: '吉隆坡阳光书桌上的笔电和记事本',
+    installmentsPhotoTwo: '手持日常使用的相机',
+    installmentsExample: '互动示意', installmentsItem: '我的笔电',
+    installmentsPrice: '物品价格', installmentsTerm: '供款期限', installmentsMonths: '个月',
+    installmentsPaid: '期已付', installmentsProgress: '付款进度', installmentsNext: '每月供款', installmentsRemaining: '剩余待付',
+    installmentsRecord: '模拟付清下一期', installmentsComplete: '已全部付清', installmentsCelebrated: '分期付清！', installmentsReset: '重设示例', installmentsRetry: '再试一次',
+    installmentsNote: '示例按每月等额、无首付和手续费计算；这里的操作不会保存数据。JSave 的实际支出仍以每期记录的付款交易为准。',
     shortcutKicker: 'TNG + CIMB · IPHONE 快捷指令',
     shortcutTitle: '付款截图，核对后记进 JSave。',
     shortcutBody: '同一个 iPhone 快捷指令可处理已支持的 TNG 成功页与 CIMB 交易详情页。它读取金额、日期和交易对象，由你核对类别及账户后才保存。',
@@ -165,7 +195,7 @@ const COPY = {
       { no: '01', title: '账户', body: '现金、银行和储蓄余额分别整理，一眼就能理解。' },
       { no: '02', title: '日历', body: '逐日回看整个月，不需要翻找也能找到一笔交易。' },
       { no: '03', title: '报表', body: '根据自己的真实记录，比较类别、收入和支出。' },
-      { no: '04', title: '物品', body: '追踪一件物品随着使用时间变化的真实日均成本。' },
+      { no: '04', title: '物品', body: '查看物品日均成本、加入分期计划，并追踪已付与待付款项。' },
       { no: '05', title: '周期记账', body: '固定月度项目只生成一次，并可靠同步到不同设备。' },
       { no: '06', title: '你的数据', body: '离线使用、私人同步，并在你选择时自由导出。' },
     ],
@@ -203,7 +233,7 @@ const PWA_STEPS = {
   },
 }
 
-const NAV_TARGETS = ['#overview', '#journey', '#product', '#guides', '#principles']
+const NAV_TARGETS = ['#overview', '#journey', '#installments', '#product', '#guides', '#principles']
 
 function Device({ children }) {
   return <div className="ji-device-viewport"><div className="ji-device-scale"><IOSDevice width={390} height={844} dark>{children}</IOSDevice></div></div>
@@ -218,6 +248,42 @@ function FeatureGlyph({ type }) {
   if (type === 'feedback') return <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 24V13M13 24V7M21 24v-8M29 24V4"/><path d="M3 27h27"/></svg>
   if (type === 'split') return <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="10" cy="11" r="4"/><circle cx="22" cy="11" r="4"/><path d="M3.5 26c.7-5.1 3-7.5 6.5-7.5s5.8 2.4 6.5 7.5M15.5 26c.7-5.1 3-7.5 6.5-7.5s5.8 2.4 6.5 7.5"/></svg>
   return <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 13a9 9 0 0117-3M25 19a9 9 0 01-17 3"/><path d="M24 4v6h-6M8 28v-6h6"/></svg>
+}
+
+function InstallmentPreview({ copy, zh }) {
+  const [price, setPrice] = useState(2400)
+  const [term, setTerm] = useState(12)
+  const [paidCount, setPaidCount] = useState(3)
+  const [celebrating, setCelebrating] = useState(false)
+  const isComplete = paidCount === term
+  const monthly = price / term
+  const remaining = (term - paidCount) * monthly
+  const money = amount => `RM ${amount.toLocaleString('en-MY')}`
+  const reset = () => { setPrice(2400); setTerm(12); setPaidCount(3); setCelebrating(false) }
+  const recordPayment = () => {
+    if (isComplete) return
+    setPaidCount(paidCount + 1)
+    if (paidCount + 1 === term) setCelebrating(true)
+  }
+
+  return <div className={`ji-installments-plan${isComplete ? ' is-complete' : ''}`} role="group" aria-label={copy.installmentsExample}>
+    {celebrating && <div className="ji-installments-fireworks" aria-hidden="true">{[0, 1, 2].map(burst => <span className={`ji-installments-burst ji-installments-burst-${burst + 1}`} key={burst}>{Array.from({ length: 8 }, (_, spark) => <i key={spark} style={{ '--ji-spark-angle': `${spark * 45}deg` }} />)}</span>)}</div>}
+    <div className="ji-installments-plan-title"><div><span className="ji-installments-example">{copy.installmentsExample}</span><strong>{copy.installmentsItem}</strong></div><div className="ji-installments-plan-state"><span>{String(paidCount).padStart(2, '0')} / {term}</span>{isComplete && <small role="status">✓ {copy.installmentsCelebrated}</small>}</div></div>
+    <div className="ji-installments-plan-controls">
+      <div className="ji-installments-price-control">
+        <label htmlFor="ji-installments-price">{copy.installmentsPrice}<strong>{money(price)}</strong></label>
+        <input id="ji-installments-price" type="range" min="1200" max="6000" step="120" value={price} onChange={event => setPrice(Number(event.target.value))} style={{ '--ji-range-progress': `${(price - 1200) / 4800 * 100}%` }} />
+      </div>
+      <div className="ji-installments-term-control" role="group" aria-label={copy.installmentsTerm}>
+        <span>{copy.installmentsTerm}</span>
+        <div>{[6, 12, 24].map(option => <button type="button" key={option} aria-pressed={term === option} onClick={() => { setTerm(option); setPaidCount(count => Math.min(count, option)); setCelebrating(false) }}>{option} {copy.installmentsMonths}</button>)}</div>
+      </div>
+    </div>
+    <div className="ji-installments-progress-copy" aria-live="polite">{zh ? `已付 ${paidCount} / ${term} 期` : `${paidCount} of ${term} ${copy.installmentsPaid}`}</div>
+    <div className="ji-installments-track" role="progressbar" aria-label={copy.installmentsProgress} aria-valuemin="0" aria-valuemax={term} aria-valuenow={paidCount}><i style={{ width: `${paidCount / term * 100}%` }} /></div>
+    <div className="ji-installments-amounts"><div><span>{copy.installmentsNext}</span><strong>{money(monthly)}</strong></div><div><span>{copy.installmentsRemaining}</span><strong>{money(remaining)}</strong></div></div>
+    <div className="ji-installments-actions"><button type="button" className="ji-installments-record" disabled={isComplete} onClick={recordPayment}>{isComplete ? copy.installmentsComplete : copy.installmentsRecord}<ArrowIcon /></button><button type="button" className="ji-installments-reset" onClick={reset}>{isComplete && <span aria-hidden="true">↻</span>}{isComplete ? copy.installmentsRetry : copy.installmentsReset}</button></div>
+  </div>
 }
 
 function ShortcutGuideVisual({ step, zh, label }) {
@@ -398,7 +464,7 @@ export default function JSaveIntro({ onOpenApp, withHead = true, language, onLan
   }
 
   const metaTitle = zh ? 'JSave — 花得清楚，存得从容' : 'JSave — Spend clearly. Save calmly.'
-  const metaDescription = zh ? '为马来西亚日常生活而做的个人记账工具。快速记录、预算反馈、目标追踪、离线同步。' : 'A focused personal finance companion for Malaysia with fast logging, budget feedback, goals and reliable offline sync.'
+  const metaDescription = zh ? '为马来西亚日常生活而做的个人记账工具。快速记录、预算反馈、物品分期付款追踪、目标管理与离线同步。' : 'A focused personal finance companion for Malaysia with fast logging, budget feedback, item installment tracking, goals and offline sync.'
 
   return (
     <main className="ji-root">
@@ -450,6 +516,23 @@ export default function JSaveIntro({ onOpenApp, withHead = true, language, onLan
         <div className="ji-journey-content">
           <Reveal direction="right"><p className="ji-kicker">{c.journeyKicker}</p><h2>{c.journeyTitle}</h2><p className="ji-journey-body">{c.journeyBody}</p></Reveal>
           <ol className="ji-journey-steps">{c.journeySteps.map((step, index) => <Reveal as="li" direction="right" delay={index * 90} key={step.title}><span>{String(index + 1).padStart(2, '0')}</span><div><h3>{step.title}</h3><p>{step.body}</p></div></Reveal>)}</ol>
+        </div>
+      </section>
+
+      <section id="installments" className="ji-installments" aria-labelledby="installments-title">
+        <div className="ji-installments-inner">
+          <Reveal direction="left" className="ji-installments-copy">
+            <p className="ji-kicker">{c.installmentsKicker}</p>
+            <h2 id="installments-title">{c.installmentsTitle}</h2>
+            <p className="ji-installments-body">{c.installmentsBody}</p>
+            <ol className="ji-installments-points">{c.installmentsPoints.map((point, index) => <li key={point.title}><span>{String(index + 1).padStart(2, '0')}</span><div><h3>{point.title}</h3><p>{point.body}</p></div></li>)}</ol>
+          </Reveal>
+          <Reveal direction="right" delay={100} className="ji-installments-gallery">
+            <figure className="ji-installments-photo ji-installments-photo-main"><img src={`${JSAVE_BASE}/j-save-installment-laptop.webp`} alt={c.installmentsPhotoOne} loading="lazy" width="1536" height="1024" /></figure>
+            <figure className="ji-installments-photo ji-installments-photo-detail"><img src={`${JSAVE_BASE}/j-save-installment-camera.webp`} alt={c.installmentsPhotoTwo} loading="lazy" width="1024" height="1536" /></figure>
+            <InstallmentPreview copy={c} zh={zh} />
+          </Reveal>
+          <p className="ji-installments-note">{c.installmentsNote}</p>
         </div>
       </section>
 
