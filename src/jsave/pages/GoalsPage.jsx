@@ -773,7 +773,11 @@ function ThingsView({ t, lang, showAdd, onShowAddChange, initialItemId = null })
       )}
       {managingItem?.installmentPlan && <div className="jsave-modal-overlay centered jsave-item-form-overlay" onClick={event => event.target === event.currentTarget && setManagingItemId(null)} onKeyDown={event => event.key === 'Escape' && setManagingItemId(null)}>
         <div className="jsave-modal glass-card jsave-item-form-panel jsave-installment-panel" role="dialog" aria-modal="true" aria-label={lang === 'zh' ? `${managingItem.name} 分期` : `${managingItem.name} installments`}>
-          <div className="jsave-modal-title"><span>{managingItem.name}</span><button type="button" className="jsave-installment-close" aria-label={t('close')} onClick={() => setManagingItemId(null)}>✕</button></div>
+          <div className="jsave-modal-title jsave-installment-panel-heading">
+            <button type="button" className="jsave-installment-back" onClick={() => setManagingItemId(null)}><span aria-hidden="true">←</span>{lang === 'zh' ? '返回' : 'Back'}</button>
+            <span className="jsave-installment-panel-name">{managingItem.name}</span>
+            <button type="button" className="jsave-installment-close" aria-label={t('close')} onClick={() => setManagingItemId(null)}>✕</button>
+          </div>
           <InstallmentPaymentManager item={managingItem} onRecord={recordInstallment} lang={lang} cur={cur} />
           <button type="button" className="jsave-installment-edit-plan" onClick={() => { setManagingItemId(null); setEditing(managingItem); onShowAddChange(false) }}>{lang === 'zh' ? '编辑物品与分期计划' : 'Edit item and payment plan'}</button>
         </div>

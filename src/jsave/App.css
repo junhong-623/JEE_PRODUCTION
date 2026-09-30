@@ -1254,10 +1254,13 @@ input[type="number"].jsave-input::-webkit-outer-spin-button { -webkit-appearance
 .jsave-installment-open { padding: 2px 0 2px 7px; border: 0; background: transparent; color: #6ee7b7; font: 600 11px var(--font-sans); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .jsave-installment-open-from-form, .jsave-installment-edit-plan { width: 100%; display: flex; justify-content: space-between; align-items: center; min-height: 42px; padding: 10px 13px; border: 1px solid rgba(16,185,129,.28); border-radius: 12px; background: rgba(16,185,129,.08); color: #a7f3d0; font: 600 12px var(--font-sans); cursor: pointer; }
 .jsave-installment-edit-plan { margin-top: 16px; justify-content: center; }
-.jsave-installment-close { flex-shrink: 0; padding: 4px 7px; color: #a7b9ba; border: 0; background: transparent; font-size: 19px; cursor: pointer; }
+.jsave-installment-close { display: grid; place-items: center; width: 38px; height: 38px; flex-shrink: 0; padding: 0; color: #a7b9ba; border: 0; background: transparent; font-size: 19px; cursor: pointer; }
 .jsave-installment-panel { padding: 24px 20px; }
-.jsave-installment-panel .jsave-modal-title { gap: 12px; }
-.jsave-installment-panel .jsave-modal-title span { overflow-wrap: anywhere; }
+.jsave-installment-panel .jsave-installment-panel-heading { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+.jsave-installment-panel-name { min-width: 0; overflow-wrap: anywhere; text-align: center; }
+.jsave-installment-back { display: inline-flex; align-items: center; gap: 5px; min-height: 38px; padding: 0 8px; border: 1px solid rgba(16,185,129,.25); border-radius: 10px; background: rgba(16,185,129,.08); color: #a7f3d0; font: 600 12px var(--font-sans); white-space: nowrap; cursor: pointer; }
+.jsave-installment-back span { font-size: 19px; line-height: 1; }
+.jsave-installment-back:focus-visible, .jsave-installment-close:focus-visible, .jsave-installment-details-toggle:focus-visible, .jsave-installment-paid-toggle:focus-visible { outline: 2px solid #6ee7b7; outline-offset: 2px; }
 .jsave-installment-editor, .jsave-installment-manager { border: 1px solid rgba(16,185,129,.2); border-radius: 18px; background: rgba(16,185,129,.045); padding: 16px; min-width: 0; }
 .jsave-installment-toggle { display: flex; justify-content: space-between; align-items: center; gap: 15px; }
 .jsave-installment-toggle > span { display: grid; gap: 4px; min-width: 0; }
@@ -1309,6 +1312,11 @@ input[type="number"].jsave-input::-webkit-outer-spin-button { -webkit-appearance
 .jsave-installment-manager-total span { color: #9bb7ae; font-size: 12px; }
 .jsave-installment-manager-total strong { color: #86efac; font: 26px var(--font-display); font-variant-numeric: tabular-nums; }
 .jsave-installment-payment-list { display: grid; gap: 8px; margin-top: 14px; }
+.jsave-installment-payment-groups { display: grid; gap: 18px; margin-top: 15px; }
+.jsave-installment-payment-group-title { color: #b8c9d2; font: 600 11px var(--font-sans); }
+.jsave-installment-payment-group .jsave-installment-payment-list { margin-top: 9px; }
+.jsave-installment-paid-toggle { width: 100%; display: flex; align-items: center; justify-content: space-between; min-height: 40px; padding: 9px 11px; border: 1px solid rgba(241,245,249,.09); border-radius: 11px; background: rgba(255,255,255,.025); color: #b8c9d2; font: 600 11px var(--font-sans); text-align: left; cursor: pointer; }
+.jsave-installment-paid-toggle span { font-size: 17px; line-height: 1; }
 .jsave-installment-payment { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 9px; padding: 11px; border: 1px solid rgba(241,245,249,.07); border-radius: 13px; background: rgba(255,255,255,.025); }
 .jsave-installment-payment.is-paid { opacity: .76; }
 .jsave-installment-payment-main { display: flex; align-items: center; gap: 9px; min-width: 0; }

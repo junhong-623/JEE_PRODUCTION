@@ -1,8 +1,21 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.8.4',
+    version: '3.8.5',
     date: '2026-09-30',
     isLatest: true,
+    items: [
+      'Collapse payment details and paid installments in the installment progress view',
+      'Add a visible back button to return from installment progress',
+    ],
+    itemsZh: [
+      '分期进度中的每期明细与已付期数现在可以分别展开和收起',
+      '在分期进度顶部加入清楚的返回按钮',
+    ],
+  },
+  {
+    version: '3.8.4',
+    date: '2026-09-30',
+    isLatest: false,
     items: [
       'Replace the full-term installment percentage with an estimated annual financing rate inferred from monthly payments',
       'Keep the currency difference visible and explain the assumptions behind the annual estimate',

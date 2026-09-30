@@ -134,6 +134,8 @@ export function InstallmentPlanFields({ plan, initialPlan, onChange, cost, purch
 
 export function InstallmentPaymentManager({ item, onRecord, lang, cur }) {
   const { accounts, transactions, updateTransaction } = useJSave()
+  const [showPayments, setShowPayments] = useState(false)
+  const [showPaid, setShowPaid] = useState(false)
   const [linkingNumber, setLinkingNumber] = useState(null)
   const [search, setSearch] = useState('')
   const [busy, setBusy] = useState(false)
@@ -170,19 +172,38 @@ export function InstallmentPaymentManager({ item, onRecord, lang, cur }) {
     finally { setBusy(false) }
   }
 
+  const unpaidRows = progress.rows.filter(row => !row.paid)
+  const paidRows = progress.rows.filter(row => row.paid)
+
+  function paymentRow(row) {
+    return <div className={`jsave-installment-payment ${row.paid ? 'is-paid' : ''}`} key={row.number}>
+      <div className="jsave-installment-payment-main"><span className="jsave-installment-payment-number">{row.number}</span><div><strong>{money(row.amount)}</strong><small>{row.dueDate} · {row.opening ? label('期初已付', 'Past payment') : row.transaction ? label('已关联支出', 'Expense linked') : label('尚未扣款', 'Not charged')}</small></div></div>
+      {row.transaction ? <button type="button" className="jsave-installment-text-button" disabled={busy} onClick={() => unlink(row.transaction)}>{label('取消关联', 'Unlink')}</button> : !row.opening && <div className="jsave-installment-payment-actions"><button type="button" className="jsave-installment-record" onClick={() => onRecord(item, row)}>{label('记下这期', 'Record')}</button><button type="button" className="jsave-installment-text-button" onClick={() => { setLinkingNumber(linkingNumber === row.number ? null : row.number); setSearch('') }}>{label('关联已有', 'Link existing')}</button></div>}
+      {row.transaction && toCents(row.transaction.amount) !== toCents(row.amount) && <small className="jsave-installment-actual">{label('实际扣款', 'Actual charge')} {money(row.transaction.amount)}</small>}
+      {linkingNumber === row.number && <div className="jsave-installment-linker"><input className="jsave-input" type="search" placeholder={label('搜索商家、金额或日期', 'Search note, amount or date')} value={search} onChange={event => setSearch(event.target.value)} /><small>{search ? label('匹配的未关联支出', 'Matching unlinked expenses') : label('先显示相同金额的未关联支出', 'Showing unlinked expenses with the same amount')}</small>{candidates.length ? candidates.map(tx => <button type="button" key={tx.id} className="jsave-installment-candidate" disabled={busy} onClick={() => link(tx, row)}><span>{tx.note || label('无备注支出', 'Expense without note')}<small>{tx.date}</small></span><strong>{money(tx.amount)}</strong></button>) : <p>{label('找不到交易。可尝试搜索，或直接记下这期。', 'No matching expense. Search again or record this payment.')}</p>}</div>}
+    </div>
+  }
+
   return <section className="jsave-installment-manager" aria-label={label('分期进度', 'Installment progress')}>
     <div className="jsave-installment-manager-heading"><div><strong>{label('分期进度', 'Installment progress')}</strong><small>{item.installmentPlan.provider || label('付款计划', 'Payment plan')} · {progress.paidCount}/{progress.rows.length} {label('期已记录', 'payments recorded')}</small></div><span className={`jsave-installment-status ${progress.status}`}>{label(progress.status === 'settled' ? '已结清' : progress.status === 'notStarted' ? '未开始' : '分期中', progress.status === 'settled' ? 'Complete' : progress.status === 'notStarted' ? 'Not started' : 'In progress')}</span></div>
     <div className="jsave-installment-manager-meta"><span>{label('物品价格', 'Item price')} <strong>{money(item.cost)}</strong></span>{item.installmentPlan.chargeAccountId && <span>{label('扣款账户', 'Charge account')} <strong>{accounts.find(account => account.id === item.installmentPlan.chargeAccountId)?.name || label('账户已移除', 'Account removed')}</strong></span>}{progress.next && <span>{label('下一期', 'Next due')} <strong>{progress.next.dueDate} · {money(progress.next.amount)}</strong></span>}</div>
     <div className="jsave-installment-manager-total"><span>{label('未来待扣款', 'Future payments')}</span><strong>{money(progress.futureAmount)}</strong></div>
     <p className="jsave-installment-hint">{label('已扣到信用卡但未还卡的金额，请在信用卡账户余额查看。', 'Amounts charged to your card but not yet repaid remain in your credit card balance.')}</p>
-    <div className="jsave-installment-payment-list">
-      {progress.rows.map(row => <div className={`jsave-installment-payment ${row.paid ? 'is-paid' : ''}`} key={row.number}>
-        <div className="jsave-installment-payment-main"><span className="jsave-installment-payment-number">{row.number}</span><div><strong>{money(row.amount)}</strong><small>{row.dueDate} · {row.opening ? label('期初已付', 'Past payment') : row.transaction ? label('已关联支出', 'Expense linked') : label('尚未扣款', 'Not charged')}</small></div></div>
-        {row.transaction ? <button type="button" className="jsave-installment-text-button" disabled={busy} onClick={() => unlink(row.transaction)}>{label('取消关联', 'Unlink')}</button> : !row.opening && <div className="jsave-installment-payment-actions"><button type="button" className="jsave-installment-record" onClick={() => onRecord(item, row)}>{label('记下这期', 'Record')}</button><button type="button" className="jsave-installment-text-button" onClick={() => { setLinkingNumber(linkingNumber === row.number ? null : row.number); setSearch('') }}>{label('关联已有', 'Link existing')}</button></div>}
-        {row.transaction && toCents(row.transaction.amount) !== toCents(row.amount) && <small className="jsave-installment-actual">{label('实际扣款', 'Actual charge')} {money(row.transaction.amount)}</small>}
-        {linkingNumber === row.number && <div className="jsave-installment-linker"><input className="jsave-input" type="search" placeholder={label('搜索商家、金额或日期', 'Search note, amount or date')} value={search} onChange={event => setSearch(event.target.value)} /><small>{search ? label('匹配的未关联支出', 'Matching unlinked expenses') : label('先显示相同金额的未关联支出', 'Showing unlinked expenses with the same amount')}</small>{candidates.length ? candidates.map(tx => <button type="button" key={tx.id} className="jsave-installment-candidate" disabled={busy} onClick={() => link(tx, row)}><span>{tx.note || label('无备注支出', 'Expense without note')}<small>{tx.date}</small></span><strong>{money(tx.amount)}</strong></button>) : <p>{label('找不到交易。可尝试搜索，或直接记下这期。', 'No matching expense. Search again or record this payment.')}</p>}</div>}
-      </div>)}
-    </div>
+    <button type="button" className="jsave-installment-details-toggle" aria-expanded={showPayments} aria-controls={`jsave-installment-payments-${item.id}`} onClick={() => { setShowPayments(value => !value); setLinkingNumber(null); setSearch('') }}>
+      {showPayments ? label('收起每期明细', 'Hide payment details') : label('查看每期明细', 'View payment details')} · {progress.rows.length} {label('期', 'payments')} <span aria-hidden="true">{showPayments ? '⌃' : '⌄'}</span>
+    </button>
+    {showPayments && <div id={`jsave-installment-payments-${item.id}`} className="jsave-installment-payment-groups">
+      {unpaidRows.length > 0 && <div className="jsave-installment-payment-group">
+        <div className="jsave-installment-payment-group-title">{label('待付', 'Unpaid')} · {unpaidRows.length} {label('期', 'payments')}</div>
+        <div className="jsave-installment-payment-list">{unpaidRows.map(paymentRow)}</div>
+      </div>}
+      {paidRows.length > 0 && <div className="jsave-installment-payment-group">
+        <button type="button" className="jsave-installment-paid-toggle" aria-expanded={showPaid} aria-controls={`jsave-installment-paid-${item.id}`} onClick={() => setShowPaid(value => !value)}>
+          {label('已付', 'Paid')} · {paidRows.length} {label('期', 'payments')} <span aria-hidden="true">{showPaid ? '⌃' : '⌄'}</span>
+        </button>
+        {showPaid && <div id={`jsave-installment-paid-${item.id}`} className="jsave-installment-payment-list">{paidRows.map(paymentRow)}</div>}
+      </div>}
+    </div>}
     {error && <p className="jsave-error">{error}</p>}
   </section>
 }
