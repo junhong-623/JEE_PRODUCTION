@@ -31,6 +31,7 @@ function ReceiptShortcutSettings({ accounts, user, lang }) {
   const [accountIds, setAccountIds] = useState(emptyIds)
   const [savedIds, setSavedIds] = useState(emptyIds)
   const [enabled, setEnabled] = useState(false)
+  const [statusReady, setStatusReady] = useState(false)
   const [key, setKey] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -47,12 +48,14 @@ function ReceiptShortcutSettings({ accounts, user, lang }) {
   useEffect(() => {
     if (!user?.uid) return
     let cancelled = false
+    setStatusReady(false)
     httpsCallable(functions, 'jsaveReceiptShortcutKeyStatus')().then(({ data }) => {
       if (cancelled) return
       const ids = { ...emptyIds, ...(data.accountIds || {}) }
       setAccountIds(ids)
       setSavedIds(ids)
       setEnabled(Boolean(data.enabled))
+      setStatusReady(true)
     }).catch(() => {
       if (!cancelled) setError(zh ? '无法读取统一指令状态。' : 'Could not load the unified shortcut status.')
     })
@@ -60,7 +63,7 @@ function ReceiptShortcutSettings({ accounts, user, lang }) {
   }, [user?.uid]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function run(action, successMessage) {
-    if (busy) return
+    if (busy || !statusReady) return
     setBusy(true)
     setError('')
     setMessage('')
@@ -101,6 +104,14 @@ function ReceiptShortcutSettings({ accounts, user, lang }) {
     } catch {
       setError(zh ? '无法自动复制，请长按密钥手动复制。' : 'Could not copy. Select the key manually.')
     }
+  }
+
+  function confirmKeyRotation() {
+    if (busy || !statusReady || !enabled) return
+    const confirmed = window.confirm(zh
+      ? '重新生成后，现有统一密钥会立即失效。使用旧密钥的 iPhone 快捷指令将无法导入交易，直到你把新密钥填入指令。确定重新生成吗？'
+      : 'Regenerating will immediately invalidate the current unified key. iPhone shortcuts using the old key cannot import transactions until you enter the new key. Regenerate now?')
+    if (confirmed) run('jsaveCreateReceiptShortcutKey', zh ? '新密钥已生成，请更新手机指令。' : 'New key created. Update the shortcut on your phone.')
   }
 
   return (
@@ -153,13 +164,13 @@ function ReceiptShortcutSettings({ accounts, user, lang }) {
             {zh ? '换账户只需保存设置；丢失密钥时再重新生成。旧 TNG / CIMB 指令不受影响。'
               : 'Save account changes without changing the key. Rotate only if you have lost the key.'}
           </p>
-          <button className="jsave-btn-ghost jsave-btn-full" disabled={busy || !hasAccount}
-            onClick={() => run('jsaveCreateReceiptShortcutKey', zh ? '新密钥已生成，请更新手机指令。' : 'New key created. Update the shortcut on your phone.')}>
+          <button className="jsave-btn-ghost jsave-btn-full" disabled={busy || !statusReady || !hasAccount}
+            onClick={confirmKeyRotation}>
             {zh ? '重新生成统一密钥' : 'Rotate unified key'}
           </button>
         </>
       ) : (
-        <button className="jsave-btn-primary jsave-btn-full" disabled={busy || !hasAccount}
+        <button className="jsave-btn-primary jsave-btn-full" disabled={busy || !statusReady || !hasAccount}
           onClick={() => run('jsaveCreateReceiptShortcutKey', zh ? '密钥已生成，请填入手机指令。' : 'Key created. Paste it into the shortcut.')}>
           {zh ? '生成统一密钥' : 'Create unified key'}
         </button>

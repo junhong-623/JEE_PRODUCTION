@@ -1,8 +1,21 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.8.8',
+    version: '3.8.9',
     date: '2026-09-30',
     isLatest: true,
+    items: [
+      'Confirm before rotating an existing unified iPhone shortcut key and explain that the old key stops working immediately',
+      'Wait for the key status before allowing first-time key creation',
+    ],
+    itemsZh: [
+      '重新生成已有统一密钥前弹出确认提醒，说明旧密钥会立即失效',
+      '读取密钥状态成功后，才允许首次生成密钥',
+    ],
+  },
+  {
+    version: '3.8.8',
+    date: '2026-09-30',
+    isLatest: false,
     items: [
       'Show each item only once when linking an expense to installments',
       'Select the next unpaid payment by default and reveal other payment numbers only on request',
