@@ -7,6 +7,7 @@ import BottomNav from './components/BottomNav'
 import DesktopNav from './components/DesktopNav'
 import OfflineBanner from './components/OfflineBanner'
 import LoadingScreen from './components/LoadingScreen'
+import AppErrorBoundary from './components/AppErrorBoundary'
 import { installState, isStandalone, setupPwaInstall, doInstall } from './installPrompt'
 import { db } from '../lib/firebase'
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
@@ -351,11 +352,13 @@ function JSaveShell() {
       <DesktopNav active={page} onChange={navigatePage} onAdd={() => setShowTransactionForm(true)} />
       <main className="jsave-workspace">
         <OfflineBanner />
-        <Suspense fallback={<PageFallback />}>
-          <div key={page} className="jsave-page-anim">
-            {pages[page] ?? pages['dashboard']}
-          </div>
-        </Suspense>
+        <AppErrorBoundary key={page} lang={lang} onHome={page === 'dashboard' ? null : () => navigatePage('dashboard')}>
+          <Suspense fallback={<PageFallback />}>
+            <div className="jsave-page-anim">
+              {pages[page] ?? pages['dashboard']}
+            </div>
+          </Suspense>
+        </AppErrorBoundary>
       </main>
       {showTransactionForm && (
         <Suspense fallback={null}>
@@ -377,7 +380,9 @@ function JSaveShell() {
 export default function JSaveApp() {
   return (
     <LangProvider>
-      <JSaveRoute />
+      <AppErrorBoundary lang={languageFromPath() || 'en'} fullscreen>
+        <JSaveRoute />
+      </AppErrorBoundary>
     </LangProvider>
   )
 }

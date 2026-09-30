@@ -1,8 +1,21 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.8.10',
+    version: '3.8.11',
     date: '2026-09-30',
     isLatest: true,
+    items: [
+      'Refresh the offline app cache with each deployment while keeping recent page files available to open tabs',
+      'Show a recovery screen instead of a blank page if navigation fails to load',
+    ],
+    itemsZh: [
+      '每次部署自动更新离线缓存，并保留近期页面文件供已打开的页面使用',
+      '导航页面载入失败时显示恢复提示，不再只剩空白画面',
+    ],
+  },
+  {
+    version: '3.8.10',
+    date: '2026-09-30',
+    isLatest: false,
     items: [
       'Replace the browser confirmation with a JSave dialog before rotating the unified shortcut key',
       'Explain the impact on existing iPhone shortcuts and offer clear cancel and regenerate actions',

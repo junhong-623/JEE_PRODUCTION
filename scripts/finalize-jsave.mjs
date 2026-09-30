@@ -1,4 +1,5 @@
 import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { relative, resolve } from 'node:path'
 import { ARTICLES } from '../src/jsave/data/articles.js'
 import { ARTICLE_SUMMARIES, articleHref, guidesHref } from '../src/jsave/data/articleRoutes.js'
@@ -282,5 +283,16 @@ writeFileSync(
   resolve(outputDirectory, 'precache-manifest.json'),
   `${JSON.stringify({ assets }, null, 2)}\n`,
 )
+
+const buildHash = createHash('sha256')
+for (const asset of assets) {
+  buildHash.update(asset)
+  buildHash.update(readFileSync(resolve(outputDirectory, asset.slice(1))))
+}
+const buildId = buildHash.digest('hex').slice(0, 12)
+const workerPath = resolve(outputDirectory, 'sw.js')
+const worker = readFileSync(workerPath, 'utf8')
+if (!worker.includes('__BUILD_ID__')) throw new Error('JSave service worker build marker is missing')
+writeFileSync(workerPath, worker.replace('__BUILD_ID__', buildId))
 
 console.log(`✓ JSave localized pages, ${ARTICLES.length * 2} article pages, 2 guide indexes and precache manifest generated (${assets.length} files)`)

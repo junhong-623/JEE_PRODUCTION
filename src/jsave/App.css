@@ -532,6 +532,49 @@ body.jsave-body {
   font-weight: 600;
   margin-bottom: 20px;
 }
+
+.jsave-recovery {
+  display: grid;
+  place-items: center;
+  min-height: 60dvh;
+  padding: 32px 20px 96px;
+  color: #e2e8f0;
+}
+
+.jsave-recovery-fullscreen {
+  min-height: 100dvh;
+  background: #07101b;
+}
+
+.jsave-recovery-card {
+  width: min(100%, 420px);
+  padding: 32px;
+  border: 1px solid rgba(16, 185, 129, .22);
+  border-radius: 24px;
+  background: #0b1d24;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, .24);
+  text-align: center;
+}
+
+.jsave-recovery-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: rgba(16, 185, 129, .12);
+  color: #34d399;
+  font-size: 30px;
+}
+
+.jsave-recovery-card h2 { margin: 18px 0 8px; font-size: 21px; }
+.jsave-recovery-card p { margin: 0; color: #94a3b8; line-height: 1.6; }
+.jsave-recovery-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+.jsave-recovery-actions button { min-width: 120px; }
+
+.jsave-root.jsave-light .jsave-recovery { color: #0f172a; }
+.jsave-root.jsave-light .jsave-recovery-card { background: #fff; border-color: #cdeadd; }
+.jsave-root.jsave-light .jsave-recovery-card p { color: #475569; }
 .jsave-key-rotation-dialog { max-width: 430px; background: #0b1723; border: 1px solid rgba(244,63,94,.3); box-shadow: 0 24px 80px rgba(0,0,0,.45); color: #f1f5f9; font-family: var(--font-sans, 'DM Sans', sans-serif); }
 .jsave-key-rotation-icon { display: grid; place-items: center; width: 38px; height: 38px; margin-bottom: 16px; border-radius: 12px; background: rgba(244,63,94,.14); color: #fb7185; font-size: 22px; font-weight: 700; }
 .jsave-key-rotation-dialog h2 { margin: 0 0 10px; font-size: 19px; line-height: 1.3; }
