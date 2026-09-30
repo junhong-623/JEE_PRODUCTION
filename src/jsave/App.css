@@ -1368,6 +1368,9 @@ input[type="number"].jsave-input::-webkit-outer-spin-button { -webkit-appearance
 .jsave-tx-installment-field label { color: #eafaf3; font-size: 12px; font-weight: 600; }
 .jsave-tx-installment-field small { color: #9bb7ae; font-size: 11px; line-height: 1.4; }
 .jsave-tx-installment-field .jsave-input { width: 100%; min-width: 0; }
+.jsave-tx-installment-choice { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 5px 10px; }
+.jsave-tx-installment-choice button { min-height: 30px; padding: 0; border: 0; background: transparent; color: #6ee7b7; font: 600 11px var(--font-sans); cursor: pointer; }
+.jsave-tx-installment-choice button:focus-visible { outline: 2px solid #6ee7b7; outline-offset: 2px; }
 
 @media (max-width: 480px) {
   .jsave-installment-fields { grid-template-columns: 1fr; }

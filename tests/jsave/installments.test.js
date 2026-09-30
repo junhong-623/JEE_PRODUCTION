@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dueInstallmentCount, estimatedAnnualFinancingRate, estimatedFinancingDifference, installmentProgress, makeFixedInstallments, makeInstallments, monthDueDate, totalFutureInstallments, validateInstallmentPlan } from '../../src/jsave/utils/installments'
+import { dueInstallmentCount, estimatedAnnualFinancingRate, estimatedFinancingDifference, installmentLinkChoices, installmentProgress, makeFixedInstallments, makeInstallments, monthDueDate, totalFutureInstallments, validateInstallmentPlan } from '../../src/jsave/utils/installments'
 
 const phone = {
   id: 'phone', cost: 7000,
@@ -70,6 +70,16 @@ describe('JSave item installments', () => {
     expect(installmentProgress(phone, [{ ...tx, type: 'transfer' }]).futureAmount).toBe(7000)
     expect(installmentProgress(phone, [{ ...tx, installmentItemId: null }]).futureAmount).toBe(7000)
     expect(installmentProgress(phone, [tx], tx.id).futureAmount).toBe(7000)
+  })
+
+  it('offers each item once and defaults to its next unpaid installment', () => {
+    const second = { ...phone, id: 'camera', installmentPlan: { ...phone.installmentPlan, openingPaidCount: 2 } }
+    const linked = { id: 'saved', type: 'expense', installmentItemId: 'phone', installmentNumber: 1, amount: 1000 }
+    const choices = installmentLinkChoices([phone, second], [linked])
+    expect(choices).toHaveLength(2)
+    expect(choices.find(choice => choice.item.id === 'phone').next.number).toBe(2)
+    expect(choices.find(choice => choice.item.id === 'camera').next.number).toBe(3)
+    expect(installmentLinkChoices([phone], [linked], linked.id)[0].next.number).toBe(1)
   })
 
   it('supports past payments without inventing expense transactions', () => {

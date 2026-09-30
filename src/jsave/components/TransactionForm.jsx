@@ -4,7 +4,7 @@ import { useJSave } from '../hooks/useJSave'
 import { toLocalDateString } from '../utils/date'
 import { allocateEqualShares, customSplitRemaining, fillSplitRemainder, isCustomSplitValid } from '../utils/split'
 import { currencySymbol, formatCurrency } from '../utils/currency'
-import { installmentProgress } from '../utils/installments'
+import { installmentLinkChoices } from '../utils/installments'
 
 const INCOME_CATS  = ['catSalary', 'catFreelance', 'catInvestment', 'catGift', 'catOtherIncome']
 const EXPENSE_CATS = ['catFood', 'catTransport', 'catBills', 'catEntertainment', 'catHealth', 'catShopping', 'catOther']
@@ -264,7 +264,9 @@ function StandardTransactionForm({ initial, onClose }) {
   const [note, setNote]           = useState(initial?.recurringBaseNote ?? initial?.note ?? '')
   const [recurring, setRecurring] = useState(initial?.recurring ?? false)
   const [saving, setSaving]       = useState(false)
-  const [installmentKey, setInstallmentKey] = useState(initial?.installmentItemId && initial?.installmentNumber ? `${initial.installmentItemId}:${initial.installmentNumber}` : '')
+  const [installmentItemId, setInstallmentItemId] = useState(initial?.installmentItemId || '')
+  const [installmentNumber, setInstallmentNumber] = useState(initial?.installmentNumber ? Number(initial.installmentNumber) : null)
+  const [showInstallmentChoices, setShowInstallmentChoices] = useState(false)
   const [installmentError, setInstallmentError] = useState('')
   const [splitCount, setSplitCount]     = useState(2)
   const [splitMode, setSplitMode]       = useState('equal')
@@ -279,10 +281,9 @@ function StandardTransactionForm({ initial, onClose }) {
   const splitShares = splitMode === 'equal' ? equalShares : customShares
   const myShare = Number(splitShares[0]) || 0
   const customSplitValid = splitMode === 'equal' || isCustomSplitValid(totalAmt, splitShares)
-  const installmentOptions = useMemo(() => items.flatMap(item => {
-    const progress = installmentProgress(item, transactions, initial?.id)
-    return progress?.rows.filter(row => !row.paid).map(row => ({ item, row, key: `${item.id}:${row.number}` })) || []
-  }).sort((a, b) => a.row.dueDate.localeCompare(b.row.dueDate)), [items, transactions, initial?.id])
+  const installmentChoices = useMemo(() => installmentLinkChoices(items, transactions, initial?.id), [items, transactions, initial?.id])
+  const selectedInstallmentChoice = installmentChoices.find(choice => choice.item.id === installmentItemId)
+  const selectedInstallmentRow = selectedInstallmentChoice?.rows.find(row => row.number === installmentNumber) || (installmentNumber == null ? selectedInstallmentChoice?.next : null)
 
   const amtNum = parseFloat(amount) || 0
   const amtInt = Math.floor(amtNum).toString()
@@ -290,7 +291,7 @@ function StandardTransactionForm({ initial, onClose }) {
 
   function switchType(tp) {
     setType(tp); setCategory('')
-    if (tp !== 'expense') setInstallmentKey('')
+    if (tp !== 'expense') { setInstallmentItemId(''); setInstallmentNumber(null); setShowInstallmentChoices(false) }
     if (tp === 'split') { setSplitCount(2); setSplitMode('equal'); setFriendNames(['']); setCustomShares(['', '']) }
   }
 
@@ -326,8 +327,8 @@ function StandardTransactionForm({ initial, onClose }) {
     const amt = Number(amount)
     if (!amt || amt <= 0) return
     if (type === 'split' && !customSplitValid) return
-    const selectedInstallment = type === 'expense' && !recurring ? installmentOptions.find(option => option.key === installmentKey) : null
-    if (type === 'expense' && installmentKey && !selectedInstallment) {
+    const selectedInstallment = type === 'expense' && !recurring ? selectedInstallmentChoice && selectedInstallmentRow : null
+    if (type === 'expense' && installmentItemId && !selectedInstallment) {
       setInstallmentError(lang === 'zh' ? '这期已被其他交易关联，请重新选择。' : 'This payment is already linked. Choose another installment.')
       return
     }
@@ -348,8 +349,8 @@ function StandardTransactionForm({ initial, onClose }) {
       const finalNote = (type === 'expense' && recurring && note) ? `${monthPrefix(lang)} - ${note}` : note
       data = {
         type, amount: amt, category, accountId, date, note: finalNote,
-        installmentItemId: selectedInstallment?.item.id || null,
-        installmentNumber: selectedInstallment?.row.number || null,
+        installmentItemId: selectedInstallment ? selectedInstallmentChoice.item.id : null,
+        installmentNumber: selectedInstallment?.number || null,
         ...(type === 'expense' && recurring && { recurring: true, recurringBaseNote: note }),
       }
     }
@@ -528,14 +529,19 @@ function StandardTransactionForm({ initial, onClose }) {
             </MetaRow>
           </div>
 
-          {type === 'expense' && !recurring && (installmentOptions.length > 0 || installmentKey) && <div className="jsave-tx-installment-field">
+          {type === 'expense' && !recurring && (installmentChoices.length > 0 || installmentItemId) && <div className="jsave-tx-installment-field">
             <label htmlFor="jsave-tx-installment">{lang === 'zh' ? '关联物品分期（可选）' : 'Link to an item installment (optional)'}</label>
-            <select id="jsave-tx-installment" className="jsave-input" value={installmentKey} onChange={event => { setInstallmentKey(event.target.value); setInstallmentError('') }}>
+            <select id="jsave-tx-installment" className="jsave-input" value={installmentItemId} onChange={event => { setInstallmentItemId(event.target.value); setInstallmentNumber(null); setShowInstallmentChoices(false); setInstallmentError('') }}>
               <option value="">{lang === 'zh' ? '普通支出，不关联分期' : 'Regular expense, no installment'}</option>
-              {installmentKey && !installmentOptions.some(option => option.key === installmentKey) && <option value={installmentKey}>{lang === 'zh' ? '原有分期关联已失效，请重新选择' : 'Previous installment link is unavailable'}</option>}
-              {installmentOptions.map(({ item, row, key }) => <option key={key} value={key}>{item.name} · {row.number}/{item.installmentPlan.installments.length} · {row.dueDate} · {formatCurrency(row.amount, cur, lang)}</option>)}
+              {installmentItemId && !selectedInstallmentChoice && <option value={installmentItemId}>{lang === 'zh' ? '原有分期关联已失效，请重新选择' : 'Previous installment link is unavailable'}</option>}
+              {installmentChoices.map(({ item, next }) => <option key={item.id} value={item.id}>{item.name} · {lang === 'zh' ? '下期' : 'Next'} {next.number}/{item.installmentPlan.installments.length}</option>)}
             </select>
-            <small>{lang === 'zh' ? '这里只记录实际扣款；未来期数不会提前计入本月支出。' : 'Only recorded charges count as spending. Future payments stay out of this month’s totals.'}</small>
+            {selectedInstallmentChoice && <div className="jsave-tx-installment-choice"><small>{selectedInstallmentRow ? <>{lang === 'zh' ? '将关联' : 'Linking'} {selectedInstallmentRow.number}/{selectedInstallmentChoice.item.installmentPlan.installments.length} · {selectedInstallmentRow.dueDate} · {formatCurrency(selectedInstallmentRow.amount, cur, lang)}</> : (lang === 'zh' ? '原有期数已不可用，请重新选择。' : 'Previous payment is unavailable. Choose another.')}</small>{(selectedInstallmentChoice.rows.length > 1 || !selectedInstallmentRow) && <button type="button" onClick={() => setShowInstallmentChoices(value => !value)} aria-expanded={showInstallmentChoices}>{showInstallmentChoices ? (lang === 'zh' ? '收起期数' : 'Hide payments') : (lang === 'zh' ? '选择其他期数' : 'Choose another payment')}</button>}</div>}
+            {showInstallmentChoices && selectedInstallmentChoice && <select className="jsave-input" aria-label={lang === 'zh' ? '选择分期期数' : 'Select installment payment'} value={selectedInstallmentRow?.number || ''} onChange={event => { setInstallmentNumber(Number(event.target.value)); setInstallmentError('') }}>
+              {!selectedInstallmentRow && <option value="" disabled>{lang === 'zh' ? '请选择有效期数' : 'Choose an available payment'}</option>}
+              {selectedInstallmentChoice.rows.map(row => <option key={row.number} value={row.number}>{row.number}/{selectedInstallmentChoice.item.installmentPlan.installments.length} · {row.dueDate} · {formatCurrency(row.amount, cur, lang)}</option>)}
+            </select>}
+            <small>{lang === 'zh' ? '每件物品只列一次，默认关联下一期待付。这里只记录实际扣款。' : 'Each item appears once. The next unpaid installment is selected by default. Only actual charges count as spending.'}</small>
             {installmentError && <p className="jsave-error" role="alert">{installmentError}</p>}
           </div>}
 
@@ -550,7 +556,7 @@ function StandardTransactionForm({ initial, onClose }) {
                 )}
               </div>
               <label className="jsave-toggle">
-                <input type="checkbox" checked={recurring} onChange={e => { setRecurring(e.target.checked); if (e.target.checked) setInstallmentKey('') }} />
+                <input type="checkbox" checked={recurring} onChange={e => { setRecurring(e.target.checked); if (e.target.checked) { setInstallmentItemId(''); setInstallmentNumber(null); setShowInstallmentChoices(false) } }} />
                 <span className="jsave-toggle-track" />
               </label>
             </div>

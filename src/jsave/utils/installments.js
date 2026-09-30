@@ -127,3 +127,11 @@ export function installmentProgress(item, transactions = [], excludeTransactionI
 export function totalFutureInstallments(items = [], transactions = []) {
   return fromCents(items.reduce((sum, item) => sum + toCents(installmentProgress(item, transactions)?.futureAmount), 0))
 }
+
+export function installmentLinkChoices(items = [], transactions = [], excludeTransactionId = null) {
+  return items.map(item => {
+    const progress = installmentProgress(item, transactions, excludeTransactionId)
+    const rows = progress?.rows.filter(row => !row.paid) || []
+    return { item, rows, next: rows[0] || null }
+  }).filter(choice => choice.next).sort((a, b) => a.next.dueDate.localeCompare(b.next.dueDate))
+}

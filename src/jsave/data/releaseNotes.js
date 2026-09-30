@@ -1,8 +1,21 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.8.7',
+    version: '3.8.8',
     date: '2026-09-30',
     isLatest: true,
+    items: [
+      'Show each item only once when linking an expense to installments',
+      'Select the next unpaid payment by default and reveal other payment numbers only on request',
+    ],
+    itemsZh: [
+      '记录支出时，关联物品分期的清单中每件物品只显示一次',
+      '默认关联下一期待付；需要时才展开选择其他期数',
+    ],
+  },
+  {
+    version: '3.8.7',
+    date: '2026-09-30',
+    isLatest: false,
     items: [
       'Show five upcoming unpaid payments at a time in installment progress, with the rest expandable',
       'Show five relevant schedule entries in the item editor, with all remaining payments expandable',
