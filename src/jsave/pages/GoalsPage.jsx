@@ -418,7 +418,7 @@ function ItemForm({ initial, cur, t, lang, onSave, onDelete, onClose, onManageIn
               <input className="jsave-input" type="date" value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)} required /></div>
           </>}
           {!groupMode && <>
-            <div ref={installmentRef}><InstallmentPlanFields plan={installmentPlan} onChange={value => { setInstallmentPlan(value); setPlanError('') }} cost={cost} purchaseDate={purchaseDate} transactions={transactions} accounts={accounts} itemId={initial?.id} lang={lang} cur={cur} /></div>
+            <div ref={installmentRef}><InstallmentPlanFields plan={installmentPlan} initialPlan={initial?.installmentPlan} onChange={value => { setInstallmentPlan(value); setPlanError('') }} cost={cost} purchaseDate={purchaseDate} transactions={transactions} accounts={accounts} itemId={initial?.id} lang={lang} cur={cur} /></div>
             {planError && <p className="jsave-error" role="alert">{planError}</p>}
             {initial?.id && installmentPlan && (JSON.stringify(installmentPlan) === JSON.stringify(initial.installmentPlan)
               ? <button type="button" className="jsave-installment-open-from-form" onClick={() => onManageInstallments(initial.id)}>{lang === 'zh' ? '查看进度与管理付款' : 'View progress and manage payments'} <span>→</span></button>

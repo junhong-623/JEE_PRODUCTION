@@ -1,8 +1,21 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.8.1',
+    version: '3.8.2',
     date: '2026-09-30',
     isLatest: true,
+    items: [
+      'Suggest past installment count from the first due date through today, while letting you confirm and override the actual paid count',
+      'Show an estimated interest amount under a no-other-fees assumption alongside the difference from the item price',
+    ],
+    itemsZh: [
+      '按第一期日期至今天预填过去期数，并提醒确认实际已付款；手动修改后不会被重算覆盖',
+      '在物品价格差额旁显示预计利息，并注明不含其他费用的估算前提',
+    ],
+  },
+  {
+    version: '3.8.1',
+    date: '2026-09-30',
+    isLatest: false,
     items: [
       'Enter a monthly payment and a term in years and months to project the installment total without calculating an interest rate',
       'Keep the known-total option, allow a different final payment, and show the difference from the item price without calling it exact interest',

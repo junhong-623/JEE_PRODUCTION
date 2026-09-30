@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { installmentProgress, makeFixedInstallments, makeInstallments, monthDueDate, totalFutureInstallments, validateInstallmentPlan } from '../../src/jsave/utils/installments'
+import { dueInstallmentCount, estimatedFinancingDifference, installmentProgress, makeFixedInstallments, makeInstallments, monthDueDate, totalFutureInstallments, validateInstallmentPlan } from '../../src/jsave/utils/installments'
 
 const phone = {
   id: 'phone', cost: 7000,
@@ -30,6 +30,22 @@ describe('JSave item installments', () => {
     const adjusted = makeFixedInstallments(877, 108, '2026-10-01', 800)
     expect(adjusted[107].amount).toBe(800)
     expect(adjusted.reduce((sum, row) => sum + row.amount, 0)).toBe(94639)
+  })
+
+  it('suggests only installments due by today and caps the suggestion at the plan length', () => {
+    expect(dueInstallmentCount('2026-01-31', 3, '2026-01-30')).toBe(0)
+    expect(dueInstallmentCount('2026-01-31', 3, '2026-02-27')).toBe(1)
+    expect(dueInstallmentCount('2026-01-31', 3, '2026-02-28')).toBe(2)
+    expect(dueInstallmentCount('2026-01-31', 3, '2027-01-01')).toBe(3)
+    expect(dueInstallmentCount('bad-date', 3, '2026-02-28')).toBe(0)
+    expect(dueInstallmentCount('2026-01-31', 3, '2026-02-30')).toBe(0)
+  })
+
+  it('shows financing difference as interest only under a no-other-fees assumption', () => {
+    expect(estimatedFinancingDifference(82400, 0, 94716)).toBe(12316)
+    expect(estimatedFinancingDifference(82400, 10000, 84716)).toBe(12316)
+    expect(estimatedFinancingDifference(82400, 0, 82400)).toBe(0)
+    expect(estimatedFinancingDifference(82400, 0, 2631)).toBeNull()
   })
 
   it('tracks future payments from linked expenses without counting card repayments', () => {

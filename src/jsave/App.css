@@ -1278,11 +1278,16 @@ input[type="number"].jsave-input::-webkit-outer-spin-button { -webkit-appearance
 .jsave-installment-term > span { color: #b8c9d2; font-size: 11px; font-weight: 600; }
 .jsave-installment-term > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
 .jsave-installment-term small { color: #86efac; font-size: 11px; }
+.jsave-installment-past { display: grid; align-content: start; gap: 5px; min-width: 0; }
+.jsave-installment-past small { color: #9bb7ae; font-size: 10px; line-height: 1.45; }
+.jsave-installment-past button { justify-self: start; min-height: 30px; padding: 0; border: 0; background: transparent; color: #6ee7b7; font: 600 11px var(--font-sans); cursor: pointer; }
+.jsave-installment-past button:focus-visible { outline: 2px solid #6ee7b7; outline-offset: 2px; }
 .jsave-installment-cost-breakdown { display: grid; gap: 8px; margin-top: 16px; padding: 13px; border: 1px solid rgba(16,185,129,.15); border-radius: 12px; background: rgba(16,185,129,.07); }
 .jsave-installment-cost-breakdown > div { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .jsave-installment-cost-breakdown span { color: #9bb7ae; font-size: 11px; }
 .jsave-installment-cost-breakdown strong { color: #eafaf3; font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .jsave-installment-cost-breakdown > div:nth-child(2) strong { color: #86efac; font-size: 16px; }
+.jsave-installment-cost-breakdown > div:nth-child(4) strong { color: #f5d570; }
 .jsave-installment-cost-breakdown small { color: #f5d570; font-size: 10px; line-height: 1.5; }
 .jsave-installment-hint { margin: 12px 0 0; color: #8fa6a8; font-size: 11px; line-height: 1.5; }
 .jsave-installment-details-toggle { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding: 10px 0 0; color: #6ee7b7; border: 0; border-top: 1px solid rgba(241,245,249,.07); background: transparent; font: 600 12px var(--font-sans); text-align: left; cursor: pointer; }

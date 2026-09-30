@@ -37,6 +37,22 @@ export function makeFixedInstallments(monthlyAmount, count, startDate, finalAmou
   }))
 }
 
+export function dueInstallmentCount(startDate, count, asOfDate = toLocalDateString(new Date())) {
+  const length = Math.min(120, Math.max(0, Math.trunc(Number(count) || 0)))
+  if (!monthDueDate(startDate, 0) || !monthDueDate(asOfDate, 0)) return 0
+  let due = 0
+  for (let index = 0; index < length; index += 1) {
+    if (monthDueDate(startDate, index) > asOfDate) break
+    due += 1
+  }
+  return due
+}
+
+export function estimatedFinancingDifference(itemCost, upfrontAmount, totalPayable) {
+  const difference = toCents(upfrontAmount) + toCents(totalPayable) - toCents(itemCost)
+  return difference < 0 ? null : fromCents(difference)
+}
+
 export function validateInstallmentPlan(plan, itemCost) {
   if (!plan) return null
   const upfront = toCents(plan.upfrontAmount)
