@@ -1320,6 +1320,9 @@ input[type="number"].jsave-input::-webkit-outer-spin-button { -webkit-appearance
 .jsave-installment-details-toggle { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-top: 15px; padding: 10px 0 0; color: #6ee7b7; border: 0; border-top: 1px solid rgba(241,245,249,.07); background: transparent; font: 600 12px var(--font-sans); text-align: left; cursor: pointer; }
 .jsave-installment-details-toggle span { font-size: 18px; }
 .jsave-installment-schedule-edit { display: grid; gap: 8px; margin-top: 12px; }
+.jsave-installment-more-toggle { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-height: 38px; margin-top: 4px; padding: 8px 10px; border: 1px solid rgba(16,185,129,.22); border-radius: 10px; background: rgba(16,185,129,.06); color: #a7f3d0; font: 600 11px var(--font-sans); text-align: left; cursor: pointer; }
+.jsave-installment-more-toggle span { flex-shrink: 0; font-size: 17px; line-height: 1; }
+.jsave-installment-more-toggle:focus-visible { outline: 2px solid #6ee7b7; outline-offset: 2px; }
 .jsave-installment-schedule-edit-row { display: grid; grid-template-columns: 58px minmax(0, 1fr) 105px; align-items: center; gap: 7px; }
 .jsave-installment-schedule-edit-row strong { color: #bed8cd; font-size: 11px; }
 .jsave-installment-schedule-edit-row .jsave-input { min-width: 0; width: 100%; box-sizing: border-box; padding: 9px 8px; font-size: 13px; }

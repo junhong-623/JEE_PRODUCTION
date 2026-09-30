@@ -1,8 +1,23 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.8.6',
+    version: '3.8.7',
     date: '2026-09-30',
     isLatest: true,
+    items: [
+      'Show five upcoming unpaid payments at a time in installment progress, with the rest expandable',
+      'Show five relevant schedule entries in the item editor, with all remaining payments expandable',
+      'Keep the desktop sidebar fixed while the main content scrolls',
+    ],
+    itemsZh: [
+      '分期进度先显示五期待付，其余可按需展开',
+      '编辑物品的每期明细先显示五期相关记录，其余可展开查看',
+      '电脑版左侧导览固定显示，右侧内容独立滚动',
+    ],
+  },
+  {
+    version: '3.8.6',
+    date: '2026-09-30',
+    isLatest: false,
     items: [
       'Return from installment progress to the same item editor without losing unsaved form entries',
       'Collapse saved installment settings while keeping payment progress and estimated totals visible',

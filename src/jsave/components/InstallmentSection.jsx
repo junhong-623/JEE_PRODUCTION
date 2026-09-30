@@ -7,11 +7,13 @@ const textFor = (lang, zh, en) => lang === 'zh' ? zh : en
 
 export function InstallmentPlanFields({ plan, initialPlan, onChange, cost, purchaseDate, transactions, accounts, itemId, lang, cur, validationError }) {
   const [showSchedule, setShowSchedule] = useState(false)
+  const [showAllScheduleRows, setShowAllScheduleRows] = useState(false)
   const [showPlanFields, setShowPlanFields] = useState(!initialPlan)
   const [enableError, setEnableError] = useState('')
   const [autoPastCount, setAutoPastCount] = useState(!initialPlan)
   const [recreated, setRecreated] = useState(false)
-  const hasLinked = Boolean(itemId && transactions.some(tx => tx.type === 'expense' && tx.installmentItemId === itemId))
+  const linkedNumbers = useMemo(() => new Set(itemId ? transactions.filter(tx => tx.type === 'expense' && tx.installmentItemId === itemId).map(tx => Number(tx.installmentNumber)) : []), [itemId, transactions])
+  const hasLinked = linkedNumbers.size > 0
   const hasRecorded = Boolean(plan && (hasLinked || (!recreated && Number(initialPlan?.openingPaidCount) > 0)))
   const label = (zh, en) => textFor(lang, zh, en)
   const paymentCount = Number(plan?.paymentCount ?? plan?.installments?.length ?? 0)
@@ -22,6 +24,15 @@ export function InstallmentPlanFields({ plan, initialPlan, onChange, cost, purch
   const progress = plan?.installments?.length ? installmentProgress({ id: itemId, installmentPlan: plan }, transactions) : null
   const paidCount = progress?.paidCount || 0
   const progressPercent = paymentCount ? Math.round(paidCount / paymentCount * 100) : 0
+  const scheduleRows = plan?.installments?.map((row, index) => ({
+    row,
+    index,
+    paid: row.number <= Number(plan.openingPaidCount || 0) || linkedNumbers.has(row.number),
+  })) || []
+  const upcomingScheduleRows = scheduleRows.filter(entry => !entry.paid).slice(0, 5)
+  const paidPreviewSlots = 5 - upcomingScheduleRows.length
+  const recentPaidScheduleRows = paidPreviewSlots > 0 ? scheduleRows.filter(entry => entry.paid).slice(-paidPreviewSlots) : []
+  const previewScheduleRows = [...recentPaidScheduleRows, ...upcomingScheduleRows]
 
   useEffect(() => { if (validationError) setShowPlanFields(true) }, [validationError])
 
@@ -134,14 +145,16 @@ export function InstallmentPlanFields({ plan, initialPlan, onChange, cost, purch
       </div>
       <button type="button" className="jsave-installment-details-toggle" onClick={() => setShowSchedule(value => !value)} aria-expanded={showSchedule}>{showSchedule ? label('收起每期明细', 'Hide payment schedule') : label('查看 / 调整每期金额与日期', 'View / edit payment schedule')} <span>{showSchedule ? '⌃' : '⌄'}</span></button>
       {showSchedule && <div className="jsave-installment-schedule-edit">
-        {plan.installments.map((row, index) => {
-          const paid = row.number <= Number(plan.openingPaidCount || 0) || transactions.some(tx => tx.type === 'expense' && tx.installmentItemId === itemId && Number(tx.installmentNumber) === row.number)
+        {(showAllScheduleRows ? scheduleRows : previewScheduleRows).map(({ row, index, paid }) => {
           return <div className="jsave-installment-schedule-edit-row" key={row.number}>
             <strong>{label('第', 'No. ')}{row.number}{lang === 'zh' ? '期' : ''}</strong>
             <input className="jsave-input" type="date" aria-label={`${label('第', 'No. ')}${row.number} ${label('期日期', 'due date')}`} value={row.dueDate} disabled={paid} onChange={event => updateRow(index, { dueDate: event.target.value })} />
             <input className="jsave-input" type="number" min="0.01" step="0.01" aria-label={`${label('第', 'No. ')}${row.number} ${label('期金额', 'amount')}`} value={row.amount} disabled={paid} onChange={event => updateRow(index, { amount: event.target.value })} />
           </div>
         })}
+        {scheduleRows.length > 5 && <button type="button" className="jsave-installment-more-toggle" aria-expanded={showAllScheduleRows} onClick={() => setShowAllScheduleRows(value => !value)}>
+          {showAllScheduleRows ? label('收起其余期数', 'Show fewer payments') : label(`查看其余 ${scheduleRows.length - previewScheduleRows.length} 期（含已付）`, `Show ${scheduleRows.length - previewScheduleRows.length} more payments, including paid`)} <span aria-hidden="true">{showAllScheduleRows ? '⌃' : '⌄'}</span>
+        </button>}
         <div className="jsave-installment-schedule-total"><span>{label('每期合计 / 分期总额', 'Schedule / installment total')}</span><strong>{formatCurrency(fromCents(plan.installments.reduce((sum, row) => sum + toCents(row.amount), 0)), cur, lang)} / {formatCurrency(Number(plan.totalPayable), cur, lang)}</strong></div>
       </div>}
     </div>}
@@ -152,6 +165,7 @@ export function InstallmentPaymentManager({ item, onRecord, lang, cur }) {
   const { accounts, transactions, updateTransaction } = useJSave()
   const [showPayments, setShowPayments] = useState(false)
   const [showPaid, setShowPaid] = useState(false)
+  const [showAllUnpaid, setShowAllUnpaid] = useState(false)
   const [linkingNumber, setLinkingNumber] = useState(null)
   const [search, setSearch] = useState('')
   const [busy, setBusy] = useState(false)
@@ -215,7 +229,10 @@ export function InstallmentPaymentManager({ item, onRecord, lang, cur }) {
     {showPayments && <div id={`jsave-installment-payments-${item.id}`} className="jsave-installment-payment-groups">
       {unpaidRows.length > 0 && <div className="jsave-installment-payment-group">
         <div className="jsave-installment-payment-group-title">{label('待付', 'Unpaid')} · {unpaidRows.length} {label('期', 'payments')}</div>
-        <div className="jsave-installment-payment-list">{unpaidRows.map(paymentRow)}</div>
+        <div className="jsave-installment-payment-list">{(showAllUnpaid ? unpaidRows : unpaidRows.slice(0, 5)).map(paymentRow)}</div>
+        {unpaidRows.length > 5 && <button type="button" className="jsave-installment-more-toggle" aria-expanded={showAllUnpaid} onClick={() => { setShowAllUnpaid(value => !value); setLinkingNumber(null); setSearch('') }}>
+          {showAllUnpaid ? label('收起其余待付期数', 'Show fewer unpaid payments') : label(`查看其余 ${unpaidRows.length - 5} 期待付`, `Show ${unpaidRows.length - 5} more unpaid payments`)} <span aria-hidden="true">{showAllUnpaid ? '⌃' : '⌄'}</span>
+        </button>}
       </div>}
       {paidRows.length > 0 && <div className="jsave-installment-payment-group">
         <button type="button" className="jsave-installment-paid-toggle" aria-expanded={showPaid} aria-controls={`jsave-installment-paid-${item.id}`} onClick={() => setShowPaid(value => !value)}>

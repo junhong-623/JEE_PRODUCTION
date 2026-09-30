@@ -29,8 +29,9 @@
   }
 
   .jsave-desktop-sidebar {
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
     width: 228px;
     height: 100vh;
     height: 100dvh;
@@ -41,6 +42,7 @@
     border-right: 1px solid rgba(241, 245, 249, .08);
     background: linear-gradient(160deg, #091b20, #091522 42%, #08111c);
     box-sizing: border-box;
+    overflow-y: auto;
     z-index: 210;
   }
 
@@ -118,7 +120,7 @@
   .jsave-desktop-sidebar-foot { margin-top: auto; padding: 20px 11px 0; color: rgba(241, 245, 249, .23); font: 9px var(--font-mono); letter-spacing: 1.7px; }
   .jsave-mobile-nav { display: none !important; }
 
-  .jsave-workspace { min-height: 100vh; min-height: 100dvh; }
+  .jsave-workspace { width: calc(100% - 228px); min-height: 100vh; min-height: 100dvh; margin-left: 228px; }
   .jsave-page { max-width: 1440px; padding: 24px clamp(28px, 4vw, 72px) 72px; box-sizing: border-box; }
   .jsave-page-header { min-height: 64px; padding-top: 0; margin-bottom: 29px; border-bottom: 1px solid rgba(241, 245, 249, .07); padding-bottom: 20px; }
   .jsave-page-mark { width: 42px; height: 42px; font-size: 24px; }
@@ -279,6 +281,7 @@
 
 @media (min-width: 1440px) {
   .jsave-desktop-sidebar { width: 250px; flex-basis: 250px; padding-inline: 23px; }
+  .jsave-workspace { width: calc(100% - 250px); margin-left: 250px; }
   .jsave-page { padding-top: 32px; }
   .jsave-dashboard-layout { gap: 32px; }
   .jsave-calendar-layout { gap: 30px; }
