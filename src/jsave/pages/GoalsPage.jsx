@@ -336,7 +336,7 @@ function ItemForm({ initial, cur, t, lang, onSave, onDelete, onClose, onManageIn
     if (!groupMode) {
       const error = validateInstallmentPlan(installmentPlan, cost)
       if (error) {
-        setPlanError({ amount: lang === 'zh' ? '请检查物品价格、首付与分期总额。' : 'Check the item price, down payment and installment total.', schedule: lang === 'zh' ? '请填写有效的期数、每期金额与日期。' : 'Enter valid dates, amounts and payment count.', total: lang === 'zh' ? '每期金额的合计必须等于分期总额。' : 'Payment amounts must add up to the installment total.', opening: lang === 'zh' ? '过去已付期数不能超过总期数。' : 'Past payments cannot exceed the number of installments.' }[error])
+        setPlanError({ amount: installmentPlan?.amountMode === 'monthly' ? (lang === 'zh' ? '请检查物品价格、首付及每月供款；预计总供款不能低于扣除首付后的价格。' : 'Check the item price, down payment and monthly payment; projected payments must cover the remaining price.') : (lang === 'zh' ? '请检查物品价格、首付与分期总额。' : 'Check the item price, down payment and installment total.'), schedule: lang === 'zh' ? '请填写有效的期数、每期金额与日期。' : 'Enter valid dates, amounts and payment count.', total: lang === 'zh' ? '每期金额的合计必须等于分期总额。' : 'Payment amounts must add up to the installment total.', opening: lang === 'zh' ? '过去已付期数不能超过总期数。' : 'Past payments cannot exceed the number of installments.' }[error])
         requestAnimationFrame(() => installmentRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }))
         setSaving(false)
         return

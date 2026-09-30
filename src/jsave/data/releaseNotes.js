@@ -1,8 +1,21 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.8.0',
+    version: '3.8.1',
     date: '2026-09-30',
     isLatest: true,
+    items: [
+      'Enter a monthly payment and a term in years and months to project the installment total without calculating an interest rate',
+      'Keep the known-total option, allow a different final payment, and show the difference from the item price without calling it exact interest',
+    ],
+    itemsZh: [
+      '输入每月供款和年／月期限，自动换算期数及预计总供款，无需计算利率',
+      '保留已知分期总额的输入方式，可另填最后一期金额；与物品价格的差额不会误标为准确利息',
+    ],
+  },
+  {
+    version: '3.8.0',
+    date: '2026-09-30',
+    isLatest: false,
     items: [
       'Add optional installment plans to items, with a full payment schedule, past-payment starting point, and a future-payments total',
       'Record each installment as an expense or link an existing expense; credit card repayments remain transfers and are not counted twice',

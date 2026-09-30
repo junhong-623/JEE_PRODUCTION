@@ -25,13 +25,27 @@ export function makeInstallments(total, count, startDate) {
   }))
 }
 
+export function makeFixedInstallments(monthlyAmount, count, startDate, finalAmount = monthlyAmount) {
+  const monthlyCents = toCents(monthlyAmount)
+  const finalCents = toCents(finalAmount)
+  const length = Math.trunc(Number(count))
+  if (!Number.isFinite(monthlyCents) || !Number.isFinite(finalCents) || monthlyCents <= 0 || finalCents <= 0 || length < 1 || length > 120 || !monthDueDate(startDate, 0)) return []
+  return Array.from({ length }, (_, index) => ({
+    number: index + 1,
+    dueDate: monthDueDate(startDate, index),
+    amount: fromCents(index === length - 1 ? finalCents : monthlyCents),
+  }))
+}
+
 export function validateInstallmentPlan(plan, itemCost) {
   if (!plan) return null
   const upfront = toCents(plan.upfrontAmount)
   const price = toCents(itemCost)
   const payable = toCents(plan.totalPayable)
   const rows = plan.installments || []
+  if (plan.amountMode === 'monthly' && (toCents(plan.monthlyAmount) <= 0 || (plan.lastPaymentAmount !== '' && plan.lastPaymentAmount != null && toCents(plan.lastPaymentAmount) <= 0))) return 'amount'
   if (price <= 0 || upfront < 0 || upfront >= price || payable < price - upfront) return 'amount'
+  if (plan.paymentCount != null && Number(plan.paymentCount) !== rows.length) return 'schedule'
   if (!rows.length || rows.length > 120 || !/^\d{4}-\d{2}-\d{2}$/.test(plan.startDate || '')) return 'schedule'
   if (!monthDueDate(plan.startDate, 0) || rows[0].dueDate !== plan.startDate || rows.some((row, index) => row.number !== index + 1 || !monthDueDate(row.dueDate, 0) || toCents(row.amount) <= 0 || (index > 0 && row.dueDate <= rows[index - 1].dueDate))) return 'schedule'
   if (rows.reduce((sum, row) => sum + toCents(row.amount), 0) !== payable) return 'total'

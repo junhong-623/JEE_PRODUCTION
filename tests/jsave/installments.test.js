@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { installmentProgress, makeInstallments, monthDueDate, totalFutureInstallments, validateInstallmentPlan } from '../../src/jsave/utils/installments'
+import { installmentProgress, makeFixedInstallments, makeInstallments, monthDueDate, totalFutureInstallments, validateInstallmentPlan } from '../../src/jsave/utils/installments'
 
 const phone = {
   id: 'phone', cost: 7000,
@@ -18,6 +18,18 @@ describe('JSave item installments', () => {
     const installments = makeInstallments(7000, 3, '2026-01-31')
     expect(installments.map(row => row.amount)).toEqual([2333.33, 2333.33, 2333.34])
     expect(installments.map(row => row.dueDate)).toEqual(['2026-01-31', '2026-02-28', '2026-03-31'])
+  })
+
+  it('projects a nine-year monthly payment without requiring an interest rate', () => {
+    const installments = makeFixedInstallments(877, 9 * 12, '2026-10-01')
+    const totalPayable = installments.reduce((sum, row) => sum + row.amount, 0)
+    expect(installments).toHaveLength(108)
+    expect(totalPayable).toBe(94716)
+    expect(installments[107]).toMatchObject({ dueDate: '2035-09-01', amount: 877 })
+    expect(validateInstallmentPlan({ amountMode: 'monthly', monthlyAmount: 877, lastPaymentAmount: '', paymentCount: 108, upfrontAmount: 0, totalPayable, startDate: '2026-10-01', openingPaidCount: 0, installments }, 82400)).toBeNull()
+    const adjusted = makeFixedInstallments(877, 108, '2026-10-01', 800)
+    expect(adjusted[107].amount).toBe(800)
+    expect(adjusted.reduce((sum, row) => sum + row.amount, 0)).toBe(94639)
   })
 
   it('tracks future payments from linked expenses without counting card repayments', () => {

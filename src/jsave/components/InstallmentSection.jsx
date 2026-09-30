@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useJSave } from '../hooks/useJSave'
 import { formatCurrency } from '../utils/currency'
-import { fromCents, installmentLink, installmentProgress, makeInstallments, toCents } from '../utils/installments'
+import { fromCents, installmentLink, installmentProgress, makeFixedInstallments, makeInstallments, toCents } from '../utils/installments'
 
 const textFor = (lang, zh, en) => lang === 'zh' ? zh : en
 
@@ -11,6 +11,17 @@ export function InstallmentPlanFields({ plan, onChange, cost, purchaseDate, tran
   const hasLinked = Boolean(itemId && transactions.some(tx => tx.type === 'expense' && tx.installmentItemId === itemId))
   const hasRecorded = Boolean(plan && (Number(plan.openingPaidCount) > 0 || hasLinked))
   const label = (zh, en) => textFor(lang, zh, en)
+  const paymentCount = Number(plan?.paymentCount ?? plan?.installments?.length ?? 0)
+  const amountMode = plan?.amountMode === 'monthly' ? 'monthly' : 'total'
+
+  function scheduleFor(next) {
+    const count = Number(next.paymentCount ?? next.installments.length)
+    if (next.amountMode === 'monthly') {
+      const rows = makeFixedInstallments(next.monthlyAmount, count, next.startDate, next.lastPaymentAmount === '' || next.lastPaymentAmount == null ? next.monthlyAmount : next.lastPaymentAmount)
+      return { ...next, totalPayable: fromCents(rows.reduce((sum, row) => sum + toCents(row.amount), 0)), installments: rows }
+    }
+    return { ...next, installments: makeInstallments(next.totalPayable, count, next.startDate) }
+  }
 
   function enable(checked) {
     if (checked && Number(cost) <= 0) {
@@ -21,22 +32,43 @@ export function InstallmentPlanFields({ plan, onChange, cost, purchaseDate, tran
     if (!checked && Number(plan?.openingPaidCount) > 0 && !window.confirm(label('移除分期计划也会删除手动填写的过去已付进度。确定继续？', 'Removing this plan also removes the past-payment progress you entered manually. Continue?'))) return
     setEnableError('')
     if (checked && !plan) {
-      const totalPayable = Number(cost) || 0
-      onChange({ provider: '', chargeAccountId: '', upfrontAmount: 0, totalPayable, startDate: purchaseDate || '', openingPaidCount: 0, installments: makeInstallments(totalPayable, 3, purchaseDate) })
+      onChange({ provider: '', chargeAccountId: '', upfrontAmount: 0, totalPayable: 0, startDate: purchaseDate || '', openingPaidCount: 0, paymentCount: 3, amountMode: 'monthly', monthlyAmount: '', lastPaymentAmount: '', installments: [] })
     } else if (!checked) onChange(null)
   }
 
   function updateBasics(fields) {
     const next = { ...plan, ...fields }
-    if ('upfrontAmount' in fields && toCents(plan.totalPayable) === toCents(Number(cost) - Number(plan.upfrontAmount))) {
+    if (amountMode === 'total' && 'upfrontAmount' in fields && toCents(plan.totalPayable) === toCents(Number(cost) - Number(plan.upfrontAmount))) {
       next.totalPayable = fromCents(toCents(cost) - toCents(fields.upfrontAmount))
     }
-    next.installments = makeInstallments(next.totalPayable, next.installments.length || 3, next.startDate)
-    onChange(next)
+    onChange(scheduleFor(next))
+  }
+
+  function chooseMode(mode) {
+    if (mode === amountMode || hasRecorded) return
+    if (mode === 'monthly') {
+      const monthlyAmount = plan.installments[0]?.amount || fromCents(Math.ceil(toCents(plan.totalPayable) / (paymentCount || 1)))
+      onChange(scheduleFor({ ...plan, amountMode: 'monthly', paymentCount, monthlyAmount, lastPaymentAmount: '' }))
+    } else {
+      const { monthlyAmount, lastPaymentAmount, ...withoutMonthly } = plan
+      onChange(scheduleFor({ ...withoutMonthly, amountMode: 'total', paymentCount, totalPayable: Number(plan.totalPayable) || fromCents(toCents(cost) - toCents(plan.upfrontAmount)) }))
+    }
+  }
+
+  function updateTerm(years, months) {
+    const count = Number(years) * 12 + Number(months)
+    if (!Number.isInteger(count) || count < 0 || count > 120) return
+    onChange(scheduleFor({ ...plan, paymentCount: count }))
   }
 
   function updateRow(index, fields) {
-    onChange({ ...plan, ...(index === 0 && fields.dueDate ? { startDate: fields.dueDate } : {}), installments: plan.installments.map((row, i) => i === index ? { ...row, ...fields } : row) })
+    const rows = plan.installments.map((row, i) => i === index ? { ...row, ...fields } : row)
+    const next = { ...plan, ...(index === 0 && fields.dueDate ? { startDate: fields.dueDate } : {}), installments: rows }
+    if ('amount' in fields && !hasRecorded) {
+      next.totalPayable = fromCents(rows.reduce((sum, row) => sum + toCents(row.amount), 0))
+      if (amountMode === 'monthly' && index === rows.length - 1) next.lastPaymentAmount = fields.amount
+    }
+    onChange(next)
   }
 
   return <section className="jsave-installment-editor" aria-label={label('分期付款', 'Installments')}>
@@ -47,18 +79,28 @@ export function InstallmentPlanFields({ plan, onChange, cost, purchaseDate, tran
     {enableError && <p className="jsave-error" role="alert">{enableError}</p>}
     {hasLinked && <p className="jsave-installment-hint">{label('如需移除计划，请先在下方取消所有付款关联。', 'Unlink every recorded payment below before removing the plan.')}</p>}
     {plan && <div className="jsave-installment-editor-body">
+      <div className="jsave-installment-mode" role="group" aria-label={label('金额输入方式', 'Amount entry method')}>
+        <button type="button" className={amountMode === 'monthly' ? 'active' : ''} aria-pressed={amountMode === 'monthly'} disabled={hasRecorded} onClick={() => chooseMode('monthly')}>{label('我知道每月供款', 'I know the monthly payment')}</button>
+        <button type="button" className={amountMode === 'total' ? 'active' : ''} aria-pressed={amountMode === 'total'} disabled={hasRecorded} onClick={() => chooseMode('total')}>{label('我知道分期总额', 'I know the total')}</button>
+      </div>
       <div className="jsave-installment-fields">
         <label><span>{label('付款平台 / 名称', 'Provider / plan')}</span><input className="jsave-input" value={plan.provider || ''} placeholder="Shopee / Grab PayLater" onChange={event => onChange({ ...plan, provider: event.target.value })} /></label>
         <label><span>{label('每期扣款账户（可选）', 'Account charged each time (optional)')}</span><select className="jsave-input" value={plan.chargeAccountId || ''} onChange={event => onChange({ ...plan, chargeAccountId: event.target.value })}><option value="">{label('每次记账时选择', 'Choose when recording')}</option>{accounts.map(account => <option key={account.id} value={account.id}>{account.name}</option>)}</select></label>
         <label><span>{label('首付', 'Down payment')} ({cur})</span><input className="jsave-input" type="number" min="0" step="0.01" value={plan.upfrontAmount} disabled={hasRecorded} onChange={event => updateBasics({ upfrontAmount: event.target.value })} /></label>
-        <label><span>{label('分期总额（含手续费）', 'Installment total incl. fees')} ({cur})</span><input className="jsave-input" type="number" min="0.01" step="0.01" value={plan.totalPayable} disabled={hasRecorded} onChange={event => updateBasics({ totalPayable: event.target.value })} /></label>
+        {amountMode === 'monthly' ? <>
+          <label><span>{label('每月供款', 'Monthly payment')} ({cur})</span><input className="jsave-input" type="number" min="0.01" step="0.01" inputMode="decimal" value={plan.monthlyAmount ?? ''} disabled={hasRecorded} onChange={event => updateBasics({ monthlyAmount: event.target.value })} /></label>
+          <label><span>{label('最后一期金额（可选）', 'Final payment (optional)')} ({cur})</span><input className="jsave-input" type="number" min="0.01" step="0.01" inputMode="decimal" placeholder={label('与每月相同', 'Same as monthly')} value={plan.lastPaymentAmount ?? ''} disabled={hasRecorded} onChange={event => updateBasics({ lastPaymentAmount: event.target.value })} /></label>
+        </> : <label><span>{label('分期总额（含手续费）', 'Installment total incl. fees')} ({cur})</span><input className="jsave-input" type="number" min="0.01" step="0.01" inputMode="decimal" value={plan.totalPayable} disabled={hasRecorded} onChange={event => updateBasics({ totalPayable: event.target.value })} /></label>}
         <label><span>{label('第一期日期', 'First due date')}</span><input className="jsave-input" type="date" value={plan.startDate || ''} disabled={hasRecorded} onChange={event => updateBasics({ startDate: event.target.value })} /></label>
-        <label><span>{label('期数', 'Number of payments')}</span><input className="jsave-input" type="number" min="1" max="120" step="1" value={plan.installments.length} disabled={hasRecorded} onChange={event => onChange({ ...plan, installments: makeInstallments(plan.totalPayable, event.target.value, plan.startDate) })} /></label>
-        <label><span>{label('过去已付期数（手动期初）', 'Past payments already made')}</span><input className="jsave-input" type="number" min="0" max={plan.installments.length} step="1" value={plan.openingPaidCount ?? 0} disabled={hasLinked} onChange={event => onChange({ ...plan, openingPaidCount: event.target.value })} /></label>
+        <div className="jsave-installment-term"><span>{label('供款期限', 'Payment term')}</span><div>
+          <label><select className="jsave-input" aria-label={label('供款年数', 'Payment years')} value={Math.floor(paymentCount / 12)} disabled={hasRecorded} onChange={event => updateTerm(event.target.value, paymentCount % 12)}>{Array.from({ length: 11 }, (_, years) => <option key={years} value={years}>{years} {label('年', years === 1 ? 'year' : 'years')}</option>)}</select></label>
+          <label><select className="jsave-input" aria-label={label('额外月数', 'Additional months')} value={paymentCount % 12} disabled={hasRecorded} onChange={event => updateTerm(Math.floor(paymentCount / 12), event.target.value)}>{Array.from({ length: 12 }, (_, months) => <option key={months} value={months} disabled={paymentCount >= 120 && months > 0}>{months} {label('个月', months === 1 ? 'month' : 'months')}</option>)}</select></label>
+        </div><small>{label(`每月一期 · 共 ${paymentCount} 期`, `One payment per month · ${paymentCount} payments`)}</small></div>
+        <label><span>{label('过去已付期数（手动期初）', 'Past payments already made')}</span><input className="jsave-input" type="number" min="0" max={paymentCount} step="1" value={plan.openingPaidCount ?? 0} disabled={hasLinked} onChange={event => onChange({ ...plan, openingPaidCount: event.target.value })} /></label>
       </div>
-      <div className="jsave-installment-cost-breakdown"><span>{label('总共需要支付', 'Total to pay')}</span><strong>{formatCurrency(Number(plan.upfrontAmount) + Number(plan.totalPayable), cur, lang)}</strong>{toCents(Number(plan.upfrontAmount) + Number(plan.totalPayable) - Number(cost)) > 0 && <small>{label('其中额外费用', 'Includes extra charges')} {formatCurrency(Number(plan.upfrontAmount) + Number(plan.totalPayable) - Number(cost), cur, lang)}</small>}</div>
+      <div className="jsave-installment-cost-breakdown"><div><span>{label('预计总供款', 'Estimated installment total')}</span><strong>{plan.installments.length ? formatCurrency(plan.totalPayable, cur, lang) : '—'}</strong></div><div><span>{label('加上首付后预计支付', 'Estimated total incl. down payment')}</span><strong>{plan.installments.length ? formatCurrency(Number(plan.upfrontAmount) + Number(plan.totalPayable), cur, lang) : '—'}</strong></div>{plan.installments.length && toCents(Number(plan.upfrontAmount) + Number(plan.totalPayable) - Number(cost)) > 0 && <small>{label('与物品价格的差额（可能包括利息、手续费等，并非准确利息）', 'Difference from item price (may include interest and fees; not exact interest)')} · {formatCurrency(Number(plan.upfrontAmount) + Number(plan.totalPayable) - Number(cost), cur, lang)}</small>}{!plan.installments.length && <small>{label('填写每月供款和期限后显示预计金额。', 'Enter the monthly payment and term to see the estimate.')}</small>}</div>
       {hasRecorded && <p className="jsave-installment-hint">{label('已有付款后，基础期数与总额会锁定。未来各期的日期和金额仍可调整，但合计须保持相同。', 'Once payments are recorded, the basic terms are locked. You can adjust future dates and amounts if their total stays the same.')}</p>}
-      <p className="jsave-installment-hint">{label('物品价格用于日均成本。首付请另记实际支出；过去已付期数不会自动补造历史交易。调整基础条件会重新平均分配每期金额。', 'Item cost is used for cost per day. Record the down payment separately; past payments do not create historical transactions. Changing basic terms redistributes the installment amounts.')}</p>
+      <p className="jsave-installment-hint">{label('物品价格用于日均成本。首付请另记实际支出；过去已付期数不会自动补造历史交易。修改供款或期限会重算未来每期金额。', 'Item cost is used for cost per day. Record the down payment separately; past payments do not create historical transactions. Changing payments or term recalculates the schedule.')}</p>
       <button type="button" className="jsave-installment-details-toggle" onClick={() => setShowSchedule(value => !value)} aria-expanded={showSchedule}>{showSchedule ? label('收起每期明细', 'Hide payment schedule') : label('查看 / 调整每期金额与日期', 'View / edit payment schedule')} <span>{showSchedule ? '⌃' : '⌄'}</span></button>
       {showSchedule && <div className="jsave-installment-schedule-edit">
         {plan.installments.map((row, index) => {
