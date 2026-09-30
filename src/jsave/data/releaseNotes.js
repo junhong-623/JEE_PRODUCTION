@@ -1,8 +1,21 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.8.2',
+    version: '3.8.3',
     date: '2026-09-30',
     isLatest: true,
+    items: [
+      'Show estimated financing cost as a percentage of the amount financed across the full term, while keeping the currency difference above it',
+      'Clarify that this percentage is not an annual interest rate and may include other charges',
+    ],
+    itemsZh: [
+      '将预计利息改为整个期限的百分比，金额差额仍显示在上一行',
+      '明确注明这不是年利率，若供款含其他费用，实际利息比例会不同',
+    ],
+  },
+  {
+    version: '3.8.2',
+    date: '2026-09-30',
+    isLatest: false,
     items: [
       'Suggest past installment count from the first due date through today, while letting you confirm and override the actual paid count',
       'Show an estimated interest amount under a no-other-fees assumption alongside the difference from the item price',

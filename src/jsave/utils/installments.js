@@ -53,6 +53,13 @@ export function estimatedFinancingDifference(itemCost, upfrontAmount, totalPayab
   return difference < 0 ? null : fromCents(difference)
 }
 
+export function estimatedFinancingPercentage(itemCost, upfrontAmount, totalPayable) {
+  const principal = toCents(itemCost) - toCents(upfrontAmount)
+  const difference = estimatedFinancingDifference(itemCost, upfrontAmount, totalPayable)
+  if (principal <= 0 || difference == null) return null
+  return Math.round(toCents(difference) / principal * 10000) / 100
+}
+
 export function validateInstallmentPlan(plan, itemCost) {
   if (!plan) return null
   const upfront = toCents(plan.upfrontAmount)
