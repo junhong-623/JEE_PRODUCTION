@@ -9,6 +9,7 @@ import {
   PhoneTransactions,
 } from '../jsave/components/PhoneScreens'
 import { JSAVE_BASE } from '../jsave/utils/basePath'
+import { isIPhoneDevice } from '../jsave/utils/device'
 import { ARTICLE_SUMMARIES, articleHref, guidesHref } from '../jsave/data/articleRoutes'
 import '../jsave/design-system.css'
 import './JSaveIntro.css'
@@ -63,7 +64,7 @@ const COPY = {
     shortcutGuide: {
       eyebrow: 'IPHONE WALKTHROUGH', title: 'Turn one screenshot into one entry.',
       intro: 'Five short steps, from choosing accounts to reviewing the saved transaction. The pictures are guides, not screenshots from your phone.',
-      visualLabel: 'Illustration', previous: 'Back', next: 'Next step', finish: 'Done', download: 'Download unified shortcut',
+      visualLabel: 'Illustration', previous: 'Back', next: 'Next step', finish: 'Done', download: 'Download unified shortcut', downloadIPhoneOnly: 'Open this guide on your iPhone to download the shortcut.',
       steps: [
         { title: 'Choose your JSave accounts', body: 'Open JSave → Settings → Unified receipt screenshot shortcut. Select the TNG wallet and/or CIMB bank and credit card accounts you actually use. You can leave unused sources blank. Creating the key saves your first account choices; use Save account choices for later changes.', tip: 'For a CIMB payment to your UOB card, JSave can match one UOB credit card automatically; choose it in Settings if there is more than one.' },
         { title: 'Create a key and install', body: 'Create the unified key in Settings and copy it. Download the .shortcut file, open it from Files on your iPhone, and paste the key when asked. If no setup question appears, edit “JSave Receipt Import” and paste the key into its first Text action.', tip: 'The key appears only once. Keep it private. Changing account choices later does not require a new key or shortcut.' },
@@ -164,7 +165,7 @@ const COPY = {
     shortcutGuide: {
       eyebrow: 'IPHONE 操作教程', title: '一张截图，核对后记下一笔。',
       intro: '从选账户到确认入账，分五步完成。下方画面是操作示意，不是你的手机截图。',
-      visualLabel: '操作示意', previous: '上一步', next: '下一步', finish: '完成', download: '下载统一快捷指令',
+      visualLabel: '操作示意', previous: '上一步', next: '下一步', finish: '完成', download: '下载统一快捷指令', downloadIPhoneOnly: '请用 iPhone 打开本教程下载快捷指令。',
       steps: [
         { title: '先选择 JSave 账户', body: '打开 JSave → 设置 → 统一收据截图快捷指令。选好自己使用的 TNG 钱包、CIMB 银行或信用卡账户；没使用的来源可以留空。首次生成密钥时会保存账户选择；日后更换账户才点「保存账户设置」。', tip: 'CIMB 支付自己的 UOB 信用卡时，只有一张 UOB 卡会自动匹配；有多张时请在设置中指定。' },
         { title: '生成密钥并安装指令', body: '在设置中生成统一密钥并复制。下载 .shortcut 文件，在 iPhone「文件」App 打开，按提示粘贴密钥。若没有出现提问，请编辑「JSave Receipt Import」，把密钥填入第一个「文本」操作。', tip: '密钥只显示一次，请勿分享。日后更换账户设置，无需重新生成密钥或重装指令。' },
@@ -328,6 +329,7 @@ function ShortcutGuideVisual({ step, zh, label }) {
 
 function ShortcutGuideModal({ copy, zh, onClose, returnFocusRef }) {
   const [step, setStep] = useState(0)
+  const isIPhone = isIPhoneDevice()
   const dialogRef = useRef(null)
   const closeRef = useRef(null)
 
@@ -369,7 +371,9 @@ function ShortcutGuideModal({ copy, zh, onClose, returnFocusRef }) {
         <div className="ji-guide-instructions" aria-live="polite">
           <span className="ji-guide-step-number">{String(step + 1).padStart(2, '0')} / {String(copy.steps.length).padStart(2, '0')}</span>
           <h3>{current.title}</h3><p>{current.body}</p>
-          {step === 1 && <a className="ji-guide-download" href="https://jeeprod-jsave.web.app/shortcuts/JSave-Receipt-Import.shortcut" target="_blank" rel="noopener noreferrer">↓ {copy.download}</a>}
+          {step === 1 && (isIPhone
+            ? <a className="ji-guide-download" href="https://jeeprod-jsave.web.app/shortcuts/JSave-Receipt-Import.shortcut" target="_blank" rel="noopener noreferrer">↓ {copy.download}</a>
+            : <p className="ji-guide-device-notice" role="note">{copy.downloadIPhoneOnly}</p>)}
           <div className="ji-guide-tip"><span>✦</span><p>{current.tip}</p></div>
         </div>
       </div>

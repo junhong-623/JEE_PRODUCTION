@@ -1,8 +1,21 @@
 export const RELEASE_NOTES = [
   {
+    version: '3.8.13',
+    date: '2026-10-01',
+    isLatest: true,
+    items: [
+      'Offer the unified receipt shortcut download only on iPhone in Settings and the setup guide',
+      'Show other devices how to open the page on iPhone while keeping account and key setup available',
+    ],
+    itemsZh: [
+      '设置与教程仅在 iPhone 显示统一收据快捷指令下载入口',
+      '其他设备提示改用 iPhone 打开，账户及密钥设置仍可继续使用',
+    ],
+  },
+  {
     version: '3.8.12',
     date: '2026-09-30',
-    isLatest: true,
+    isLatest: false,
     items: [
       'Keep the Edit Item and Installment Progress headers fixed while their content scrolls',
       'Remove the desktop drawer gap that let scrolled content appear above the header',

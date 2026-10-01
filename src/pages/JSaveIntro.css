@@ -496,6 +496,7 @@
 .ji-guide-tip span { color: #087f5b; font-size: 16px; }
 .ji-guide-tip p { color: #47604f; font-size: 13px; line-height: 1.55; }
 .ji-guide-download { margin-top: 17px; padding: 12px 16px; display: inline-flex; border-radius: 999px; color: #fff; background: #087f5b; font-size: 13px; font-weight: 750; text-decoration: none; }
+.ji-guide-device-notice { margin: 17px 0 0; padding: 12px 15px; border: 1px solid rgba(8,127,91,.25); border-radius: 12px; background: rgba(8,127,91,.07); color: #175c45; font-size: 13px; line-height: 1.5; }
 .ji-guide-actions { position: sticky; bottom: 0; margin-top: 22px; padding: 16px 0 22px; display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid #e4eee7; background: #fcfefa; }
 .ji-guide-actions button { min-height: 44px; padding: 0 20px; border: 1px solid #cadfd0; border-radius: 999px; color: #155c3c; background: #fff; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 .ji-guide-actions button:disabled { opacity: .4; cursor: default; }

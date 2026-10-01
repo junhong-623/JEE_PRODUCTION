@@ -1313,6 +1313,8 @@ input[type="number"].jsave-input::-webkit-outer-spin-button { -webkit-appearance
 .jsave-installment-overview span { color: #a7f3d0; font-size: 13px; font-weight: 650; }
 .jsave-installment-overview strong { color: #f1f5f9; font: 27px var(--font-display); font-variant-numeric: tabular-nums; }
 .jsave-installment-overview small { display: block; max-width: 600px; margin-top: 7px; color: #9bb7ae; font-size: 11px; line-height: 1.5; }
+.jsave-shortcut-device-notice { margin: 0 0 12px; padding: 12px 14px; border: 1px solid rgba(16,185,129,.24); border-radius: 12px; background: rgba(16,185,129,.07); color: #b5d9ce; font-size: 12px; line-height: 1.5; }
+.jsave-root.jsave-light .jsave-shortcut-device-notice { color: #065f46; background: #ecfdf5; border-color: #a7f3d0; }
 .jsave-installment-badge { display: inline-block; padding: 3px 7px; border-radius: 999px; color: #b9e5d4; background: rgba(16,185,129,.14); border: 1px solid rgba(16,185,129,.23); font: 500 10px var(--font-sans); white-space: nowrap; }
 .jsave-installment-badge.settled { color: #9ca9b9; border-color: rgba(156,169,185,.25); background: rgba(156,169,185,.08); }
 .jsave-thing-payment-line { display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 7px; margin: 6px 0 2px; color: #9bb7ae; font: 500 11px var(--font-sans); }

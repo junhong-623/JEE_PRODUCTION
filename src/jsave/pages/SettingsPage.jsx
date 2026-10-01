@@ -21,6 +21,7 @@ import { httpsCallable } from 'firebase/functions'
 import { localMonthKey, toLocalDateString } from '../utils/date'
 import { downloadTransactionsCsv } from '../services/export'
 import { SUPPORTED_CURRENCIES, currencyName } from '../utils/currency'
+import { isIPhoneDevice } from '../utils/device'
 
 const ACC_TYPES  = ['accCash', 'accBank', 'accEwallet', 'accCredit']
 const ACC_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6']
@@ -74,6 +75,7 @@ function RotateShortcutKeyDialog({ zh, onCancel, onConfirm }) {
 
 function ReceiptShortcutSettings({ accounts, user, lang }) {
   const zh = lang === 'zh'
+  const isIPhone = isIPhoneDevice()
   const emptyIds = { tngAccountId: '', cimbBankAccountId: '', cimbCreditAccountId: '', uobCreditAccountId: '' }
   const [accountIds, setAccountIds] = useState(emptyIds)
   const [savedIds, setSavedIds] = useState(emptyIds)
@@ -173,12 +175,18 @@ function ReceiptShortcutSettings({ accounts, user, lang }) {
           ? '同一个 iPhone 指令识别 TNG 和 CIMB 交易截图，选类别、核对账户后才保存。以后支持其他银行时，这个指令不用重新下载。'
           : 'One iPhone shortcut reviews TNG and CIMB screenshots before saving. New bank formats can be added without reinstalling the shortcut.'}
       </p>
-      <a className="jsave-btn-ghost jsave-btn-full"
-        href="https://jeeprod-jsave.web.app/shortcuts/JSave-Receipt-Import.shortcut?v=3.7.1"
-        target="_blank" rel="noopener noreferrer"
-        style={{ justifyContent: 'center', textDecoration: 'none', marginBottom: 12 }}>
-        {zh ? '下载统一 iPhone 快捷指令' : 'Download unified iPhone shortcut'}
-      </a>
+      {isIPhone ? (
+        <a className="jsave-btn-ghost jsave-btn-full"
+          href="https://jeeprod-jsave.web.app/shortcuts/JSave-Receipt-Import.shortcut?v=3.7.1"
+          target="_blank" rel="noopener noreferrer"
+          style={{ justifyContent: 'center', textDecoration: 'none', marginBottom: 12 }}>
+          {zh ? '下载统一 iPhone 快捷指令' : 'Download unified iPhone shortcut'}
+        </a>
+      ) : (
+        <p className="jsave-shortcut-device-notice" role="note">
+          {zh ? '请用 iPhone 打开此页面下载快捷指令。你仍可在这里设置账户和密钥。' : 'Open this page on your iPhone to download the shortcut. You can still set up accounts and the key here.'}
+        </p>
+      )}
       <p className="jsave-section-sub" style={{ marginBottom: 12 }}>
         {zh ? '选择你使用的账户，未使用的来源可以留空。CIMB 的 TNG 充值需要同时设置 CIMB 银行和 TNG 钱包。CIMB 支付 UOB 信用卡时，若你只有一张名称包含 UOB 的信用卡账户，会自动匹配；否则在下方指定 UOB 信用卡。'
           : 'Choose the accounts you use and leave unused sources blank. A CIMB to TNG top-up needs both accounts. A CIMB payment to a UOB card matches one UOB credit card account automatically; otherwise choose the UOB card below.'}
