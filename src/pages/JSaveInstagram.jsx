@@ -48,6 +48,9 @@ export default function JSaveInstagram({ zh }) {
     let timer
     let started = false
     let disposed = false
+    // The landing page mounts after the app loader, so the native hash scroll
+    // can run before this section exists. Restore direct links once it mounts.
+    if (attempt === 0 && window.location.hash === '#instagram') root.current.scrollIntoView({ block: 'start', behavior: 'instant' })
     async function load() {
       if (started) return
       started = true

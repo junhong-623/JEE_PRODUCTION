@@ -63,7 +63,7 @@
   font-weight: 750;
 }
 
-.ji-nav-links { display: flex; align-items: center; gap: 32px; }
+.ji-nav-links { display: flex; align-items: center; gap: 24px; }
 .ji-nav-links a { color: rgba(255,255,255,.68); font-size: 13px; text-decoration: none; transition: color .2s ease; }
 .ji-nav-links a:hover { color: #fff; }
 .ji-nav-actions { display: flex; align-items: center; gap: 8px; }
@@ -457,6 +457,9 @@
 .ji-ig-skeleton > i { display: block; height: 10px; margin: 22px 24px 0; border-radius: 5px; background: #edf1ec; }
 .ji-ig-skeleton > i:last-child { width: 55%; margin-top: 12px; }
 @keyframes ji-ig-pulse { to { opacity: .45; } }
+@media (min-width: 901px) and (max-width: 1100px) {
+  .ji-nav-links { gap: 14px; }
+}
 @media (max-width: 900px) {
   .ji-ig-heading { align-items: flex-start; flex-direction: column; gap: 24px; }
   .ji-ig-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }

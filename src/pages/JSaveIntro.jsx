@@ -18,7 +18,7 @@ import './JSaveIntro.css'
 
 const COPY = {
   en: {
-    nav: ['Overview', 'How it works', 'Installments', 'Product', 'Guides', 'Principles'],
+    nav: ['Overview', 'How it works', 'Installments', 'Product', 'Guides', 'Instagram', 'Principles'],
     open: 'Open JSave', install: 'Install',
     eyebrow: 'Personal finance, without the noise',
     heroA: 'Spend clearly.', heroB: 'Save calmly.',
@@ -123,7 +123,7 @@ const COPY = {
     footer: 'Designed and built in Kuala Lumpur.', close: 'Close', menu: 'Menu',
   },
   zh: {
-    nav: ['概览', '使用方式', '分期付款', '产品', '指南', '原则'], open: '打开 JSave', install: '安装',
+    nav: ['概览', '使用方式', '分期付款', '产品', '指南', 'Instagram', '原则'], open: '打开 JSave', install: '安装',
     eyebrow: '个人理财，不需要噪音', heroA: '花得清楚。', heroB: '存得从容。',
     heroBody: '为马来西亚日常生活而做的专注理财伙伴。几秒记下一笔，看懂自己的节奏，继续走向真正重要的目标。',
     start: '免费开始', explore: '看看产品', assurances: ['无需连接银行', '离线可用', '中文 + English'],
@@ -236,7 +236,7 @@ const PWA_STEPS = {
   },
 }
 
-const NAV_TARGETS = ['#overview', '#journey', '#installments', '#product', '#guides', '#principles']
+const NAV_TARGETS = ['#overview', '#journey', '#installments', '#product', '#guides', '#instagram', '#principles']
 
 function Device({ children }) {
   return <div className="ji-device-viewport"><div className="ji-device-scale"><IOSDevice width={390} height={844} dark>{children}</IOSDevice></div></div>
