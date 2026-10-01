@@ -20,11 +20,116 @@ import { collection, query, orderBy, getDocs } from 'firebase/firestore'
 import { httpsCallable } from 'firebase/functions'
 import { localMonthKey, toLocalDateString } from '../utils/date'
 import { downloadTransactionsCsv } from '../services/export'
+import { getSyncQueue, applyClearEpochs } from '../services/db'
+import { flushQueue } from '../services/sync'
 import { SUPPORTED_CURRENCIES, currencyName } from '../utils/currency'
 import { isIPhoneDevice } from '../utils/device'
 
 const ACC_TYPES  = ['accCash', 'accBank', 'accEwallet', 'accCredit']
 const ACC_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6']
+const CLEAR_STORES = ['transactions', 'accounts', 'items', 'goals', 'settings']
+
+function ClearDataDialog({ uid, lang, onClose }) {
+  const zh = lang === 'zh'
+  const labels = zh
+    ? { transactions: '交易', accounts: '账户', items: '物品', goals: '目标', settings: '记账设置' }
+    : { transactions: 'Transactions', accounts: 'Accounts', items: 'Items', goals: 'Goals', settings: 'Ledger settings' }
+  const [selected, setSelected] = useState([])
+  const [step, setStep] = useState('choose')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [failedCovers, setFailedCovers] = useState(0)
+  const cancelRef = useRef(null)
+
+  useEffect(() => {
+    const previous = document.activeElement
+    const overflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    cancelRef.current?.focus()
+    const onKeyDown = event => { if (event.key === 'Escape' && !busy && step !== 'done') onClose() }
+    document.addEventListener('keydown', onKeyDown)
+    return () => { document.body.style.overflow = overflow; document.removeEventListener('keydown', onKeyDown); previous?.focus?.() }
+  }, [busy, onClose, step])
+
+  function toggle(store) {
+    setError('')
+    setSelected(current => {
+      const next = new Set(current)
+      if (next.has(store)) {
+        next.delete(store)
+        if (store === 'transactions') next.delete('accounts')
+      } else {
+        next.add(store)
+        if (store === 'accounts') next.add('transactions')
+      }
+      return CLEAR_STORES.filter(value => next.has(value))
+    })
+  }
+
+  function goHomeAndReload() {
+    window.history.replaceState({}, '', `${window.location.pathname}${window.location.search}#dashboard`)
+    window.location.reload()
+  }
+
+  async function confirmClear() {
+    if (busy || !selected.length) return
+    setBusy(true)
+    setError('')
+    try {
+      if (!navigator.onLine) throw new Error('offline')
+      await flushQueue(uid)
+      const affected = new Set(selected)
+      if (affected.has('items')) affected.add('transactions')
+      if (affected.has('transactions') || affected.has('accounts') || affected.has('items')) affected.add('settings')
+      if ((await getSyncQueue(uid)).some(entry => affected.has(entry.store))) throw new Error('pending-sync')
+      const { data } = await httpsCallable(functions, 'jsaveClearSelectedData')({ selected })
+      await applyClearEpochs(uid, data.epochs || {}, data.revision || 0)
+      if (selected.includes('settings')) localStorage.removeItem('jsave-lang')
+      if (data.failedCovers) {
+        setFailedCovers(data.failedCovers)
+        setStep('done')
+      } else goHomeAndReload()
+    } catch (cause) {
+      setError(cause.message === 'offline'
+        ? (zh ? '请联网后再清除数据。' : 'Connect to the internet before clearing data.')
+        : cause.message === 'pending-sync'
+          ? (zh ? '还有未同步的改动，请稍后重试。' : 'Some changes are still syncing. Please try again shortly.')
+          : (zh ? '清除未完成，请稍后重试。' : 'Could not finish clearing data. Please try again.'))
+    } finally { setBusy(false) }
+  }
+
+  return createPortal(
+    <div className="jsave-modal-overlay centered" onClick={event => { if (event.target === event.currentTarget && !busy && step !== 'done') onClose() }}>
+      <div className="jsave-modal jsave-clear-data-dialog" role="dialog" aria-modal="true" aria-labelledby="jsave-clear-data-title">
+        <h2 id="jsave-clear-data-title">{step === 'choose' ? (zh ? '清除数据' : 'Clear data') : step === 'confirm' ? (zh ? '确认清除？' : 'Confirm deletion?') : (zh ? '数据已清除' : 'Data cleared')}</h2>
+        {step === 'choose' && <>
+          <p>{zh ? '选择要从本机和云端删除的资料。' : 'Choose what to delete from this device and the cloud.'}</p>
+          <div className="jsave-clear-data-options">
+            {CLEAR_STORES.map(store => <label key={store} className="jsave-clear-data-option">
+              <input type="checkbox" checked={selected.includes(store)} onChange={() => toggle(store)} />
+              <span>{labels[store]}</span>
+            </label>)}
+          </div>
+          <p className="jsave-clear-data-note">{zh ? '删除账户会同时选择交易；删除物品会保留实际支出，并解除分期关联。' : 'Clearing accounts also selects transactions. Clearing items keeps actual expenses and removes installment links.'}</p>
+        </>}
+        {step === 'confirm' && <>
+          <p>{zh ? '以下资料会从本机和云端永久删除：' : 'These records will be deleted from this device and the cloud:'}</p>
+          <div className="jsave-clear-data-summary">{selected.map(store => <span key={store}>{labels[store]}</span>)}</div>
+          {selected.includes('settings') && <p className="jsave-clear-data-note">{zh ? '完成后将回到首页，重新填写首次设置。' : 'You will return home and complete the first-time setup again.'}</p>}
+          <p className="jsave-clear-data-note">{zh ? '其他离线设备未同步的改动可能被丢弃，避免旧数据恢复。' : 'Pending changes on other offline devices may be discarded to prevent old data from returning.'}</p>
+        </>}
+        {step === 'done' && <p>{zh ? `资料已删除，但有 ${failedCovers} 张封面未能清理。` : `Data was deleted, but ${failedCovers} cover images could not be removed.`}</p>}
+        {error && <p className="jsave-error" role="alert">{error}</p>}
+        <div className="jsave-clear-data-actions">
+          {step !== 'done' && <button ref={cancelRef} type="button" className="jsave-btn-ghost" disabled={busy} onClick={step === 'confirm' ? () => setStep('choose') : onClose}>{step === 'confirm' ? (zh ? '返回' : 'Back') : (zh ? '取消' : 'Cancel')}</button>}
+          {step === 'choose' && <button type="button" className="jsave-btn-danger" disabled={!selected.length} onClick={() => setStep('confirm')}>{zh ? '继续' : 'Continue'}</button>}
+          {step === 'confirm' && <button type="button" className="jsave-btn-danger" disabled={busy} onClick={confirmClear}>{busy ? (zh ? '正在清除…' : 'Clearing…') : (zh ? '确认清除' : 'Delete selected data')}</button>}
+          {step === 'done' && <button type="button" className="jsave-btn-primary" onClick={goHomeAndReload}>{zh ? '返回首页' : 'Return home'}</button>}
+        </div>
+      </div>
+    </div>, document.body,
+  )
+}
 
 function RotateShortcutKeyDialog({ zh, onCancel, onConfirm }) {
   const cancelRef = useRef(null)
@@ -652,6 +757,7 @@ export default function SettingsPage({ onOpenAdmin }) {
   const [installGuide,      setInstallGuide]      = useState(null)
   const [payModal,          setPayModal]          = useState(null)
   const [payCancelled,      setPayCancelled]      = useState(false)
+  const [showClearData,     setShowClearData]     = useState(false)
 
   const [monthlyIncome,  setMonthlyIncome]  = useState(settings?.monthlyIncome?.toString() ?? '0')
   const [currency,       setCurrency]       = useState(settings?.currency ?? 'MYR')
@@ -905,6 +1011,9 @@ export default function SettingsPage({ onOpenAdmin }) {
         >
           📥 {transactions.length ? t('exportCsv') : t('noTransactionsExport')}
         </button>
+        <button type="button" className="jsave-btn-danger jsave-btn-full" style={{ marginTop: 12 }} onClick={() => setShowClearData(true)}>
+          {lang === 'zh' ? '清除数据' : 'Clear data'}
+        </button>
       </Accordion>
 
       {/* Treat me a Coffee */}
@@ -951,6 +1060,7 @@ export default function SettingsPage({ onOpenAdmin }) {
       </Accordion>
 
       {/* Sign out */}
+      {showClearData && <ClearDataDialog uid={user.uid} lang={lang} onClose={() => setShowClearData(false)} />}
       <button className="jsave-btn-ghost jsave-btn-full jsave-signout" onClick={() => signOut(auth)}>
         {t('logout')}
       </button>

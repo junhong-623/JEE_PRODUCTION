@@ -110,6 +110,28 @@ export async function dbClear(uid, store) {
   return (await getDB(uid)).clear(store)
 }
 
+export async function applyClearEpochs(uid, epochs = {}, revision = 0) {
+  const db = await getDB(uid)
+  const previousState = await db.get('meta', 'clear-epochs')
+  if (Number(previousState?.revision || 0) > revision) return []
+  const previous = previousState?.epochs || {}
+  const changed = DATA_STORES.filter(store => previous[store] !== epochs[store])
+  if (changed.length) {
+    const tx = db.transaction([...changed, 'syncQueue', 'meta'], 'readwrite')
+    for (const store of changed) await tx.objectStore(store).clear()
+    const queue = tx.objectStore('syncQueue')
+    for (const entry of await queue.getAll()) {
+      if (changed.includes(entry.store)) await queue.delete(entry.qid)
+    }
+    await tx.objectStore('meta').put({ id: 'clear-epochs', epochs, revision })
+    await tx.objectStore('meta').put({ id: 'legacy-migrated', completedAt: Date.now() })
+    await tx.done
+  } else if (!previousState || revision > Number(previousState.revision || 0)) {
+    await db.put('meta', { id: 'clear-epochs', epochs, revision })
+  }
+  return changed
+}
+
 export async function dbReplaceAll(uid, store, items) {
   const db = await getDB(uid)
   const tx = db.transaction(store, 'readwrite')

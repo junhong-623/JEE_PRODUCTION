@@ -4,7 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import {
   assertFails, assertSucceeds, initializeTestEnvironment,
 } from '@firebase/rules-unit-testing'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { deleteDoc, doc, getDoc, setDoc } from 'firebase/firestore'
 
 let environment
 
@@ -40,5 +40,34 @@ describe('Firestore JSave ownership rules', () => {
     const db = environment.authenticatedContext('alice').firestore()
     await assertSucceeds(setDoc(doc(db, 'jsavePushSubs/alice_device'), { uid: 'alice' }))
     await assertFails(setDoc(doc(db, 'jsavePushSubs/bob_device'), { uid: 'alice' }))
+  })
+
+  it('rejects stale offline writes after a selected JSave store was cleared', async () => {
+    await environment.withSecurityRulesDisabled(async context => {
+      await setDoc(doc(context.firestore(), 'jsave_clear_state/alice'), {
+        epochs: { transactions: 'new-epoch' }, clearingStores: [],
+      })
+    })
+    const db = environment.authenticatedContext('alice').firestore()
+    const old = doc(db, 'users/alice/jsave_transactions/old')
+    await assertFails(setDoc(old, { id: 'old', amount: 20, userId: 'alice' }))
+    const newRecord = doc(db, 'users/alice/jsave_transactions/new')
+    await assertSucceeds(setDoc(newRecord, {
+      id: 'new', amount: 10, userId: 'alice', syncEpoch: 'new-epoch',
+    }))
+    await assertFails(deleteDoc(newRecord))
+    await assertSucceeds(setDoc(doc(db, 'users/alice/jsave_accounts/kept'), { id: 'kept', userId: 'alice' }))
+  })
+
+  it('blocks writes to selected stores while deletion is running', async () => {
+    await environment.withSecurityRulesDisabled(async context => {
+      await setDoc(doc(context.firestore(), 'jsave_clear_state/alice'), {
+        epochs: { items: 'new-epoch' }, clearingStores: ['items'],
+      })
+    })
+    const db = environment.authenticatedContext('alice').firestore()
+    await assertFails(setDoc(doc(db, 'users/alice/jsave_items/item'), {
+      id: 'item', userId: 'alice', syncEpoch: 'new-epoch',
+    }))
   })
 })

@@ -1,8 +1,21 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.10.1',
+    version: '3.10.2',
     date: '2026-10-01',
     isLatest: true,
+    items: [
+      'Clear selected transactions, accounts, items, goals, or ledger settings from this device and the cloud',
+      'Return home after clearing data and reopen first-time setup when ledger settings are cleared',
+    ],
+    itemsZh: [
+      '按勾选项目清除本机和云端的交易、账户、物品、目标或记账设置',
+      '清除后返回首页；清除记账设置时重新显示首次设置弹窗',
+    ],
+  },
+  {
+    version: '3.10.1',
+    date: '2026-10-01',
+    isLatest: false,
     items: [
       'Remove account linking controls from shortcut settings; choose and change accounts during import',
       'Keep remembered choices and the existing 3.10.0 shortcut and unified key working',
