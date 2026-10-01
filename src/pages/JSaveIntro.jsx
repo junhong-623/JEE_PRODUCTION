@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Helmet } from 'react-helmet-async'
+import JSaveInstagram from './JSaveInstagram'
 import { IOSDevice } from '../jsave/components/IOSDevice'
 import {
   PhoneAdd,
@@ -631,6 +632,8 @@ export default function JSaveIntro({ onOpenApp, withHead = true, language, onLan
         </Reveal>)}</div>
         <Reveal><a className="ji-guides-all" href={guidesHref(lang)}>{c.guidesAll}<ArrowIcon /></a></Reveal>
       </section>
+
+      <JSaveInstagram zh={zh} />
 
       <section id="principles" className="ji-principles">
         <Reveal className="ji-section-copy"><p className="ji-kicker">{c.principlesKicker}</p><h2>{c.principlesTitle}</h2></Reveal>

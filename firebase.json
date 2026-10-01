@@ -1,7 +1,8 @@
 {
-  "functions": {
-    "source": "functions"
-  },
+  "functions": [
+    { "source": "functions", "codebase": "default" },
+    { "source": "functions-instagram", "codebase": "jsave-instagram" }
+  ],
   "firestore": {
     "rules": "firestore.rules"
   },
@@ -54,6 +55,10 @@
         "**/node_modules/**"
       ],
       "rewrites": [
+        {
+          "source": "/api/instagram",
+          "function": { "functionId": "jsaveInstagramFeed", "region": "asia-southeast1" }
+        },
         {
           "source": "**",
           "destination": "/jsave.html"
