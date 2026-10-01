@@ -416,10 +416,21 @@
 .ji-ig-profile { flex-shrink: 0; display: inline-flex; align-items: center; gap: 10px; min-height: 48px; padding: 12px 18px; border: 1px solid #d5e0d7; border-radius: 999px; color: var(--ji-green-dark); background: #fff; font-size: 14px; font-weight: 650; text-decoration: none; transition: border-color .2s, transform .2s; }
 .ji-ig-profile:hover { border-color: var(--ji-green); transform: translateY(-2px); }
 .ji-ig-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; align-items: start; }
-.ji-ig-card { overflow: hidden; min-width: 0; border: 1px solid #e1e8e1; border-radius: 23px; background: #fff; box-shadow: 0 7px 24px rgba(20, 55, 35, .035); }
-.ji-ig-image { position: relative; aspect-ratio: 4 / 5; overflow: hidden; background: #e7eee7; }
+.ji-ig-enter { opacity: 0; transform: translateY(24px); }
+.ji-ig-enter.is-visible { opacity: 1; transform: none; animation: ji-ig-arrive .65s cubic-bezier(.2,.7,.2,1) var(--ig-delay, 0ms) backwards; }
+@keyframes ji-ig-arrive { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+.ji-ig-card { overflow: hidden; min-width: 0; border: 1px solid #e1e8e1; border-radius: 23px; background: #fff; box-shadow: 0 7px 24px rgba(20, 55, 35, .035); transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease; }
+.ji-ig-image { position: relative; aspect-ratio: 4 / 5; overflow: hidden; background: #e7eee7; touch-action: pan-y pinch-zoom; }
+.ji-ig-track { display: flex; width: 100%; height: 100%; transition: transform .42s cubic-bezier(.22,.8,.25,1); }
+.ji-ig-frame { flex: 0 0 100%; min-width: 0; height: 100%; overflow: hidden; }
+.ji-ig-image.is-dragging { cursor: grabbing; }
+.ji-ig-image.is-dragging .ji-ig-track { transition: none; }
+.ji-ig-image.is-jumping .ji-ig-track { transition: none; }
+.ji-ig-image.is-jumping .ji-ig-frame[aria-hidden="false"] { animation: ji-ig-photo-in .3s ease; }
+@keyframes ji-ig-photo-in { from { opacity: .3; } to { opacity: 1; } }
+.ji-ig-image.is-dragging > a { cursor: grabbing; }
 .ji-ig-image > a { display: block; width: 100%; height: 100%; color: inherit; text-decoration: none; }
-.ji-ig-image img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.ji-ig-image img { display: block; width: 100%; height: 100%; object-fit: contain; transition: transform .5s cubic-bezier(.2,.7,.2,1); user-select: none; }
 .ji-ig-image-fallback { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; width: 100%; height: 100%; background: linear-gradient(145deg, #dbece1, #f2f5ef); color: var(--ji-green-dark); }
 .ji-ig-image-fallback > span { font-size: 48px; font-weight: 700; letter-spacing: -.04em; }
 .ji-ig-image-fallback small { font-size: 13px; }
@@ -430,18 +441,41 @@
 .ji-ig-slide:disabled { opacity: .3; cursor: default; }
 .ji-ig-slide-prev { left: 10px; }
 .ji-ig-slide-next { right: 10px; }
-.ji-ig-dots { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 5px; padding: 8px 10px; border-radius: 999px; background: rgba(4, 32, 20, .58); pointer-events: none; }
-.ji-ig-dots i { width: 5px; height: 5px; border-radius: 50%; background: #ffffff60; transition: width .2s; }
-.ji-ig-dots i.is-active { width: 14px; border-radius: 4px; background: #fff; }
+.ji-ig-dots { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; padding: 2px 4px; border-radius: 999px; background: rgba(4, 32, 20, .58); }
+.ji-ig-dots button { width: 26px; height: 28px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 999px; background: none; cursor: pointer; }
+.ji-ig-dots i { width: 5px; height: 5px; border-radius: 50%; background: #ffffff70; transition: width .25s ease, background .25s ease; }
+.ji-ig-dots button[aria-pressed="true"] i { width: 16px; border-radius: 4px; background: #fff; }
 .ji-ig-card-body { padding: 21px 22px 20px; }
-.ji-ig-caption { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; font-size: 14px; line-height: 1.65; color: #35453a; overflow-wrap: anywhere; }
-.ji-ig-caption.is-expanded { display: block; }
+.ji-ig-caption-window { position: relative; overflow: hidden; font-size: 14px; line-height: 1.65; transition: max-height .4s cubic-bezier(.2,.7,.2,1); }
+.ji-ig-caption-window.is-collapsible::after { content: ''; position: absolute; inset: auto 0 0; height: 18px; background: linear-gradient(transparent, #fff); pointer-events: none; transition: opacity .25s ease; }
+.ji-ig-caption-window.is-expanded::after { opacity: 0; }
+.ji-ig-caption { white-space: pre-line; font-size: 14px; line-height: 1.65; color: #35453a; overflow-wrap: anywhere; }
+.ji-ig-gesture-hint { display: none; }
 .ji-ig-more { margin-top: 9px; padding: 5px 0; border: 0; background: none; color: var(--ji-green-dark); font: inherit; font-size: 12px; font-weight: 650; cursor: pointer; }
 .ji-ig-card-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 18px; padding-top: 15px; border-top: 1px solid #edf0ec; font-size: 11px; }
 .ji-ig-card-foot time { color: #79817b; }
 .ji-ig-card-foot a { margin-left: auto; color: #3c5746; font-weight: 650; text-decoration: none; }
 .ji-ig-card-foot a:hover { color: var(--ji-green-dark); text-decoration: underline; }
-.ji-ig-follow { align-self: stretch; min-height: 440px; padding: 40px 32px; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 24px; border-radius: 23px; background: #093e2b; color: #e9f8ed; text-decoration: none; }
+.ji-ig-follow { position: relative; overflow: hidden; isolation: isolate; align-self: stretch; min-height: 440px; padding: 40px 32px; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 24px; border-radius: 23px; background: #093e2b; color: #e9f8ed; text-decoration: none; transition: box-shadow .35s ease, transform .35s ease; }
+.ji-ig-follow > :not(.ji-ig-follow-orbit) { position: relative; }
+.ji-ig-follow-orbit { position: absolute; width: 350px; height: 350px; right: -200px; top: -120px; border: 1px solid #7ce0b340; border-radius: 50%; box-shadow: 0 0 0 36px #7ce0b30b, 0 0 0 72px #7ce0b308; transition: transform .8s cubic-bezier(.2,.7,.2,1); }
+.ji-ig-follow > b > span { display: inline-block; transition: transform .3s ease; }
+.ji-ig-follow:focus-visible .ji-ig-follow-orbit { transform: translate(-20px, 20px) scale(1.12); }
+.ji-ig-follow:focus-visible > b > span { transform: translate(3px, -3px); }
+@media (hover: hover) and (pointer: fine) {
+  .ji-ig-card.is-visible:hover { transform: translateY(-7px); border-color: #b9d8c5; box-shadow: 0 18px 38px rgba(20, 55, 35, .11); }
+  .ji-ig-card:hover .ji-ig-frame img { transform: scale(1.025); }
+  .ji-ig-follow:hover { transform: translateY(-5px); box-shadow: 0 18px 38px #093e2b26; }
+  .ji-ig-follow:hover .ji-ig-follow-orbit { transform: translate(-20px, 20px) scale(1.12); }
+  .ji-ig-follow:hover > b > span { transform: translate(3px, -3px); }
+  .ji-ig-profile:hover > svg { transform: rotate(-8deg); }
+}
+.ji-ig-profile > svg { transition: transform .3s ease; }
+@media (hover: none) {
+  .ji-ig-gesture-hint { display: flex; align-items: center; gap: 7px; margin-bottom: 12px !important; color: #708476; font-size: 11px; }
+  .ji-ig-gesture-hint > span { display: inline-block; animation: ji-ig-swipe-hint .9s ease-in-out 2; }
+}
+@keyframes ji-ig-swipe-hint { 30% { transform: translateX(-3px); } 70% { transform: translateX(3px); } }
 .ji-ig-follow > svg { width: 36px; height: 36px; color: #7ce0b3; }
 .ji-ig-follow > span { white-space: pre-line; font-size: clamp(30px, 3.4vw, 43px); font-weight: 650; letter-spacing: -.045em; line-height: 1.15; }
 .ji-ig-follow > p { max-width: 230px; color: #b2c9b8; font-size: 14px; line-height: 1.6; }
@@ -798,6 +832,8 @@
   .ji-shortcut-scan { display: none; }
   .ji-sync-line i { animation: none !important; opacity: 1 !important; }
   .ji-installments-fireworks { display: none; }
+  .ji-ig-enter, .ji-ig-enter.is-visible { opacity: 1; transform: none; animation: none; }
+  .ji-ig-card.is-visible:hover, .ji-ig-card:hover .ji-ig-frame img, .ji-ig-follow:hover, .ji-ig-follow:hover .ji-ig-follow-orbit, .ji-ig-follow:focus-visible .ji-ig-follow-orbit { transform: none; }
 }
 
 @media (max-width: 900px) and (prefers-reduced-motion: reduce) {
