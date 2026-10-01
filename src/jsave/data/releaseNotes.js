@@ -1,8 +1,25 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.9.1',
+    version: '3.10.0',
     date: '2026-10-01',
     isLatest: true,
+    items: [
+      'Choose any of your JSave accounts in the unified receipt shortcut and change accounts before saving',
+      'Review and complete single transaction receipts from other banks or platforms; ordinary screenshots are skipped',
+      'Ask for the source when bank details are ambiguous, and manage remembered choices without rotating your key',
+      'Download the updated shortcut once and reuse your existing unified key',
+    ],
+    itemsZh: [
+      '统一收据指令可选择自己在 JSave 建立的账户，保存前也能更换账户',
+      '其他银行或平台的单笔收据可核对并补全；疑似收据先询问，普通截图安静跳过',
+      '银行来源不明确时请用户确认，已记住的选择可在设置管理，无需更换密钥',
+      '此次需重新下载新版统一指令一次，原统一密钥继续有效',
+    ],
+  },
+  {
+    version: '3.9.1',
+    date: '2026-10-01',
+    isLatest: false,
     items: [
       'Import CIMB Within CIMB Bank credit card repayments as bank-to-card transfers',
       'Match or select the receiving CIMB credit card, check its last four digits, and remember it after confirmation',

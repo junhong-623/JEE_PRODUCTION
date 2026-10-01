@@ -1,38 +1,106 @@
 #include 'actions/images'
 #include 'actions/photos'
 #include 'actions/web'
+#include 'actions/calendar'
 #define name JSave Receipt Import
 #define color blue
 #define inputs image
 #define from sharesheet
-#define noinput askfor image
-#question shortcutKey "粘贴 JSave 设置页生成的统一收据密钥" ""
+#question shortcutKey "粘贴 JSave 设置页生成的统一收据密钥（升级可沿用原密钥）" ""
 
 const key = text(shortcutKey)
 @keyText = "{key}"
 if @keyText == "" {
-    alert("请先在 JSave 设置页生成统一收据密钥，并填入快捷指令的第一个「文本」操作。", "JSave")
+    alert("请先填入统一密钥。升级时可从旧指令的第一个「文本」操作复制原密钥。", "JSave")
     stop()
 }
-const ocr = extractImageText(ShortcutInput)
+@allowReview = "0"
+@photo = ShortcutInput
+if ShortcutInput {
+    @photo = ShortcutInput
+} else {
+    @allowReview = "1"
+    @photo = selectPhotos()
+}
+@photoCount = count(@photo)
+if @photoCount != 1 {
+    alert("每次请选择一张单笔交易截图。", "JSave")
+    stop()
+}
+const ocr = extractImageText(@photo)
+@ocrText = "{ocr}"
+if @ocrText == "" {
+    stop()
+}
 @sourceHint = ""
 @sourceAccountId = ""
 @targetAccountId = ""
+@chooseAccounts = "0"
+@manualMode = "0"
+@reviewSource = ""
+@reviewType = ""
+@reviewAmount = ""
+@reviewDate = ""
+@reviewNote = ""
+@reviewReference = ""
+@category = ""
+@categoryLabel = ""
+@direction = ""
 
-@preview = jsonRequest("https://us-central1-jee-production.cloudfunctions.net/jsaveReceiptShortcutImport", "POST", {"action":"preview", "protocolVersion":2, "text":"{ocr}", "sourceHint":"{@sourceHint}"}, {"Authorization":"Bearer {key}"})
-@previewDict = getDictionary(@preview)
-@apiErrorValue = getValue(@previewDict, "error")
-@apiError = "{@apiErrorValue}"
-if @apiError == "ambiguous-source" {
-    @sourceChoices = getValue(@previewDict, "sources")
-    @chosenSource = chooseFromList(@sourceChoices, "选择这张截图来自哪个 App 或银行")
-    @sourceHint = "{@chosenSource}"
-    @preview = jsonRequest("https://us-central1-jee-production.cloudfunctions.net/jsaveReceiptShortcutImport", "POST", {"action":"preview", "protocolVersion":2, "text":"{ocr}", "sourceHint":"{@sourceHint}"}, {"Authorization":"Bearer {key}"})
+repeat flowAttempt for 30 {
+    @editFields = "0"
+    if @manualMode == "1" {
+        @preview = jsonRequest("https://us-central1-jee-production.cloudfunctions.net/jsaveReceiptShortcutImport", "POST", {"action":"preview", "protocolVersion":3, "text":"{ocr}", "sourceHint":"{@sourceHint}", "chooseAccounts":"{@chooseAccounts}", "accountSelections":{"source":"{@sourceAccountId}", "target":"{@targetAccountId}"}, "manualFields":{"sourceLabel":"{@reviewSource}", "type":"{@reviewType}", "amount":"{@reviewAmount}", "date":"{@reviewDate}", "note":"{@reviewNote}", "reference":"{@reviewReference}"}}, {"Authorization":"Bearer {key}"})
+    } else {
+        @preview = jsonRequest("https://us-central1-jee-production.cloudfunctions.net/jsaveReceiptShortcutImport", "POST", {"action":"preview", "protocolVersion":3, "text":"{ocr}", "sourceHint":"{@sourceHint}", "chooseAccounts":"{@chooseAccounts}", "accountSelections":{"source":"{@sourceAccountId}", "target":"{@targetAccountId}"}}, {"Authorization":"Bearer {key}"})
+    }
     @previewDict = getDictionary(@preview)
     @apiErrorValue = getValue(@previewDict, "error")
     @apiError = "{@apiErrorValue}"
-}
-repeat selectionAttempt for 2 {
+    if @apiError == "source-selection-required" {
+        @sourceLabels = getValue(@previewDict, "sourceLabels")
+        @sourceOptionsValue = getValue(@previewDict, "sourceOptions")
+        @sourceOptions = getDictionary(@sourceOptionsValue)
+        @chosenSource = chooseFromList(@sourceLabels, "这张截图来自 CIMB 吗？其他银行不会自动当成 CIMB。")
+        @chosenSourceLabel = "{@chosenSource}"
+        @sourceHintValue = getValue(@sourceOptions, @chosenSourceLabel)
+        @sourceHint = "{@sourceHintValue}"
+        if @sourceHint == "skip" {
+            stop()
+        }
+        if @sourceHint == "other" {
+            @allowReview = "1"
+        }
+    }
+    if @apiError == "manual-review-required" {
+        if @allowReview == "0" {
+            @receiptLikeValue = getValue(@previewDict, "receiptLike")
+            @receiptLike = "{@receiptLikeValue}"
+            if @receiptLike == "1" {
+                menu "这张图片像交易收据，但暂时无法完整识别。要补全后加入 JSave 吗？" {
+                    item "补全交易资料":
+                        @allowReview = "1"
+                    item "跳过":
+                        stop()
+                }
+            } else {
+                stop()
+            }
+        }
+        @suggestionsValue = getValue(@previewDict, "suggestions")
+        @suggestions = getDictionary(@suggestionsValue)
+        @reviewSourceValue = getValue(@suggestions, "sourceLabel")
+        @reviewSource = "{@reviewSourceValue}"
+        @reviewAmountValue = getValue(@suggestions, "amount")
+        @reviewAmount = "{@reviewAmountValue}"
+        @reviewDateValue = getValue(@suggestions, "date")
+        @reviewDate = "{@reviewDateValue}"
+        @reviewNoteValue = getValue(@suggestions, "note")
+        @reviewNote = "{@reviewNoteValue}"
+        @reviewReferenceValue = getValue(@suggestions, "reference")
+        @reviewReference = "{@reviewReferenceValue}"
+        @editFields = "1"
+    }
     if @apiError == "account-selection-required" {
         @accountLabels = getValue(@previewDict, "accountLabels")
         @accountOptionsValue = getValue(@previewDict, "accountOptions")
@@ -53,129 +121,185 @@ repeat selectionAttempt for 2 {
         } else {
             @targetAccountId = "{@selectedAccountId}"
         }
-        @preview = jsonRequest("https://us-central1-jee-production.cloudfunctions.net/jsaveReceiptShortcutImport", "POST", {"action":"preview", "protocolVersion":2, "text":"{ocr}", "sourceHint":"{@sourceHint}", "accountSelections":{"source":"{@sourceAccountId}", "target":"{@targetAccountId}"}}, {"Authorization":"Bearer {key}"})
-        @previewDict = getDictionary(@preview)
-        @apiErrorValue = getValue(@previewDict, "error")
-        @apiError = "{@apiErrorValue}"
     }
-}
-if @apiError == "unsupported-receipt" {
-    stop()
-}
-if @apiError == "unauthorized" {
-    alert("统一收据密钥无效或已停用。请在 JSave 设置页重新生成并填入。", "JSave")
-    stop()
-}
-if @apiError == "no-compatible-account" {
-    @accountMessageValue = getValue(@previewDict, "message")
-    alert("{@accountMessageValue}", "需要建立账户")
-    stop()
-}
-if @apiError != "" {
-    alert("暂时无法导入这张交易截图（{@apiError}），未保存。请检查图片，或重新运行后选择账户。", "JSave")
-    stop()
-}
-@draftValue = getValue(@previewDict, "draft")
-@draft = getDictionary(@draftValue)
-@providerValue = getValue(@draft, "provider")
-@provider = "{@providerValue}"
-@typeValue = getValue(@draft, "type")
-@type = "{@typeValue}"
-@amountValue = getValue(@draft, "amount")
-@amount = "{@amountValue}"
-@dateValue = getValue(@draft, "date")
-@date = "{@dateValue}"
-@timeValue = getValue(@draft, "time")
-@time = "{@timeValue}"
-@noteValue = getValue(@draft, "note")
-@note = "{@noteValue}"
-@accountNameValue = getValue(@draft, "accountName")
-@accountName = "{@accountNameValue}"
-@routingTokenValue = getValue(@draft, "routingToken")
-@routingToken = "{@routingTokenValue}"
-@sourceAccountIdValue = getValue(@draft, "sourceAccountId")
-@sourceAccountId = "{@sourceAccountIdValue}"
-@targetAccountIdValue = getValue(@draft, "targetAccountId")
-@targetAccountId = "{@targetAccountIdValue}"
-@category = ""
-@categoryLabel = ""
-@direction = ""
-if @type == "expense" {
-    @direction = "支出"
-    menu "选择支出类别" {
-        item "餐饮":
-            @category = "catFood"
-            @categoryLabel = "餐饮"
-        item "交通":
-            @category = "catTransport"
-            @categoryLabel = "交通"
-        item "账单":
-            @category = "catBills"
-            @categoryLabel = "账单"
-        item "娱乐":
-            @category = "catEntertainment"
-            @categoryLabel = "娱乐"
-        item "医疗":
-            @category = "catHealth"
-            @categoryLabel = "医疗"
-        item "购物":
-            @category = "catShopping"
-            @categoryLabel = "购物"
-        item "其他支出":
-            @category = "catOther"
-            @categoryLabel = "其他支出"
-    }
-} else {
-    if @type == "income" {
-        @direction = "收入"
-        menu "选择收入类别" {
-            item "薪资":
-                @category = "catSalary"
-                @categoryLabel = "薪资"
-            item "接案":
-                @category = "catFreelance"
-                @categoryLabel = "接案"
-            item "投资":
-                @category = "catInvestment"
-                @categoryLabel = "投资"
-            item "礼物":
-                @category = "catGift"
-                @categoryLabel = "礼物"
-            item "其他收入":
-                @category = "catOtherIncome"
-                @categoryLabel = "其他收入"
-        }
-    } else {
-        if @type == "transfer" {
-            @direction = "转账"
-            @categoryLabel = "账户间转账"
-        } else {
-            alert("无法读取交易类型（{@type}），未保存。", "JSave")
-            stop()
-        }
-    }
-}
-
-confirm("{@direction} RM{@amount}\n日期：{@date} {@time}\n来源：{@provider}\n账户：{@accountName}\n说明：{@note}\n类别：{@categoryLabel}\n\n确认加入 JSave？", "核对交易")
-@commit = jsonRequest("https://us-central1-jee-production.cloudfunctions.net/jsaveReceiptShortcutImport", "POST", {"action":"commit", "protocolVersion":2, "text":"{ocr}", "category":"{@category}", "routingToken":"{@routingToken}", "sourceHint":"{@sourceHint}", "accountSelections":{"source":"{@sourceAccountId}", "target":"{@targetAccountId}"}}, {"Authorization":"Bearer {key}"})
-@commitDict = getDictionary(@commit)
-@statusValue = getValue(@commitDict, "status")
-@status = "{@statusValue}"
-@completion = ""
-if @status == "created" {
-    @completion = "已加入 JSave。"
-} else {
-    if @status == "duplicate" {
-        @completion = "这笔交易已导入过，没有重复新增。"
-    } else {
-        alert("JSave 没有确认保存，请检查网络与密钥。", "未完成")
+    if @apiError == "unauthorized" {
+        alert("统一密钥无效或已停用，请在 JSave 设置中检查。", "JSave")
         stop()
     }
+    if @apiError == "no-compatible-account" {
+        @accountMessageValue = getValue(@previewDict, "message")
+        @accountMessage = "{@accountMessageValue}"
+        alert(@accountMessage, "需要建立账户")
+        stop()
+    }
+    if @apiError != "" {
+        if @apiError != "source-selection-required" {
+            if @apiError != "account-selection-required" {
+                if @apiError != "manual-review-required" {
+                    @errorMessageValue = getValue(@previewDict, "message")
+                    @errorMessage = "{@errorMessageValue}"
+                    alert("暂时无法导入（{@apiError}）。{@errorMessage} 未保存交易。", "JSave")
+                    stop()
+                }
+            }
+        }
+    }
+    if @apiError == "" {
+        @draftValue = getValue(@previewDict, "draft")
+        @draft = getDictionary(@draftValue)
+        @providerValue = getValue(@draft, "provider")
+        @provider = "{@providerValue}"
+        @typeValue = getValue(@draft, "type")
+        @type = "{@typeValue}"
+        @amountValue = getValue(@draft, "amount")
+        @amount = "{@amountValue}"
+        @dateValue = getValue(@draft, "date")
+        @date = "{@dateValue}"
+        @timeValue = getValue(@draft, "time")
+        @time = "{@timeValue}"
+        @noteValue = getValue(@draft, "note")
+        @note = "{@noteValue}"
+        @referenceValue = getValue(@draft, "reference")
+        @reference = "{@referenceValue}"
+        @accountNameValue = getValue(@draft, "accountName")
+        @accountName = "{@accountNameValue}"
+        @routingTokenValue = getValue(@draft, "routingToken")
+        @routingToken = "{@routingTokenValue}"
+        @sourceAccountIdValue = getValue(@draft, "sourceAccountId")
+        @sourceAccountId = "{@sourceAccountIdValue}"
+        @targetAccountIdValue = getValue(@draft, "targetAccountId")
+        @targetAccountId = "{@targetAccountIdValue}"
+        if @category == "" {
+            if @type == "expense" {
+                @direction = "支出"
+                menu "选择支出类别" {
+                    item "餐饮":
+                        @category = "catFood"
+                        @categoryLabel = "餐饮"
+                    item "交通":
+                        @category = "catTransport"
+                        @categoryLabel = "交通"
+                    item "账单":
+                        @category = "catBills"
+                        @categoryLabel = "账单"
+                    item "娱乐":
+                        @category = "catEntertainment"
+                        @categoryLabel = "娱乐"
+                    item "医疗":
+                        @category = "catHealth"
+                        @categoryLabel = "医疗"
+                    item "购物":
+                        @category = "catShopping"
+                        @categoryLabel = "购物"
+                    item "其他支出":
+                        @category = "catOther"
+                        @categoryLabel = "其他支出"
+                }
+            } else {
+                if @type == "income" {
+                    @direction = "收入"
+                    menu "选择收入类别" {
+                        item "薪资":
+                            @category = "catSalary"
+                            @categoryLabel = "薪资"
+                        item "接案":
+                            @category = "catFreelance"
+                            @categoryLabel = "接案"
+                        item "投资":
+                            @category = "catInvestment"
+                            @categoryLabel = "投资"
+                        item "礼物":
+                            @category = "catGift"
+                            @categoryLabel = "礼物"
+                        item "其他收入":
+                            @category = "catOtherIncome"
+                            @categoryLabel = "其他收入"
+                    }
+                } else {
+                    if @type == "transfer" {
+                        @direction = "转账"
+                        @categoryLabel = "账户间转账"
+                    } else {
+                        alert("无法读取交易类型（{@type}），未保存。", "JSave")
+                        stop()
+                    }
+                }
+            }
+
+        }
+        @saveNow = "0"
+        menu "{@direction} RM{@amount}\n日期：{@date} {@time}\n来源：{@provider}\n账户：{@accountName}\n备注：{@note}\n类别：{@categoryLabel}\n\n核对后再保存" {
+            item "确认加入 JSave":
+                @saveNow = "1"
+            item "更换账户":
+                @sourceAccountId = ""
+                @targetAccountId = ""
+                @chooseAccounts = "1"
+            item "修改交易资料":
+                @reviewSource = "{@provider}"
+                @reviewAmount = "{@amount}"
+                @reviewDate = "{@date}"
+                @reviewNote = "{@note}"
+                @reviewReference = "{@reference}"
+                @editFields = "1"
+            item "取消":
+                stop()
+        }
+        if @saveNow == "1" {
+            if @manualMode == "1" {
+                @commit = jsonRequest("https://us-central1-jee-production.cloudfunctions.net/jsaveReceiptShortcutImport", "POST", {"action":"commit", "protocolVersion":3, "text":"{ocr}", "sourceHint":"{@sourceHint}", "chooseAccounts":"{@chooseAccounts}", "accountSelections":{"source":"{@sourceAccountId}", "target":"{@targetAccountId}"}, "manualFields":{"sourceLabel":"{@reviewSource}", "type":"{@reviewType}", "amount":"{@reviewAmount}", "date":"{@reviewDate}", "note":"{@reviewNote}", "reference":"{@reviewReference}"}, "category":"{@category}", "routingToken":"{@routingToken}"}, {"Authorization":"Bearer {key}"})
+            } else {
+                @commit = jsonRequest("https://us-central1-jee-production.cloudfunctions.net/jsaveReceiptShortcutImport", "POST", {"action":"commit", "protocolVersion":3, "text":"{ocr}", "sourceHint":"{@sourceHint}", "chooseAccounts":"{@chooseAccounts}", "accountSelections":{"source":"{@sourceAccountId}", "target":"{@targetAccountId}"}, "category":"{@category}", "routingToken":"{@routingToken}"}, {"Authorization":"Bearer {key}"})
+            }
+            @commitDict = getDictionary(@commit)
+            @statusValue = getValue(@commitDict, "status")
+            @status = "{@statusValue}"
+            @completion = ""
+            if @status == "created" {
+                @completion = "已加入 JSave。"
+            } else {
+                if @status == "duplicate" {
+                    @completion = "这笔交易已导入过，没有重复新增。"
+                } else {
+                    alert("JSave 没有确认保存，请检查网络与密钥。", "未完成")
+                    stop()
+                }
+            }
+            menu "{@completion} 要删除这张截图吗？" {
+                item "保留照片":
+                    alert("{@completion} 截图已保留。", "JSave")
+                    stop()
+                item "删除照片":
+                    deletePhotos(@photo)
+                    alert("{@completion} 已请求删除这张截图。", "JSave")
+                    stop()
+            }
+
+        }
+    }
+    if @editFields == "1" {
+        @reviewSource = prompt("截图来自哪个银行或 App？例如 Maybank、Shopee、Grab", "Text", @reviewSource)
+        menu "选择这笔交易的类型：信用卡消费是支出，还款或充值通常是账户间转账" {
+            item "支出":
+                @reviewType = "expense"
+            item "收入":
+                @reviewType = "income"
+            item "转账／信用卡还款":
+                @reviewType = "transfer"
+            item "取消":
+                stop()
+        }
+        @reviewAmount = prompt("核对单笔金额（RM）。多个金额时请填入本次要记录的金额。", "Text", @reviewAmount)
+        @chosenDate = prompt("核对交易日期。截图没有唯一日期时，请自行选择。", "Date", @reviewDate)
+        @reviewDate = formatDate(@chosenDate, "Custom", "yyyy-MM-dd")
+        @reviewNote = prompt("备注／商家／交易对象", "Text", @reviewNote)
+        @reviewReference = prompt("交易或订单编号（可留空，帮助识别重复交易）", "Text", @reviewReference)
+        @manualMode = "1"
+        @sourceAccountId = ""
+        @targetAccountId = ""
+        @chooseAccounts = "1"
+        @category = ""
+        @categoryLabel = ""
+    }
 }
-menu "{@completion} 要删除这张截图吗？" {
-    item "保留照片":
-        alert("{@completion} 截图已保留。", "JSave")
-    item "删除照片":
-        deletePhotos(ShortcutInput)
-        alert("{@completion} 已请求删除这张截图。", "JSave")
-}
+alert("本次尚未保存，请重新运行后核对资料。", "JSave")

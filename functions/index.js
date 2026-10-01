@@ -9,6 +9,8 @@ const crypto = require('crypto')
 const { validateCategory } = require('./jsaveShortcut')
 const { parseReceiptScreenshot, receiptTransactionDocumentId, receiptAccountKey, receiptTransferAccountKey, matchUobCreditAccount } = require('./jsaveReceiptShortcut')
 const { RECEIPT_ACCOUNT_TYPES, normalizeReceiptAccounts, receiptRoutingToken, receiptSelectionToken, resolveReceiptAccounts } = require('./jsaveReceiptAccounts')
+const { importUniversalReceipt } = require('./jsaveReceiptUniversalImport')
+const { ACCOUNT_TYPES } = require('./jsaveReceiptUniversal')
 
 initializeApp()
 
@@ -48,28 +50,55 @@ async function checkedReceiptAccounts(uid, input) {
 exports.jsaveReceiptShortcutKeyStatus = onCall(async req => {
   if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in required.')
   const snapshot = await receiptShortcutKeyRef(req.auth.uid).get()
-  return { enabled: snapshot.exists, accountIds: snapshot.data()?.accountIds || {} }
+  return { enabled: snapshot.exists, accountIds: snapshot.data()?.accountIds || {}, accountLinks: snapshot.data()?.accountLinks || {} }
 })
 
 exports.jsaveCreateReceiptShortcutKey = onCall(async req => {
   if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in required.')
   const accountIds = await checkedReceiptAccounts(req.auth.uid, req.data?.accountIds)
+  const keyRef = receiptShortcutKeyRef(req.auth.uid)
   const key = `jsv1_${req.auth.uid}_${crypto.randomBytes(32).toString('hex')}`
-  await receiptShortcutKeyRef(req.auth.uid).set({
-    keyHash: crypto.createHash('sha256').update(key).digest('hex'),
-    accountIds,
-    createdAt: FieldValue.serverTimestamp(),
+  const accountLinks = await getFirestore().runTransaction(async transaction => {
+    const previous = await transaction.get(keyRef)
+    const links = previous.data()?.accountLinks || {}
+    transaction.set(keyRef, {
+      keyHash: crypto.createHash('sha256').update(key).digest('hex'),
+      accountIds, accountLinks: links, createdAt: FieldValue.serverTimestamp(),
+    })
+    return links
   })
-  return { key, accountIds }
+  return { key, accountIds, accountLinks }
 })
 
 exports.jsaveUpdateReceiptShortcutAccounts = onCall(async req => {
   if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in required.')
-  const accountIds = await checkedReceiptAccounts(req.auth.uid, req.data?.accountIds)
   const keyRef = receiptShortcutKeyRef(req.auth.uid)
-  if (!(await keyRef.get()).exists) throw new HttpsError('failed-precondition', 'Create a shortcut key first.')
-  await keyRef.update({ accountIds, updatedAt: FieldValue.serverTimestamp() })
-  return { accountIds }
+  const current = await keyRef.get()
+  if (!current.exists) throw new HttpsError('failed-precondition', 'Create a shortcut key first.')
+  const accountIds = await checkedReceiptAccounts(req.auth.uid, req.data?.accountIds ?? current.data().accountIds ?? {})
+  const accountLinks = { ...(current.data().accountLinks || {}) }
+  const changes = req.data?.linkChanges || {}
+  if (typeof changes !== 'object' || Array.isArray(changes) || Object.keys(changes).length > 100) throw new HttpsError('invalid-argument', 'Invalid account choices.')
+  for (const [key, id] of Object.entries(changes)) {
+    if (!/^[a-f0-9]{64}$/.test(key) || !Object.hasOwn(accountLinks, key) || typeof id !== 'string' || (id && !/^[A-Za-z0-9_-]{1,128}$/.test(id))) {
+      throw new HttpsError('invalid-argument', 'Invalid account choice.')
+    }
+    if (!id) { delete accountLinks[key]; continue }
+    const snapshot = await getFirestore().collection('users').doc(req.auth.uid).collection('jsave_accounts').doc(id).get()
+    if (!snapshot.exists || snapshot.data().deleted || !ACCOUNT_TYPES.includes(snapshot.data().type) || !accountLinks[key].accountTypes?.includes(snapshot.data().type)) {
+      throw new HttpsError('invalid-argument', 'Account type does not match this import.')
+    }
+    accountLinks[key] = { ...accountLinks[key], accountId: id }
+  }
+  await getFirestore().runTransaction(async transaction => {
+    const latest = await transaction.get(keyRef)
+    if (!latest.exists || latest.data().keyHash !== current.data().keyHash ||
+        JSON.stringify(latest.data().accountLinks || {}) !== JSON.stringify(current.data().accountLinks || {})) {
+      throw new HttpsError('aborted', 'Shortcut settings changed. Reload before saving.')
+    }
+    transaction.set(keyRef, { accountIds, accountLinks, updatedAt: FieldValue.serverTimestamp() }, { merge: true })
+  })
+  return { accountIds, accountLinks }
 })
 
 exports.jsaveRevokeReceiptShortcutKey = onCall(async req => {
@@ -103,6 +132,8 @@ exports.jsaveReceiptShortcutImport = onRequest({ invoker: 'public', cors: false 
       ocrText: typeof input.text === 'string' ? input.text.slice(0, 8000) : input.text,
     })}`)
   }
+  if (input.protocolVersion === 3) return importUniversalReceipt({ input, res, uid, keyRef,
+    keyData: keySnapshot.data(), expectedHash, db: getFirestore(), FieldValue })
   let draft
   try {
     draft = parseReceiptScreenshot(input.text, input.sourceHint || '')

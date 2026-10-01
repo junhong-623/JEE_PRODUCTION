@@ -79,6 +79,8 @@ function ReceiptShortcutSettings({ accounts, user, lang }) {
   const emptyIds = { tngAccountId: '', cimbBankAccountId: '', cimbCreditAccountId: '', uobCreditAccountId: '' }
   const [accountIds, setAccountIds] = useState(emptyIds)
   const [savedIds, setSavedIds] = useState(emptyIds)
+  const [accountLinks, setAccountLinks] = useState({})
+  const [savedLinks, setSavedLinks] = useState({})
   const [enabled, setEnabled] = useState(false)
   const [statusReady, setStatusReady] = useState(false)
   const [key, setKey] = useState('')
@@ -86,7 +88,10 @@ function ReceiptShortcutSettings({ accounts, user, lang }) {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [showRotationConfirm, setShowRotationConfirm] = useState(false)
-  const changed = Object.keys(emptyIds).some(name => accountIds[name] !== savedIds[name])
+  const linkChanges = Object.fromEntries(Object.entries(accountLinks)
+    .filter(([name, link]) => link.accountId !== savedLinks[name]?.accountId)
+    .map(([name, link]) => [name, link.accountId]))
+  const changed = Object.keys(emptyIds).some(name => accountIds[name] !== savedIds[name]) || Object.keys(linkChanges).length > 0
   const choices = [
     { key: 'tngAccountId', type: 'accEwallet', label: zh ? 'TNG 钱包账户' : 'TNG wallet account' },
     { key: 'cimbBankAccountId', type: 'accBank', label: zh ? 'CIMB 银行账户' : 'CIMB bank account' },
@@ -103,6 +108,8 @@ function ReceiptShortcutSettings({ accounts, user, lang }) {
       const ids = { ...emptyIds, ...(data.accountIds || {}) }
       setAccountIds(ids)
       setSavedIds(ids)
+      setAccountLinks(data.accountLinks || {})
+      setSavedLinks(data.accountLinks || {})
       setEnabled(Boolean(data.enabled))
       setStatusReady(true)
     }).catch(() => {
@@ -117,12 +124,17 @@ function ReceiptShortcutSettings({ accounts, user, lang }) {
     setError('')
     setMessage('')
     try {
-      const { data } = await httpsCallable(functions, action)({ accountIds: ids })
+      const { data } = await httpsCallable(functions, action)({ accountIds: ids,
+        ...(action === 'jsaveUpdateReceiptShortcutAccounts' ? { linkChanges } : {}) })
       if (data.key) setKey(data.key)
       if (data.accountIds) {
         const nextIds = { ...emptyIds, ...data.accountIds }
         setSavedIds(nextIds)
         setAccountIds(nextIds)
+      }
+      if (data.accountLinks) {
+        setAccountLinks(data.accountLinks)
+        setSavedLinks(data.accountLinks)
       }
       setEnabled(true)
       setMessage(successMessage)
@@ -186,8 +198,8 @@ function ReceiptShortcutSettings({ accounts, user, lang }) {
         </p>
       )}
       <p className="jsave-section-sub" style={{ marginBottom: 12 }}>
-        {zh ? '首次导入时选择账户，保存后自动记住。升级指令可沿用原密钥。'
-          : 'Choose accounts on first import; they are remembered after saving. Your existing key works with the updated shortcut.'}
+        {zh ? '导入时选择已建立的账户，确认后自动记住；保存前可更换。升级可沿用原密钥。'
+          : 'Choose from your JSave accounts during import. Choices are remembered after confirmation and can be changed before saving. Keep your existing key when upgrading.'}
       </p>
       {enabled ? (
         <button className="jsave-btn-ghost jsave-btn-full" disabled={busy || !statusReady}
@@ -210,8 +222,23 @@ function ReceiptShortcutSettings({ accounts, user, lang }) {
       </button>}
       {enabled && <details className="jsave-shortcut-accounts">
         <summary>{zh ? '管理已关联账户' : 'Manage linked accounts'}</summary>
-        <p className="jsave-section-sub">{zh ? '留空后，下次导入会重新匹配账户；有多个候选时让你选择。' : 'Clear a choice to match accounts again on the next import; choose when there are multiple matches.'}</p>
-        <div className="jsave-shortcut-account-grid">{choices.map(({ key: name, type, label }) => (
+        <p className="jsave-section-sub">{zh ? '这里显示确认导入后记住的选择。清除后，下次导入重新匹配；保存设置不会更换密钥。' : 'Choices appear here after an import is confirmed. Clear a choice to match again next time. Saving settings keeps your key.'}</p>
+        {Object.keys(accountLinks).length === 0 && <p className="jsave-section-sub">{zh ? '还没有新指令记住的选择。导入时选择账户即可，无需预先设置。' : 'No choices remembered by the new shortcut yet. Select an account during import; no setup is needed here.'}</p>}
+        <div className="jsave-shortcut-account-grid">{Object.entries(accountLinks).map(([name, link]) => (
+          <div key={name} className="jsave-shortcut-account-field">
+            <label className="jsave-label" htmlFor={`jsave-receipt-link-${name}`}>{zh ? link.label : link.label.replace('支出', 'Expense').replace('收入', 'Income').replace('转账', 'Transfer').replace('付款账户', 'Paid from').replace('收款账户', 'Received into').replace('转出账户', 'From').replace('转入账户', 'To')}</label>
+            <select id={`jsave-receipt-link-${name}`} className="jsave-input jsave-input-sm" disabled={busy}
+              value={link.accountId} onChange={event => setAccountLinks(previous => ({ ...previous, [name]: { ...previous[name], accountId: event.target.value } }))}>
+              <option value="">{zh ? '清除记住的选择' : 'Forget this choice'}</option>
+              {accounts.filter(account => !account.deleted && (link.accountTypes || ACC_TYPES).includes(account.type)).map(account =>
+                <option key={account.id} value={account.id}>{account.name}</option>)}
+              {link.accountId && !accounts.some(account => account.id === link.accountId && !account.deleted) && <option value={link.accountId}>{zh ? '账户已移除，请重新选择' : 'Account removed — choose again'}</option>}
+            </select>
+          </div>
+        ))}</div>
+        {choices.some(choice => savedIds[choice.key]) && <details>
+        <summary>{zh ? '旧指令已关联账户' : 'Accounts linked by older shortcuts'}</summary>
+        <div className="jsave-shortcut-account-grid">{choices.filter(choice => savedIds[choice.key]).map(({ key: name, type, label }) => (
           <div key={name} className="jsave-shortcut-account-field">
             <label className="jsave-label" htmlFor={`jsave-receipt-${name}`}>{label}</label>
             <select id={`jsave-receipt-${name}`} className="jsave-input jsave-input-sm" disabled={busy}
@@ -228,6 +255,7 @@ function ReceiptShortcutSettings({ accounts, user, lang }) {
               <p className="jsave-error" style={{ marginTop: 6 }}>{zh ? '请确认这是 UOB 信用卡。' : 'Confirm this is your UOB credit card.'}</p>}
           </div>
         ))}</div>
+        </details>}
         <button className="jsave-btn-primary jsave-btn-full" disabled={busy || !statusReady || !changed}
           onClick={() => run('jsaveUpdateReceiptShortcutAccounts', zh ? '账户设置已保存。' : 'Accounts saved.')}>
           {zh ? '保存账户设置' : 'Save account choices'}

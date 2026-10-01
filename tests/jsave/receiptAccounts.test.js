@@ -142,6 +142,10 @@ async function commit(draft, more = {}) {
     accountSelections: { source: draft.sourceAccountId, target: draft.targetAccountId }, ...more })
 }
 const ledgerRows = () => [...rows.keys()].filter(path => path.includes('/jsave_transactions/'))
+const universalFields = { sourceLabel: 'Shopee', type: 'expense', amount: '85.00', date: '2026-10-01', note: 'Sample shop', reference: 'ORDER123456' }
+const universalText = 'Shopee\nPaid RM85.00\n01 Oct 2026\nOrder ID ORDER123456'
+const universalPreview = more => preview({ protocolVersion: 3, text: universalText, manualFields: universalFields, ...more })
+const universalCommit = (draft, more) => commit(draft, { protocolVersion: 3, text: universalText, manualFields: universalFields, ...more })
 
 beforeEach(() => {
   rows = new Map([[keyPath, { keyHash, accountIds: {} }]])
@@ -312,5 +316,96 @@ describe('receipt import endpoint account protocol', () => {
     expect(old.draft.sourceAccountId).toBeUndefined()
     const result = await commit(old.draft, { protocolVersion: undefined, accountSelections: undefined })
     expect(result.status).toBe('created')
+  })
+})
+
+describe('universal shortcut endpoint', () => {
+  it('lists user-owned accounts, saves a selected Maybank account and remembers it only after confirmation', async () => {
+    addAccount('bank', 'Maybank Savings', 'accBank')
+    addAccount('card', 'CIMB Visa', 'accCredit')
+    rows.set('users/other_user/jsave_accounts/foreign', { name: 'Other user', type: 'accBank' })
+    const menu = await universalPreview()
+    expect(Object.values(menu.accountOptions)).toEqual(['bank', 'card'])
+    expect(rows.get(keyPath).accountLinks).toBeUndefined()
+    const {draft} = await universalPreview({ accountSelections: { source: 'bank' } })
+    expect((await universalCommit(draft)).status).toBe('created')
+    expect(rows.get(ledgerRows()[0])).toMatchObject({ accountId: 'bank', type: 'expense', amount: 85, receiptProvider: 'Shopee', receiptReviewed: true })
+    expect(Object.values(rows.get(keyPath).accountLinks)[0].accountId).toBe('bank')
+    const next = await universalPreview()
+    expect(next.draft.sourceAccountId).toBe('bank')
+    expect((await universalCommit(next.draft)).status).toBe('duplicate')
+    expect(ledgerRows()).toHaveLength(1)
+  })
+  it('returns a manual-review suggestion without writing an unsupported screenshot', async () => {
+    const result = await preview({ protocolVersion: 3, text: universalText })
+    expect(result.error).toBe('manual-review-required')
+    expect(result.suggestions).toMatchObject({ sourceLabel: 'Shopee', amount: '85.00', date: '2026-10-01' })
+    expect(ledgerRows()).toHaveLength(0)
+  })
+  it('keeps known repayment matching and allows choosing another bank account from the full list', async () => {
+    addAccount('bank', 'CIMB Bank', 'accBank')
+    addAccount('otherBank', 'CIMB Savings', 'accBank')
+    addAccount('card', 'CIMB (9627)', 'accCredit')
+    addAccount('wrong', 'CIMB (1234)', 'accCredit')
+    rows.set(keyPath, { keyHash, accountIds: { cimbBankAccountId: 'bank', cimbCreditAccountId: 'card' } })
+    const matched = await preview({ protocolVersion: 3, text: internalRepayment })
+    expect(matched.draft).toMatchObject({ sourceAccountId: 'bank', targetAccountId: 'card' })
+    const changed = await preview({ protocolVersion: 3, text: internalRepayment, accountSelections: { source: 'otherBank', target: 'card' } })
+    expect((await commit(changed.draft, { protocolVersion: 3, text: internalRepayment, category: '' })).status).toBe('created')
+    expect(rows.get(ledgerRows()[0])).toMatchObject({ type: 'transfer', fromAccountId: 'otherBank', toAccountId: 'card' })
+  })
+  it('guards changed fields, account selection and revoked keys between preview and commit', async () => {
+    addAccount('bank', 'Maybank', 'accBank')
+    addAccount('card', 'Visa', 'accCredit')
+    const {draft}=await universalPreview({ accountSelections: { source: 'bank' } })
+    expect((await universalCommit(draft, { manualFields: {...universalFields,amount:'90.00'} })).error).toBe('account-configuration-changed')
+    expect((await universalCommit(draft, { accountSelections: { source: 'card' } })).error).toBe('account-configuration-changed')
+    mutateBeforeCommit=()=>rows.delete(keyPath)
+    expect((await universalCommit(draft)).error).toBe('account-configuration-changed')
+    expect(ledgerRows()).toHaveLength(0)
+  })
+  it.each(['deleted', 'retyped', 'changed-links'])('rejects %s during universal commit and does not remember on failure', async change => {
+    addAccount('bank', 'Maybank', 'accBank')
+    const {draft}=await universalPreview({ accountSelections: { source: 'bank' } })
+    mutateBeforeCommit=()=>{
+      if (change === 'deleted') rows.delete(`users/${uid}/jsave_accounts/bank`)
+      if (change === 'retyped') addAccount('bank','Maybank','accCredit')
+      if (change === 'changed-links') rows.set(keyPath, {keyHash, accountIds: {}, accountLinks: {example:{accountId:'bank'}}})
+    }
+    expect((await universalCommit(draft)).error).toBe(change === 'deleted' ? 'account-not-found' : change === 'retyped' ? 'account-type-changed' : 'account-configuration-changed')
+    if (change !== 'changed-links') expect(rows.get(keyPath).accountLinks).toBeUndefined()
+    expect(ledgerRows()).toHaveLength(0)
+  })
+  it('does not remember universal choices when the daily limit is reached', async () => {
+    addAccount('bank', 'Maybank', 'accBank')
+    rows.set(`jsave_shortcut_usage/${uid}_${new Date().toISOString().slice(0, 10)}`, { count: 100 })
+    const {draft}=await universalPreview({accountSelections:{source:'bank'}})
+    expect((await universalCommit(draft)).error).toBe('daily-limit')
+    expect(rows.get(keyPath).accountLinks).toBeUndefined()
+    expect(ledgerRows()).toHaveLength(0)
+  })
+  it('supports arbitrary bank-to-wallet transfers with distinct accounts', async () => {
+    addAccount('bank', 'Maybank', 'accBank')
+    addAccount('wallet', 'GrabPay', 'accEwallet')
+    const manualFields = {...universalFields,sourceLabel:'Grab',type:'transfer'}
+    const menu=await universalPreview({manualFields,accountSelections:{source:'bank'}})
+    expect(Object.values(menu.accountOptions)).toEqual(['wallet'])
+    const {draft}=await universalPreview({manualFields,accountSelections:{source:'bank',target:'wallet'}})
+    expect((await universalCommit(draft,{manualFields,category:''})).status).toBe('created')
+    expect(rows.get(ledgerRows()[0])).toMatchObject({type:'transfer',fromAccountId:'bank',toAccountId:'wallet'})
+  })
+  it('lets users manage dynamic remembered choices, rejects foreign accounts, and preserves choices when rotating', async () => {
+    addAccount('bank', 'Maybank', 'accBank')
+    addAccount('card', 'Visa', 'accCredit')
+    const {draft}=await universalPreview({accountSelections:{source:'bank'}})
+    await universalCommit(draft)
+    const id=Object.keys(rows.get(keyPath).accountLinks)[0]
+    await expect(api.jsaveUpdateReceiptShortcutAccounts({auth:{uid},data:{linkChanges:{[id]:'foreign'}}})).rejects.toThrow()
+    await api.jsaveUpdateReceiptShortcutAccounts({auth:{uid},data:{linkChanges:{[id]:'card'}}})
+    expect(rows.get(keyPath).accountLinks[id].accountId).toBe('card')
+    await api.jsaveCreateReceiptShortcutKey({auth:{uid},data:{}})
+    expect(rows.get(keyPath).accountLinks[id].accountId).toBe('card')
+    await api.jsaveUpdateReceiptShortcutAccounts({auth:{uid},data:{linkChanges:{[id]:''}}})
+    expect(rows.get(keyPath).accountLinks).toEqual({})
   })
 })
