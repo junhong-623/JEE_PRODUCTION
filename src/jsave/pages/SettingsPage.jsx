@@ -169,12 +169,7 @@ function ReceiptShortcutSettings({ accounts, user, lang }) {
 
   return (
     <>
-    <Accordion title={zh ? '📱 统一收据截图快捷指令 · TNG / CIMB' : '📱 One receipt shortcut · TNG / CIMB'}>
-      <p className="jsave-section-sub" style={{ marginBottom: 12 }}>
-        {zh
-          ? '同一个 iPhone 指令识别 TNG 和 CIMB 交易截图，选类别、核对账户后才保存。以后支持其他银行时，这个指令不用重新下载。'
-          : 'One iPhone shortcut reviews TNG and CIMB screenshots before saving. New bank formats can be added without reinstalling the shortcut.'}
-      </p>
+    <Accordion title={zh ? '截图快捷指令下载' : 'Download screenshot shortcut'}>
       {isIPhone ? (
         <a className="jsave-btn-ghost jsave-btn-full"
           href="https://jeeprod-jsave.web.app/shortcuts/JSave-Receipt-Import.shortcut?v=3.7.1"
@@ -184,12 +179,12 @@ function ReceiptShortcutSettings({ accounts, user, lang }) {
         </a>
       ) : (
         <p className="jsave-shortcut-device-notice" role="note">
-          {zh ? '请用 iPhone 打开此页面下载快捷指令。你仍可在这里设置账户和密钥。' : 'Open this page on your iPhone to download the shortcut. You can still set up accounts and the key here.'}
+          {zh ? '请在 iPhone 上打开 JSave 下载。' : 'Open JSave on your iPhone to download.'}
         </p>
       )}
       <p className="jsave-section-sub" style={{ marginBottom: 12 }}>
-        {zh ? '选择你使用的账户，未使用的来源可以留空。CIMB 的 TNG 充值需要同时设置 CIMB 银行和 TNG 钱包。CIMB 支付 UOB 信用卡时，若你只有一张名称包含 UOB 的信用卡账户，会自动匹配；否则在下方指定 UOB 信用卡。'
-          : 'Choose the accounts you use and leave unused sources blank. A CIMB to TNG top-up needs both accounts. A CIMB payment to a UOB card matches one UOB credit card account automatically; otherwise choose the UOB card below.'}
+        {zh ? '选择使用的账户，不用的留空。TNG 充值需同时选择 CIMB 银行与 TNG 钱包；有多张 UOB 信用卡时，请指定对应账户。'
+          : 'Choose the accounts you use; leave others blank. TNG top-ups need both CIMB bank and TNG wallet. If you have multiple UOB cards, choose the matching one.'}
       </p>
       {choices.map(({ key: name, type, label }) => (
         <div key={name} style={{ marginBottom: 10 }}>
@@ -220,11 +215,7 @@ function ReceiptShortcutSettings({ accounts, user, lang }) {
             onClick={() => run('jsaveUpdateReceiptShortcutAccounts', zh ? '账户设置已保存，原密钥继续有效。' : 'Accounts saved. The existing key still works.')}>
             {zh ? '保存账户设置' : 'Save account choices'}
           </button>
-          <p className="jsave-section-sub" style={{ margin: '10px 0 12px' }}>
-            {zh ? '换账户只需保存设置；丢失密钥时再重新生成。旧 TNG / CIMB 指令不受影响。'
-              : 'Save account changes without changing the key. Rotate only if you have lost the key.'}
-          </p>
-          <button className="jsave-btn-ghost jsave-btn-full" disabled={busy || !statusReady || !hasAccount}
+          <button className="jsave-btn-ghost jsave-btn-full" style={{ marginTop: 12 }} disabled={busy || !statusReady || !hasAccount}
             onClick={confirmKeyRotation}>
             {zh ? '重新生成统一密钥' : 'Rotate unified key'}
           </button>
