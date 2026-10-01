@@ -26,14 +26,16 @@ async function importUniversalReceipt({ input, res, uid, keyRef, keyData, expect
     if (draft.type !== 'transfer' && !validateCategory(draft.type, input.category)) return res.status(400).json({ error: 'invalid-category' })
     const transactionId = universalDocumentId(draft)
     const transactionRef = db.collection('users').doc(uid).collection('jsave_transactions').doc(transactionId)
+    const clearStateRef = db.collection('jsave_clear_state').doc(uid)
     const now = Date.now()
     const usageRef = db.collection('jsave_shortcut_usage').doc(`${uid}_${new Date(now).toISOString().slice(0, 10)}`)
     const selectedAccounts = [source, ...(target ? [target] : [])]
     const result = await db.runTransaction(async transaction => {
-      const [currentKey, existing, usage, ...currentAccounts] = await Promise.all([
-        transaction.get(keyRef), transaction.get(transactionRef), transaction.get(usageRef),
+      const [currentKey, existing, usage, clearState, ...currentAccounts] = await Promise.all([
+        transaction.get(keyRef), transaction.get(transactionRef), transaction.get(usageRef), transaction.get(clearStateRef),
         ...selectedAccounts.map(account => transaction.get(accountCollection.doc(account.id))),
       ])
+      if (clearState.data()?.clearingStores?.some(store => ['accounts', 'transactions'].includes(store))) return 'clear-in-progress'
       const currentData = currentKey.data() || {}
       if (currentData.keyHash !== expectedHash || universalRoutingToken(expectedHash, draft, input.text, currentData, selections) !== routingToken) return 'account-configuration-changed'
       if (currentAccounts.some(snapshot => !snapshot.exists || snapshot.data().deleted)) return 'account-not-found'
@@ -52,6 +54,7 @@ async function importUniversalReceipt({ input, res, uid, keyRef, keyData, expect
         sourceTransactionId: draft.sourceTransactionId, ...(draft.time ? { sourceTime: draft.time } : {}),
         ...(draft.provider === 'manual' ? { receiptReviewed: true } : {}),
         createdAt: now, updatedAt: now, deleted: false,
+        ...(clearState.data()?.epochs?.transactions ? { syncEpoch: clearState.data().epochs.transactions } : {}),
       })
       transaction.set(usageRef, { count: Number(usage.data()?.count || 0) + 1, updatedAt: FieldValue.serverTimestamp() })
       remember()

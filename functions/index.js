@@ -10,6 +10,7 @@ const { validateCategory } = require('./jsaveShortcut')
 const { parseReceiptScreenshot, receiptTransactionDocumentId, receiptAccountKey, receiptTransferAccountKey, matchUobCreditAccount } = require('./jsaveReceiptShortcut')
 const { RECEIPT_ACCOUNT_TYPES, normalizeReceiptAccounts, receiptRoutingToken, receiptSelectionToken, resolveReceiptAccounts } = require('./jsaveReceiptAccounts')
 const { importUniversalReceipt } = require('./jsaveReceiptUniversalImport')
+const { clearJSaveData } = require('./jsaveClearData')
 const { ACCOUNT_TYPES } = require('./jsaveReceiptUniversal')
 
 initializeApp()
@@ -29,6 +30,48 @@ const HAGENCY_EXPERIENCE = new Set(['无经验', '1-3个月', '3-12个月', '1�
 const HAGENCY_SPECIALIZATION = new Set(['唱歌', '跳舞', '聊天互动', '才艺表演', '其他'])
 
 const receiptShortcutKeyRef = uid => getFirestore().collection('jsave_receipt_shortcut_tokens').doc(uid)
+
+exports.jsaveClearSelectedData = onCall({ secrets: [CLOUDINARY_KEY, CLOUDINARY_SECRET], timeoutSeconds: 540 }, async req => {
+  if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in required.')
+  try {
+    cloudinary.config({ cloud_name: 'db2ixn8zh', api_key: CLOUDINARY_KEY.value(), api_secret: CLOUDINARY_SECRET.value() })
+    return await clearJSaveData({
+      db: getFirestore(), uid: req.auth.uid, selected: req.data?.selected,
+      destroyCover: async path => {
+        const result = await cloudinary.uploader.destroy(path)
+        if (!['ok', 'not found'].includes(result.result)) throw new Error('cover-delete-failed')
+      },
+    })
+  } catch (error) {
+    if (['invalid-selection', 'transactions-required'].includes(error.message)) throw new HttpsError('invalid-argument', error.message)
+    if (error.message === 'clear-in-progress') throw new HttpsError('failed-precondition', error.message)
+    console.error('[JSave clear] failed', error)
+    throw new HttpsError('internal', 'Could not clear JSave data. Please try again.')
+  }
+})
+
+const JSAVE_DELETE_COLLECTIONS = {
+  transactions: 'jsave_transactions', accounts: 'jsave_accounts', items: 'jsave_items', goals: 'jsave_goals',
+}
+exports.jsaveDeleteSyncedRecord = onCall(async req => {
+  if (!req.auth) throw new HttpsError('unauthenticated', 'Sign in required.')
+  const { store, id, epoch } = req.data || {}
+  if (!JSAVE_DELETE_COLLECTIONS[store] || typeof id !== 'string' || id.length < 1 || id.length > 128 || id.includes('/') ||
+      typeof epoch !== 'string' || !/^[0-9a-f-]{36}$/.test(epoch)) {
+    throw new HttpsError('invalid-argument', 'Invalid record.')
+  }
+  const db = getFirestore()
+  const stateRef = db.collection('jsave_clear_state').doc(req.auth.uid)
+  const recordRef = db.collection('users').doc(req.auth.uid).collection(JSAVE_DELETE_COLLECTIONS[store]).doc(id)
+  await db.runTransaction(async tx => {
+    const state = await tx.get(stateRef)
+    if (state.data()?.epochs?.[store] !== epoch || state.data()?.clearingStores?.includes(store)) {
+      throw new HttpsError('failed-precondition', 'Ledger changed. Refresh before deleting.')
+    }
+    tx.delete(recordRef)
+  })
+  return { deleted: true }
+})
 async function checkedReceiptAccounts(uid, input) {
   let accountIds
   try {
@@ -225,14 +268,16 @@ exports.jsaveReceiptShortcutImport = onRequest({ invoker: 'public', cors: false 
   }
   const transactionId = receiptTransactionDocumentId(draft)
   const transactionRef = db.collection('users').doc(uid).collection('jsave_transactions').doc(transactionId)
+  const clearStateRef = db.collection('jsave_clear_state').doc(uid)
   const now = Date.now()
   const usageRef = db.collection('jsave_shortcut_usage').doc(`${uid}_${new Date(now).toISOString().slice(0, 10)}`)
   try {
     const result = await db.runTransaction(async transaction => {
-      const [currentKey, existing, usageSnapshot, ...currentAccounts] = await Promise.all([
-        transaction.get(keyRef), transaction.get(transactionRef), transaction.get(usageRef),
+      const [currentKey, existing, usageSnapshot, clearState, ...currentAccounts] = await Promise.all([
+        transaction.get(keyRef), transaction.get(transactionRef), transaction.get(usageRef), transaction.get(clearStateRef),
         ...accountSnapshots.map(snapshot => transaction.get(snapshot.ref)),
       ])
+      if (clearState.data()?.clearingStores?.some(store => ['accounts', 'transactions'].includes(store))) return 'clear-in-progress'
       const currentIds = currentKey.data()?.accountIds || {}
       const currentRouting = firstUseSelection
         ? receiptSelectionToken(expectedHash, draft, currentIds, accountId, targetAccountId)
@@ -262,6 +307,7 @@ exports.jsaveReceiptShortcutImport = onRequest({ invoker: 'public', cors: false 
         sourceTransactionId: draft.sourceTransactionId,
         ...(draft.time ? { sourceTime: draft.time } : {}),
         createdAt: now, updatedAt: now, deleted: false,
+        ...(clearState.data()?.epochs?.transactions ? { syncEpoch: clearState.data().epochs.transactions } : {}),
       })
       transaction.set(usageRef, { count: count + 1, updatedAt: FieldValue.serverTimestamp() })
       rememberAccounts()
@@ -269,7 +315,7 @@ exports.jsaveReceiptShortcutImport = onRequest({ invoker: 'public', cors: false 
     })
     if (result === 'revoked') return res.status(409).json({ error: 'account-configuration-changed' })
     if (result === 'rate-limited') return res.status(429).json({ error: 'daily-limit' })
-    if (['account-not-found', 'account-type-changed', 'invalid-account-selection'].includes(result)) return res.status(409).json({ error: result })
+    if (['account-not-found', 'account-type-changed', 'invalid-account-selection', 'clear-in-progress'].includes(result)) return res.status(409).json({ error: result })
     return res.json({ status: result, transactionId })
   } catch (error) {
     console.error('[jsave-receipt-shortcut] import failed', error)

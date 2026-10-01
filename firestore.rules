@@ -203,10 +203,44 @@ service cloud.firestore {
     }
 
     // ── JSave ────────────────────────────────────────────────────
-    // Each user owns their own sub-collections; admin can read all
+    function jsaveStoreKey(collection) {
+      return collection == 'jsave_accounts' ? 'accounts'
+        : collection == 'jsave_transactions' ? 'transactions'
+        : collection == 'jsave_items' ? 'items'
+        : collection == 'jsave_goals' ? 'goals'
+        : collection == 'jsave_settings' ? 'settings' : '';
+    }
+
+    function canWriteJSave(uid, collection, epoch) {
+      let key = jsaveStoreKey(collection);
+      let state = /databases/$(database)/documents/jsave_clear_state/$(uid);
+      return key == '' || !exists(state)
+        || !(key in get(state).data.epochs)
+        || (!get(state).data.clearingStores.hasAny([key])
+            && epoch == get(state).data.epochs[key]);
+    }
+
+    function canDeleteJSave(uid, collection) {
+      let key = jsaveStoreKey(collection);
+      let state = /databases/$(database)/documents/jsave_clear_state/$(uid);
+      return key == '' || !exists(state)
+        || (!(key in get(state).data.epochs)
+            && !get(state).data.clearingStores.hasAny([key]));
+    }
+
+    match /jsave_clear_state/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Each user owns their own sub-collections; admin can read all.
     match /users/{uid}/{collection}/{document} {
-      allow read, write: if signedIn() && request.auth.uid == uid;
+      allow read: if signedIn() && request.auth.uid == uid;
       allow read: if isAdmin();
+      allow create, update: if signedIn() && request.auth.uid == uid
+        && canWriteJSave(uid, collection, request.resource.data.get('syncEpoch', ''));
+      allow delete: if signedIn() && request.auth.uid == uid
+        && canDeleteJSave(uid, collection);
     }
 
     // Top-level donation log — any signed-in user can append; only admin reads

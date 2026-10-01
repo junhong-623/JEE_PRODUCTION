@@ -2,10 +2,10 @@ import { createContext, useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import {
-  subscribeAccounts, subscribeTransactions, subscribeItems, subscribeSettings, subscribeGoals,
+  subscribeAccounts, subscribeTransactions, subscribeItems, subscribeSettings, subscribeGoals, subscribeClearState,
 } from '../services/firestore'
-import { dbGetAll, dbDelete, migrateLegacyData } from '../services/db'
-import { syncWrite, syncDelete, flushQueue, reconcileRemote } from '../services/sync'
+import { dbGetAll, dbGet, dbDelete, migrateLegacyData, applyClearEpochs } from '../services/db'
+import { syncWrite, syncDelete, flushQueue, reconcileRemote, setClearEpochs } from '../services/sync'
 import { getDueAutoSalary, getDueRecurringTransactions } from '../services/automation'
 
 export const JSaveContext = createContext(null)
@@ -43,8 +43,33 @@ export function JSaveProvider({ children, onLanguageChange }) {
   const [hydratedUid, setHydratedUid] = useState(null)
   const [remoteReady, setRemoteReady] = useState(EMPTY_REMOTE_READY)
   const [syncError, setSyncError] = useState(null)
+  const [clearReady, setClearReady] = useState(false)
+  const [clearVersion, setClearVersion] = useState(0)
   const autoSalaryDone = useRef(new Set())
   const autoRecurringDone = useRef(new Set())
+
+  useEffect(() => {
+    if (!uid) { setClearReady(false); return undefined }
+    let cancelled = false
+    setClearReady(false)
+    const unsubscribe = subscribeClearState(uid, async state => {
+      try {
+        const epochs = state.epochs || {}
+        const changed = await applyClearEpochs(uid, epochs, state.revision || 0)
+        if (cancelled) return
+        if (changed.includes('settings') && state.selected?.includes('settings')) localStorage.removeItem('jsave-lang')
+        const effective = await dbGet(uid, 'meta', 'clear-epochs')
+        setClearEpochs(uid, effective?.epochs || epochs)
+        if (changed.length) setClearVersion(value => value + 1)
+        setClearReady(!(state.clearingStores?.length))
+      } catch (error) {
+        if (!cancelled) { setSyncError(error); setClearReady(false) }
+      }
+    }, error => {
+      if (!cancelled) { setSyncError(error); setClearReady(false) }
+    })
+    return () => { cancelled = true; unsubscribe() }
+  }, [uid])
 
   // Reset immediately on account changes, then hydrate only that user's database.
   useEffect(() => {
@@ -61,7 +86,7 @@ export function JSaveProvider({ children, onLanguageChange }) {
     autoSalaryDone.current.clear()
     autoRecurringDone.current.clear()
 
-    if (!uid) return undefined
+    if (!uid || !clearReady) return undefined
 
     async function hydrate() {
       try {
@@ -102,12 +127,12 @@ export function JSaveProvider({ children, onLanguageChange }) {
 
     hydrate()
     return () => { cancelled = true }
-  }, [uid, onLanguageChange])
+  }, [uid, onLanguageChange, clearReady, clearVersion])
 
   // Start remote listeners only after local hydration so stale local reads cannot
   // overwrite a newer Firestore snapshot that arrived first.
   useEffect(() => {
-    if (!uid || hydratedUid !== uid) return undefined
+    if (!uid || !clearReady || hydratedUid !== uid) return undefined
     let cancelled = false
 
     const markReady = store => setRemoteReady(previous => ({ ...previous, [store]: true }))
@@ -150,16 +175,16 @@ export function JSaveProvider({ children, onLanguageChange }) {
       cancelled = true
       unsubscribers.forEach(unsubscribe => unsubscribe())
     }
-  }, [uid, hydratedUid, onLanguageChange])
+  }, [uid, hydratedUid, onLanguageChange, clearReady, clearVersion])
 
   useEffect(() => {
-    if (online && uid && hydratedUid === uid) {
+    if (online && uid && clearReady && hydratedUid === uid) {
       flushQueue(uid).then(() => setSyncError(null)).catch(setSyncError)
     }
-  }, [online, uid, hydratedUid])
+  }, [online, uid, hydratedUid, clearReady])
 
   const automationReady = Boolean(
-    uid && hydratedUid === uid && (
+    uid && clearReady && hydratedUid === uid && (
       !online || (remoteReady.accounts && remoteReady.transactions && remoteReady.settings)
     )
   )
@@ -331,9 +356,9 @@ export function JSaveProvider({ children, onLanguageChange }) {
     accounts.reduce((sum, account) => sum + getAccountBalance(account.id), 0),
   [accounts, getAccountBalance])
 
-  const dataLoading = Boolean(uid) && (loading || hydratedUid !== uid)
+  const dataLoading = Boolean(uid) && (!clearReady || loading || hydratedUid !== uid)
   const preferencesReady = Boolean(
-    uid && hydratedUid === uid && (!online || remoteReady.settings)
+    uid && clearReady && hydratedUid === uid && (!online || remoteReady.settings)
   )
 
   return (

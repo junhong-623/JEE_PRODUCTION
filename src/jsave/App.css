@@ -584,6 +584,20 @@ body.jsave-body {
 .jsave-key-rotation-actions button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; text-align: center; }
 .jsave-key-rotation-actions button:focus-visible { outline: 2px solid #6ee7b7; outline-offset: 2px; }
 @media (max-width: 400px) { .jsave-key-rotation-actions { grid-template-columns: 1fr; } }
+.jsave-clear-data-dialog { width: min(440px, calc(100vw - 24px)); max-height: min(88vh, 720px); overflow-y: auto; background: #0b1723; color: #f1f5f9; border: 1px solid rgba(244,63,94,.3); }
+.jsave-clear-data-dialog h2 { margin: 0 0 10px; font-size: 20px; }
+.jsave-clear-data-dialog p { margin: 0 0 14px; color: #b8c9d2; font-size: 13px; line-height: 1.55; }
+.jsave-clear-data-options { display: grid; gap: 8px; margin: 16px 0; }
+.jsave-clear-data-option { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 14px; border: 1px solid rgba(255,255,255,.13); border-radius: 12px; cursor: pointer; }
+.jsave-clear-data-option:has(input:checked) { border-color: rgba(251,113,133,.7); background: rgba(244,63,94,.1); }
+.jsave-clear-data-option input { width: 18px; height: 18px; accent-color: #fb7185; }
+.jsave-clear-data-option span { flex: 1; font-size: 14px; }
+.jsave-clear-data-option small { color: #b8c9d2; }
+.jsave-clear-data-dialog .jsave-clear-data-note { color: #f5d570; font-size: 12px; }
+.jsave-clear-data-summary { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+.jsave-clear-data-summary span { border-radius: 999px; padding: 7px 11px; background: rgba(244,63,94,.13); color: #f9b5c0; font-size: 12px; }
+.jsave-clear-data-actions { display: flex; gap: 9px; margin-top: 20px; }
+.jsave-clear-data-actions button { flex: 1; min-height: 44px; }
 
 /* ── Install dialog ── */
 .jsave-install-dialog { text-align: center; }

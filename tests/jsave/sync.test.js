@@ -18,8 +18,8 @@ vi.mock('../../src/jsave/services/firestore', () => ({
   fsDeleteGoal: vi.fn(),
 }))
 
-import { dbGetAll, getSyncQueue } from '../../src/jsave/services/db'
-import { flushQueue, reconcileRemote, syncDelete, syncWrite } from '../../src/jsave/services/sync'
+import { applyClearEpochs, dbGet, dbGetAll, getSyncQueue } from '../../src/jsave/services/db'
+import { flushQueue, reconcileRemote, setClearEpochs, syncDelete, syncWrite } from '../../src/jsave/services/sync'
 
 describe('JSave offline sync', () => {
   beforeEach(() => vi.clearAllMocks())
@@ -47,5 +47,28 @@ describe('JSave offline sync', () => {
 
     expect(merged.map(value => value.id).sort()).toEqual(['local', 'remote'])
     expect((await dbGetAll(uid, 'transactions')).map(value => value.id).sort()).toEqual(['local', 'remote'])
+  })
+
+  it('drops queued offline writes and local records when their store is cleared elsewhere', async () => {
+    const uid = `cleared-user-${crypto.randomUUID()}`
+    await syncWrite(uid, 'transactions', { id: 'old', userId: uid, amount: 20 }, false)
+    await syncWrite(uid, 'accounts', { id: 'keep', userId: uid }, false)
+
+    const changed = await applyClearEpochs(uid, { transactions: 'new-epoch' })
+    setClearEpochs(uid, { transactions: 'new-epoch' })
+    await flushQueue(uid)
+
+    expect(changed).toEqual(['transactions'])
+    expect(await dbGetAll(uid, 'transactions')).toEqual([])
+    expect((await dbGetAll(uid, 'accounts')).map(account => account.id)).toEqual(['keep'])
+    expect(firestoreMocks.writeTransaction).not.toHaveBeenCalled()
+    expect(await getSyncQueue(uid)).toEqual([])
+  })
+
+  it('keeps the newer clear state when an older cached snapshot arrives later', async () => {
+    const uid = `revision-user-${crypto.randomUUID()}`
+    await applyClearEpochs(uid, { transactions: 'latest' }, 2)
+    expect(await applyClearEpochs(uid, { transactions: 'old' }, 1)).toEqual([])
+    expect((await dbGet(uid, 'meta', 'clear-epochs')).epochs.transactions).toBe('latest')
   })
 })
