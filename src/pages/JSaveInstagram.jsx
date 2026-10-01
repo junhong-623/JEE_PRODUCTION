@@ -97,8 +97,6 @@ function Post({ post, zh, index }) {
       </a>
       {multiple && <>
         <span className="ji-ig-count" aria-live="polite" aria-atomic="true">{slide + 1} / {post.images.length}</span>
-        <button className="ji-ig-slide ji-ig-slide-prev" aria-label={zh ? '上一张图片' : 'Previous image'} disabled={slide === 0} onClick={() => changeSlide(value => value - 1)}>‹</button>
-        <button className="ji-ig-slide ji-ig-slide-next" aria-label={zh ? '下一张图片' : 'Next image'} disabled={slide === images.length - 1} onClick={() => changeSlide(value => value + 1)}>›</button>
         <div className="ji-ig-dots">{images.map((_, dotIndex) => <button aria-label={zh ? `查看第 ${dotIndex + 1} 张图片` : `View image ${dotIndex + 1}`} aria-pressed={slide === dotIndex} onClick={() => changeSlide(dotIndex)} key={dotIndex}><i /></button>)}</div>
       </>}
       {post.mediaType === 'VIDEO' && <span className="ji-ig-reel"><span aria-hidden="true">▷</span> Reel</span>}
