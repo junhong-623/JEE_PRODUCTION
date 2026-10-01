@@ -1,8 +1,23 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.8.13',
+    version: '3.9.0',
     date: '2026-10-01',
     isLatest: true,
+    items: [
+      'Match receipt accounts during import, ask when needed, and remember choices only after confirmation',
+      'Choose both accounts for TNG top-ups and UOB credit card repayments in the unified iPhone shortcut',
+      'Simplify shortcut setup and collapse linked accounts into an optional manager; existing keys remain valid',
+    ],
+    itemsZh: [
+      '导入时匹配账户，需要时再选择，确认保存后自动记住',
+      '统一 iPhone 指令可选择 TNG 充值与 UOB 信用卡还款的转出、转入账户',
+      '简化快捷指令设置，已关联账户收进折叠管理区，原密钥继续有效',
+    ],
+  },
+  {
+    version: '3.8.13',
+    date: '2026-10-01',
+    isLatest: false,
     items: [
       'Offer the unified receipt shortcut download only on iPhone in Settings and the setup guide',
       'Show other devices how to open the page on iPhone while keeping account and key setup available',

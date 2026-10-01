@@ -16,8 +16,10 @@ if @keyText == "" {
 }
 const ocr = extractImageText(ShortcutInput)
 @sourceHint = ""
+@sourceAccountId = ""
+@targetAccountId = ""
 
-@preview = jsonRequest("https://us-central1-jee-production.cloudfunctions.net/jsaveReceiptShortcutImport", "POST", {"action":"preview", "text":"{ocr}", "sourceHint":"{@sourceHint}"}, {"Authorization":"Bearer {key}"})
+@preview = jsonRequest("https://us-central1-jee-production.cloudfunctions.net/jsaveReceiptShortcutImport", "POST", {"action":"preview", "protocolVersion":2, "text":"{ocr}", "sourceHint":"{@sourceHint}"}, {"Authorization":"Bearer {key}"})
 @previewDict = getDictionary(@preview)
 @apiErrorValue = getValue(@previewDict, "error")
 @apiError = "{@apiErrorValue}"
@@ -25,10 +27,37 @@ if @apiError == "ambiguous-source" {
     @sourceChoices = getValue(@previewDict, "sources")
     @chosenSource = chooseFromList(@sourceChoices, "选择这张截图来自哪个 App 或银行")
     @sourceHint = "{@chosenSource}"
-    @preview = jsonRequest("https://us-central1-jee-production.cloudfunctions.net/jsaveReceiptShortcutImport", "POST", {"action":"preview", "text":"{ocr}", "sourceHint":"{@sourceHint}"}, {"Authorization":"Bearer {key}"})
+    @preview = jsonRequest("https://us-central1-jee-production.cloudfunctions.net/jsaveReceiptShortcutImport", "POST", {"action":"preview", "protocolVersion":2, "text":"{ocr}", "sourceHint":"{@sourceHint}"}, {"Authorization":"Bearer {key}"})
     @previewDict = getDictionary(@preview)
     @apiErrorValue = getValue(@previewDict, "error")
     @apiError = "{@apiErrorValue}"
+}
+repeat selectionAttempt for 2 {
+    if @apiError == "account-selection-required" {
+        @accountLabels = getValue(@previewDict, "accountLabels")
+        @accountOptionsValue = getValue(@previewDict, "accountOptions")
+        @accountOptions = getDictionary(@accountOptionsValue)
+        @selectionPromptValue = getValue(@previewDict, "selectionPrompt")
+        @selectionPrompt = "{@selectionPromptValue}"
+        @chosenAccount = chooseFromList(@accountLabels, @selectionPrompt)
+        @chosenAccountLabel = "{@chosenAccount}"
+        @selectedAccountIdValue = getValue(@accountOptions, @chosenAccountLabel)
+        @selectedAccountId = "{@selectedAccountIdValue}"
+        if @selectedAccountId == "" {
+            stop()
+        }
+        @selectionRoleValue = getValue(@previewDict, "selectionRole")
+        @selectionRole = "{@selectionRoleValue}"
+        if @selectionRole == "source" {
+            @sourceAccountId = "{@selectedAccountId}"
+        } else {
+            @targetAccountId = "{@selectedAccountId}"
+        }
+        @preview = jsonRequest("https://us-central1-jee-production.cloudfunctions.net/jsaveReceiptShortcutImport", "POST", {"action":"preview", "protocolVersion":2, "text":"{ocr}", "sourceHint":"{@sourceHint}", "accountSelections":{"source":"{@sourceAccountId}", "target":"{@targetAccountId}"}}, {"Authorization":"Bearer {key}"})
+        @previewDict = getDictionary(@preview)
+        @apiErrorValue = getValue(@previewDict, "error")
+        @apiError = "{@apiErrorValue}"
+    }
 }
 if @apiError == "unsupported-receipt" {
     stop()
@@ -37,8 +66,13 @@ if @apiError == "unauthorized" {
     alert("统一收据密钥无效或已停用。请在 JSave 设置页重新生成并填入。", "JSave")
     stop()
 }
+if @apiError == "no-compatible-account" {
+    @accountMessageValue = getValue(@previewDict, "message")
+    alert("{@accountMessageValue}", "需要建立账户")
+    stop()
+}
 if @apiError != "" {
-    alert("暂时无法识别这张交易截图（{@apiError}），未保存。请检查图片及 JSave 设置中的账户。", "JSave")
+    alert("暂时无法导入这张交易截图（{@apiError}），未保存。请检查图片，或重新运行后选择账户。", "JSave")
     stop()
 }
 @draftValue = getValue(@previewDict, "draft")
@@ -59,6 +93,10 @@ if @apiError != "" {
 @accountName = "{@accountNameValue}"
 @routingTokenValue = getValue(@draft, "routingToken")
 @routingToken = "{@routingTokenValue}"
+@sourceAccountIdValue = getValue(@draft, "sourceAccountId")
+@sourceAccountId = "{@sourceAccountIdValue}"
+@targetAccountIdValue = getValue(@draft, "targetAccountId")
+@targetAccountId = "{@targetAccountIdValue}"
 @category = ""
 @categoryLabel = ""
 @direction = ""
@@ -119,7 +157,7 @@ if @type == "expense" {
 }
 
 confirm("{@direction} RM{@amount}\n日期：{@date} {@time}\n来源：{@provider}\n账户：{@accountName}\n说明：{@note}\n类别：{@categoryLabel}\n\n确认加入 JSave？", "核对交易")
-@commit = jsonRequest("https://us-central1-jee-production.cloudfunctions.net/jsaveReceiptShortcutImport", "POST", {"action":"commit", "text":"{ocr}", "category":"{@category}", "routingToken":"{@routingToken}", "sourceHint":"{@sourceHint}"}, {"Authorization":"Bearer {key}"})
+@commit = jsonRequest("https://us-central1-jee-production.cloudfunctions.net/jsaveReceiptShortcutImport", "POST", {"action":"commit", "protocolVersion":2, "text":"{ocr}", "category":"{@category}", "routingToken":"{@routingToken}", "sourceHint":"{@sourceHint}", "accountSelections":{"source":"{@sourceAccountId}", "target":"{@targetAccountId}"}}, {"Authorization":"Bearer {key}"})
 @commitDict = getDictionary(@commit)
 @statusValue = getValue(@commitDict, "status")
 @status = "{@statusValue}"

@@ -8,6 +8,7 @@ const webpush = require('web-push')
 const crypto = require('crypto')
 const { validateCategory } = require('./jsaveShortcut')
 const { parseReceiptScreenshot, receiptTransactionDocumentId, receiptAccountKey, matchUobCreditAccount } = require('./jsaveReceiptShortcut')
+const { RECEIPT_ACCOUNT_TYPES, normalizeReceiptAccounts, receiptRoutingToken, receiptSelectionToken, resolveReceiptAccounts } = require('./jsaveReceiptAccounts')
 
 initializeApp()
 
@@ -26,29 +27,14 @@ const HAGENCY_EXPERIENCE = new Set(['无经验', '1-3个月', '3-12个月', '1�
 const HAGENCY_SPECIALIZATION = new Set(['唱歌', '跳舞', '聊天互动', '才艺表演', '其他'])
 
 const receiptShortcutKeyRef = uid => getFirestore().collection('jsave_receipt_shortcut_tokens').doc(uid)
-const RECEIPT_ACCOUNT_TYPES = {
-  tngAccountId: 'accEwallet',
-  cimbBankAccountId: 'accBank',
-  cimbCreditAccountId: 'accCredit',
-  uobCreditAccountId: 'accCredit',
-}
-
 async function checkedReceiptAccounts(uid, input) {
-  if (!input || typeof input !== 'object' || Array.isArray(input)) {
-    throw new HttpsError('invalid-argument', 'Choose JSave accounts.')
-  }
-  const accountIds = {}
-  for (const key of Object.keys(RECEIPT_ACCOUNT_TYPES)) {
-    const id = input[key] || ''
-    if (typeof id !== 'string' || (id && !/^[A-Za-z0-9_-]{1,128}$/.test(id))) {
-      throw new HttpsError('invalid-argument', 'Choose valid JSave accounts.')
-    }
-    accountIds[key] = id
+  let accountIds
+  try {
+    accountIds = normalizeReceiptAccounts(input)
+  } catch {
+    throw new HttpsError('invalid-argument', 'Choose valid separate JSave accounts.')
   }
   const selected = Object.entries(accountIds).filter(([, id]) => id)
-  if (!selected.length || new Set(selected.map(([, id]) => id)).size !== selected.length) {
-    throw new HttpsError('invalid-argument', 'Choose separate JSave accounts.')
-  }
   const snapshots = await Promise.all(selected.map(([, id]) => getFirestore().collection('users').doc(uid)
     .collection('jsave_accounts').doc(id).get()))
   selected.forEach(([key], index) => {
@@ -57,12 +43,6 @@ async function checkedReceiptAccounts(uid, input) {
     }
   })
   return accountIds
-}
-
-function receiptRoutingToken(accountIds, targetAccountId = '') {
-  const routing = Object.keys(RECEIPT_ACCOUNT_TYPES).map(key => accountIds[key] || '')
-  routing.push(targetAccountId)
-  return crypto.createHash('sha256').update(JSON.stringify(routing)).digest('hex')
 }
 
 exports.jsaveReceiptShortcutKeyStatus = onCall(async req => {
@@ -136,12 +116,31 @@ exports.jsaveReceiptShortcutImport = onRequest({ invoker: 'public', cors: false 
     return res.status(422).json({ error: error.message, ...(error.sources ? { sources: error.sources } : {}) })
   }
   const accountIds = keySnapshot.data().accountIds || {}
-  const accountId = accountIds[receiptAccountKey(draft)]
-  if (!accountId) return res.status(409).json({ error: 'source-account-not-configured' })
+  const firstUseSelection = input.protocolVersion === 2
+  if (input.protocolVersion != null && !firstUseSelection) return res.status(400).json({ error: 'unsupported-protocol' })
   const db = getFirestore()
   const accountCollection = db.collection('users').doc(uid).collection('jsave_accounts')
+  let accountId = accountIds[receiptAccountKey(draft)]
   let targetAccountId = ''
-  if (draft.type === 'transfer' && draft.transferTarget === 'uobCredit') {
+  let resolved
+  if (firstUseSelection) {
+    if (input.accountSelections != null && (typeof input.accountSelections !== 'object' || Array.isArray(input.accountSelections))) {
+      return res.status(400).json({ error: 'invalid-account-selection' })
+    }
+    try {
+      const accounts = await accountCollection.get()
+      resolved = resolveReceiptAccounts(draft, accounts.docs.map(doc => ({ ...doc.data(), id: doc.id })), accountIds, input.accountSelections || {})
+    } catch (error) {
+      if (error.message === 'invalid-account-selection') return res.status(409).json({ error: error.message })
+      console.error('[jsave-receipt-shortcut] account lookup failed', error)
+      return res.status(500).json({ error: 'server-error' })
+    }
+    if (resolved.pending) return res.status(409).json(resolved.pending)
+    accountId = resolved.sourceAccountId
+    targetAccountId = resolved.targetAccountId
+  } else if (!accountId) {
+    return res.status(409).json({ error: 'source-account-not-configured' })
+  } else if (draft.type === 'transfer' && draft.transferTarget === 'uobCredit') {
     targetAccountId = accountIds.uobCreditAccountId || ''
     if (!targetAccountId) {
       const accounts = await accountCollection.get()
@@ -154,7 +153,9 @@ exports.jsaveReceiptShortcutImport = onRequest({ invoker: 'public', cors: false 
   if (draft.type === 'transfer' && (!targetAccountId || targetAccountId === accountId)) {
     return res.status(409).json({ error: 'transfer-account-not-configured' })
   }
-  const routingToken = receiptRoutingToken(accountIds, targetAccountId)
+  const routingToken = firstUseSelection
+    ? receiptSelectionToken(expectedHash, draft, accountIds, accountId, targetAccountId)
+    : receiptRoutingToken(accountIds, targetAccountId)
   if (input.action === 'commit' && input.routingToken !== routingToken) {
     return res.status(409).json({ error: 'account-configuration-changed' })
   }
@@ -184,6 +185,7 @@ exports.jsaveReceiptShortcutImport = onRequest({ invoker: 'public', cors: false 
       provider: draft.provider, type: draft.type, amount: draft.amount,
       currency: draft.currency, date: draft.date, time: draft.time,
       note: draft.note, accountName, routingToken,
+      ...(firstUseSelection ? { sourceAccountId: accountId, targetAccountId } : {}),
     } })
   }
   if (draft.type !== 'transfer' && !validateCategory(draft.type, input.category)) {
@@ -195,12 +197,27 @@ exports.jsaveReceiptShortcutImport = onRequest({ invoker: 'public', cors: false 
   const usageRef = db.collection('jsave_shortcut_usage').doc(`${uid}_${new Date(now).toISOString().slice(0, 10)}`)
   try {
     const result = await db.runTransaction(async transaction => {
-      const [currentKey, existing, usageSnapshot] = await Promise.all([
+      const [currentKey, existing, usageSnapshot, ...currentAccounts] = await Promise.all([
         transaction.get(keyRef), transaction.get(transactionRef), transaction.get(usageRef),
+        ...accountSnapshots.map(snapshot => transaction.get(snapshot.ref)),
       ])
-      if (currentKey.data()?.keyHash !== expectedHash ||
-          receiptRoutingToken(currentKey.data()?.accountIds || {}, targetAccountId) !== routingToken) return 'revoked'
-      if (existing.exists) return 'duplicate'
+      const currentIds = currentKey.data()?.accountIds || {}
+      const currentRouting = firstUseSelection
+        ? receiptSelectionToken(expectedHash, draft, currentIds, accountId, targetAccountId)
+        : receiptRoutingToken(currentIds, targetAccountId)
+      if (currentKey.data()?.keyHash !== expectedHash || currentRouting !== routingToken) return 'revoked'
+      if (currentAccounts.some(snapshot => !snapshot.exists)) return 'account-not-found'
+      if (currentAccounts[0].data().type !== expectedSourceType ||
+          (targetAccountId && currentAccounts[1].data().type !== expectedTargetType)) return 'account-type-changed'
+      if (firstUseSelection) {
+        try {
+          resolveReceiptAccounts(draft, currentAccounts.map(snapshot => ({ ...snapshot.data(), id: snapshot.id })), currentIds, { source: accountId, target: targetAccountId })
+        } catch { return 'invalid-account-selection' }
+      }
+      const rememberAccounts = () => {
+        if (firstUseSelection) transaction.set(keyRef, { accountIds: resolved.rememberedIds, updatedAt: FieldValue.serverTimestamp() }, { merge: true })
+      }
+      if (existing.exists) { rememberAccounts(); return 'duplicate' }
       const count = Number(usageSnapshot.data()?.count || 0)
       if (count >= 100) return 'rate-limited'
       transaction.create(transactionRef, {
@@ -215,10 +232,12 @@ exports.jsaveReceiptShortcutImport = onRequest({ invoker: 'public', cors: false 
         createdAt: now, updatedAt: now, deleted: false,
       })
       transaction.set(usageRef, { count: count + 1, updatedAt: FieldValue.serverTimestamp() })
+      rememberAccounts()
       return 'created'
     })
     if (result === 'revoked') return res.status(409).json({ error: 'account-configuration-changed' })
     if (result === 'rate-limited') return res.status(429).json({ error: 'daily-limit' })
+    if (['account-not-found', 'account-type-changed', 'invalid-account-selection'].includes(result)) return res.status(409).json({ error: result })
     return res.json({ status: result, transactionId })
   } catch (error) {
     console.error('[jsave-receipt-shortcut] import failed', error)

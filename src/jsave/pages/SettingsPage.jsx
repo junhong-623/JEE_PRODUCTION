@@ -8,7 +8,7 @@ import { useJSave } from '../hooks/useJSave'
 import { useAuth } from '../../contexts/AuthContext'
 import GlassCard from '../components/GlassCard'
 import PageHeader from '../components/PageHeader'
-import { JSAVE_VERSION } from '../version'
+import { JSAVE_VERSION, RECEIPT_SHORTCUT_VERSION } from '../version'
 import { subscribePush, unsubscribePush, updatePushLanguage, isPushSupported } from '../services/pushService'
 import { RELEASE_NOTES } from '../data/releaseNotes'
 import { isStandalone, doInstall } from '../installPrompt'
@@ -86,7 +86,6 @@ function ReceiptShortcutSettings({ accounts, user, lang }) {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
   const [showRotationConfirm, setShowRotationConfirm] = useState(false)
-  const hasAccount = Object.values(accountIds).some(Boolean)
   const changed = Object.keys(emptyIds).some(name => accountIds[name] !== savedIds[name])
   const choices = [
     { key: 'tngAccountId', type: 'accEwallet', label: zh ? 'TNG 钱包账户' : 'TNG wallet account' },
@@ -112,15 +111,19 @@ function ReceiptShortcutSettings({ accounts, user, lang }) {
     return () => { cancelled = true }
   }, [user?.uid]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function run(action, successMessage) {
+  async function run(action, successMessage, ids = accountIds) {
     if (busy || !statusReady) return
     setBusy(true)
     setError('')
     setMessage('')
     try {
-      const { data } = await httpsCallable(functions, action)({ accountIds })
+      const { data } = await httpsCallable(functions, action)({ accountIds: ids })
       if (data.key) setKey(data.key)
-      if (data.accountIds) setSavedIds({ ...emptyIds, ...data.accountIds })
+      if (data.accountIds) {
+        const nextIds = { ...emptyIds, ...data.accountIds }
+        setSavedIds(nextIds)
+        setAccountIds(nextIds)
+      }
       setEnabled(true)
       setMessage(successMessage)
     } catch {
@@ -164,7 +167,7 @@ function ReceiptShortcutSettings({ accounts, user, lang }) {
   function rotateKey() {
     if (busy || !statusReady || !enabled) return
     setShowRotationConfirm(false)
-    run('jsaveCreateReceiptShortcutKey', zh ? '新密钥已生成，请更新手机指令。' : 'New key created. Update the shortcut on your phone.')
+    run('jsaveCreateReceiptShortcutKey', zh ? '新密钥已生成，请更新手机指令。' : 'New key created. Update the shortcut on your phone.', savedIds)
   }
 
   return (
@@ -172,7 +175,7 @@ function ReceiptShortcutSettings({ accounts, user, lang }) {
     <Accordion title={zh ? '截图快捷指令下载' : 'Download screenshot shortcut'}>
       {isIPhone ? (
         <a className="jsave-btn-ghost jsave-btn-full"
-          href="https://jeeprod-jsave.web.app/shortcuts/JSave-Receipt-Import.shortcut?v=3.7.1"
+          href={`https://jeeprod-jsave.web.app/shortcuts/JSave-Receipt-Import.shortcut?v=${RECEIPT_SHORTCUT_VERSION}`}
           target="_blank" rel="noopener noreferrer"
           style={{ justifyContent: 'center', textDecoration: 'none', marginBottom: 12 }}>
           {zh ? '下载统一 iPhone 快捷指令' : 'Download unified iPhone shortcut'}
@@ -183,46 +186,17 @@ function ReceiptShortcutSettings({ accounts, user, lang }) {
         </p>
       )}
       <p className="jsave-section-sub" style={{ marginBottom: 12 }}>
-        {zh ? '选择使用的账户，不用的留空。TNG 充值需同时选择 CIMB 银行与 TNG 钱包；有多张 UOB 信用卡时，请指定对应账户。'
-          : 'Choose the accounts you use; leave others blank. TNG top-ups need both CIMB bank and TNG wallet. If you have multiple UOB cards, choose the matching one.'}
+        {zh ? '首次导入时选择账户，保存后自动记住。升级指令可沿用原密钥。'
+          : 'Choose accounts on first import; they are remembered after saving. Your existing key works with the updated shortcut.'}
       </p>
-      {choices.map(({ key: name, type, label }) => (
-        <div key={name} style={{ marginBottom: 10 }}>
-          <label className="jsave-label" htmlFor={`jsave-receipt-${name}`}>{label}</label>
-          <select id={`jsave-receipt-${name}`} className="jsave-input jsave-input-sm"
-            value={accountIds[name]} onChange={event => setAccountIds(previous => ({ ...previous, [name]: event.target.value }))}>
-            <option value="">{zh ? '未设置' : 'Not configured'}</option>
-            {accounts.filter(account => account.type === type).map(account =>
-              <option key={account.id} value={account.id}>{account.name}</option>)}
-          </select>
-          {name.startsWith('cimb') && accountIds[name] &&
-            !/cimb/i.test(accounts.find(account => account.id === accountIds[name])?.name || '') &&
-            <p className="jsave-error" style={{ marginTop: 6 }}>
-              {zh ? '请确认这个账户确实属于 CIMB，避免交易记到其他银行。'
-                : 'Confirm this is a CIMB account to avoid saving transactions under another bank.'}
-            </p>}
-          {name === 'uobCreditAccountId' && accountIds[name] &&
-            !/\bUOB\b|United Overseas Bank/i.test(accounts.find(account => account.id === accountIds[name])?.name || '') &&
-            <p className="jsave-error" style={{ marginTop: 6 }}>
-              {zh ? '请确认这个账户确实是 UOB 信用卡。'
-                : 'Confirm this is your UOB credit card.'}
-            </p>}
-        </div>
-      ))}
       {enabled ? (
-        <>
-          <button className="jsave-btn-primary jsave-btn-full" disabled={busy || !hasAccount || !changed}
-            onClick={() => run('jsaveUpdateReceiptShortcutAccounts', zh ? '账户设置已保存，原密钥继续有效。' : 'Accounts saved. The existing key still works.')}>
-            {zh ? '保存账户设置' : 'Save account choices'}
-          </button>
-          <button className="jsave-btn-ghost jsave-btn-full" style={{ marginTop: 12 }} disabled={busy || !statusReady || !hasAccount}
-            onClick={confirmKeyRotation}>
-            {zh ? '重新生成统一密钥' : 'Rotate unified key'}
-          </button>
-        </>
+        <button className="jsave-btn-ghost jsave-btn-full" disabled={busy || !statusReady}
+          onClick={confirmKeyRotation}>
+          {zh ? '重新生成统一密钥' : 'Rotate unified key'}
+        </button>
       ) : (
-        <button className="jsave-btn-primary jsave-btn-full" disabled={busy || !statusReady || !hasAccount}
-          onClick={() => run('jsaveCreateReceiptShortcutKey', zh ? '密钥已生成，请填入手机指令。' : 'Key created. Paste it into the shortcut.')}>
+        <button className="jsave-btn-primary jsave-btn-full" disabled={busy || !statusReady}
+          onClick={() => run('jsaveCreateReceiptShortcutKey', zh ? '密钥已生成，请填入手机指令。' : 'Key created. Paste it into the shortcut.', savedIds)}>
           {zh ? '生成统一密钥' : 'Create unified key'}
         </button>
       )}
@@ -234,6 +208,31 @@ function ReceiptShortcutSettings({ accounts, user, lang }) {
       {enabled && <button className="jsave-btn-danger" style={{ marginTop: 12 }} disabled={busy} onClick={revokeKey}>
         {zh ? '停用统一密钥' : 'Revoke unified key'}
       </button>}
+      {enabled && <details className="jsave-shortcut-accounts">
+        <summary>{zh ? '管理已关联账户' : 'Manage linked accounts'}</summary>
+        <p className="jsave-section-sub">{zh ? '留空后，下次导入会重新匹配账户；有多个候选时让你选择。' : 'Clear a choice to match accounts again on the next import; choose when there are multiple matches.'}</p>
+        <div className="jsave-shortcut-account-grid">{choices.map(({ key: name, type, label }) => (
+          <div key={name} className="jsave-shortcut-account-field">
+            <label className="jsave-label" htmlFor={`jsave-receipt-${name}`}>{label}</label>
+            <select id={`jsave-receipt-${name}`} className="jsave-input jsave-input-sm" disabled={busy}
+              value={accountIds[name]} onChange={event => setAccountIds(previous => ({ ...previous, [name]: event.target.value }))}>
+              <option value="">{zh ? '导入时选择' : 'Choose during import'}</option>
+              {accounts.filter(account => account.type === type).map(account =>
+                <option key={account.id} value={account.id}>{account.name}</option>)}
+            </select>
+            {name.startsWith('cimb') && accountIds[name] &&
+              !/cimb/i.test(accounts.find(account => account.id === accountIds[name])?.name || '') &&
+              <p className="jsave-error" style={{ marginTop: 6 }}>{zh ? '请确认这是 CIMB 账户。' : 'Confirm this is a CIMB account.'}</p>}
+            {name === 'uobCreditAccountId' && accountIds[name] &&
+              !/\bUOB\b|United Overseas Bank/i.test(accounts.find(account => account.id === accountIds[name])?.name || '') &&
+              <p className="jsave-error" style={{ marginTop: 6 }}>{zh ? '请确认这是 UOB 信用卡。' : 'Confirm this is your UOB credit card.'}</p>}
+          </div>
+        ))}</div>
+        <button className="jsave-btn-primary jsave-btn-full" disabled={busy || !statusReady || !changed}
+          onClick={() => run('jsaveUpdateReceiptShortcutAccounts', zh ? '账户设置已保存。' : 'Accounts saved.')}>
+          {zh ? '保存账户设置' : 'Save account choices'}
+        </button>
+      </details>}
       {message && <p className="jsave-section-sub" style={{ marginTop: 10 }}>{message}</p>}
       {error && <p className="jsave-error" style={{ marginTop: 10 }}>{error}</p>}
     </Accordion>
