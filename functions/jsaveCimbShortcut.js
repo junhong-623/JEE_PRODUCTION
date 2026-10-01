@@ -1,7 +1,7 @@
 const crypto = require('crypto')
 
 const MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12 }
-const LABELS = /^(?:Amount|Reference No\.?|Posted Date|Transacted Date|Date|Details|To|From|When|Repeat|Transfer Type|Transfer Method|Payment Type|Done)$/i
+const LABELS = /^(?:Amount|Reference No\.?|Posted Date|Transacted Date|Date|Details|To|From|When|Repeat|Transfer Type|Transfer Method|Payment Type|Payment Option|Done)$/i
 
 function rows(text) {
   return text.split('\n').map(row => row.trim()).filter(Boolean)
@@ -86,7 +86,7 @@ function parseCimbScreenshot(ocrText) {
   }
 
   let note = isCard || isCardPayment
-    ? afterLabel(lines, 'To', /^(?:From|When|Repeat|Transfer Type|Transfer Method|Payment Type|Done)(?:\s|$)/i)
+    ? afterLabel(lines, 'To', /^(?:From|When|Repeat|Transfer Type|Transfer Method|Payment Type|Payment Option|Done)(?:\s|$)/i)
     : bankDetails(lines)
   note = note.replace(/\s+/g, ' ').trim()
   if (!note || note === '-' || note.length > 240) throw new Error('missing-party')
@@ -94,7 +94,8 @@ function parseCimbScreenshot(ocrText) {
   let transferTarget = ''
   if (isCardPayment) {
     if (amountMatch[1] !== '-') throw new Error('ambiguous-direction')
-    if (/\bUOB\b|United\s+Overseas\s+Bank/i.test(note)) transferTarget = 'uobCredit'
+    if (/\bWithin\s+CIMB\s+Bank\b/i.test(text)) transferTarget = 'cimbCredit'
+    else if (/\bUOB\b|United\s+Overseas\s+Bank/i.test(note)) transferTarget = 'uobCredit'
     else throw new Error('unsupported-card-payment-bank')
     note = note.replace(/\b(?:\d[\s-]?){11,19}\d\b/g, value => `•••• ${value.replace(/\D/g, '').slice(-4)}`)
   }

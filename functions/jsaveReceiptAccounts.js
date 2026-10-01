@@ -1,5 +1,5 @@
 const crypto = require('crypto')
-const { receiptAccountKey, receiptTransactionDocumentId } = require('./jsaveReceiptShortcut')
+const { receiptAccountKey, receiptTransferAccountKey, receiptTransactionDocumentId } = require('./jsaveReceiptShortcut')
 
 const RECEIPT_ACCOUNT_TYPES = Object.freeze({
   tngAccountId: 'accEwallet',
@@ -51,13 +51,13 @@ function resolveReceiptAccounts(draft, accounts, savedIds = {}, selections = {})
       (selections[role] && !ID.test(selections[role])))) throw new Error('invalid-account-selection')
   }
   const sourceKey = receiptAccountKey(draft)
-  const targetKey = draft.type === 'transfer' ? (draft.transferTarget === 'uobCredit' ? 'uobCreditAccountId' : 'tngAccountId') : ''
+  const targetKey = receiptTransferAccountKey(draft)
   const resolved = { sourceAccountId: '', targetAccountId: '', rememberedIds: { ...savedIds } }
 
   for (const [role, key] of [['source', sourceKey], ['target', targetKey]]) {
     if (!key) continue
     const route = ROUTES[key]
-    const lastFour = key === 'uobCreditAccountId' ? String(draft.note || '').replace(/\D/g, '').slice(-4) : ''
+    const lastFour = role === 'target' && route.type === 'accCredit' ? String(draft.note || '').replace(/\D/g, '').slice(-4) : ''
     const candidates = accounts.filter(account => account.type === route.type && account.id !== resolved.sourceAccountId &&
       (!lastFour || !namedCardLastFour(account.name) || namedCardLastFour(account.name) === lastFour))
     let chosen

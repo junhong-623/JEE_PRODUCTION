@@ -71,6 +71,31 @@ Payment Type
 Credit Card
 Done`
 
+const internalCardPayment = `Transaction Details
+Amount
+- MYR 439.60
+01 Oct 2026 7:58:14 AM
+Reference No.
+123456789
+To
+PETRONAS VISA
+PLATINUM-I
+4000 0000 0000 9627
+From
+BASIC SA
+1000000000
+When
+01 Oct 2026
+Repeat
+No
+Transfer Type
+Within CIMB Bank
+Payment Type
+Credit Card
+Payment Option
+Statement Balance
+Done`
+
 describe('CIMB screenshot shortcut import', () => {
   it('uses the card transaction date, not the posted date', () => {
     expect(parseCimbScreenshot(card)).toMatchObject({
@@ -120,6 +145,33 @@ describe('CIMB screenshot shortcut import', () => {
     })
     expect(() => parseCimbScreenshot(cardPayment.replace('United Overseas Bank Berhad', 'Another Bank')))
       .toThrow('unsupported-card-payment-bank')
+  })
+
+  it('reads CIMB internal card repayments as transfers from bank to CIMB credit', () => {
+    expect(parseCimbScreenshot(internalCardPayment)).toMatchObject({
+      type: 'transfer', accountKind: 'bank', transferTarget: 'cimbCredit',
+      amount: 439.6, date: '2026-10-01', note: 'PETRONAS VISA PLATINUM-I •••• 9627',
+    })
+  })
+
+  it('accepts inline and reordered payment labels without confusing repayment with card spending', () => {
+    const inline = internalCardPayment.replace('Transfer Type\nWithin CIMB Bank', 'Transfer Type Within CIMB Bank')
+      .replace('Payment Type\nCredit Card', 'Payment Type Credit Card')
+    const reordered = internalCardPayment.replace('Payment Type\nCredit Card', 'Credit Card\nPayment Type')
+    expect(parseCimbScreenshot(inline).transferTarget).toBe('cimbCredit')
+    expect(parseCimbScreenshot(reordered).accountKind).toBe('bank')
+    expect(parseCimbScreenshot(reordered).type).toBe('transfer')
+  })
+
+  it('keeps internal repayment duplicate IDs stable across card number and name wrapping', () => {
+    const wrapped = internalCardPayment.replace('PETRONAS VISA\nPLATINUM-I', 'PETRONAS VISA PLATINUM-I')
+      .replace('4000 0000 0000 9627', '4000000000009627')
+    expect(parseCimbScreenshot(wrapped).sourceTransactionId).toBe(parseCimbScreenshot(internalCardPayment).sourceTransactionId)
+  })
+
+  it('requires outgoing direction and an identifiable recipient bank for card repayments', () => {
+    expect(() => parseCimbScreenshot(internalCardPayment.replace('- MYR', '+ MYR'))).toThrow('ambiguous-direction')
+    expect(() => parseCimbScreenshot(internalCardPayment.replace('Within CIMB Bank', 'Other Bank'))).toThrow('unsupported-card-payment-bank')
   })
 
   it('recognizes a credited bank transaction as income without assuming a category', () => {

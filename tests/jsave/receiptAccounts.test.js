@@ -5,7 +5,7 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 const require = createRequire(import.meta.url)
 const Module = require('node:module')
 const { normalizeReceiptAccounts, resolveReceiptAccounts } = require('../../functions/jsaveReceiptAccounts.js')
-const { parseReceiptScreenshot, receiptTransactionDocumentId } = require('../../functions/jsaveReceiptShortcut.js')
+const { parseReceiptScreenshot, receiptTransactionDocumentId, receiptTransferAccountKey } = require('../../functions/jsaveReceiptShortcut.js')
 const walletDraft = { provider: 'tng', accountKind: 'wallet', type: 'expense' }
 const transferDraft = { provider: 'cimb', accountKind: 'bank', type: 'transfer', transferTarget: 'tng' }
 const cardDraft = { ...transferDraft, transferTarget: 'uobCredit', note: 'UOB 0401' }
@@ -42,6 +42,24 @@ describe('receipt account selection', () => {
     expect(() => resolveReceiptAccounts(cardDraft, accounts, {}, { target: 'x' })).toThrow('invalid-account-selection')
     expect(() => resolveReceiptAccounts(walletDraft, [], {}, { source: 'foreign' })).toThrow('invalid-account-selection')
   })
+  it('uses the receiving bank to route transfers, with no fallback for unknown targets', () => {
+    expect(receiptTransferAccountKey({ ...transferDraft, transferTarget: 'cimbCredit' })).toBe('cimbCreditAccountId')
+    expect(receiptTransferAccountKey(cardDraft)).toBe('uobCreditAccountId')
+    expect(receiptTransferAccountKey(transferDraft)).toBe('tngAccountId')
+    expect(receiptTransferAccountKey({ ...transferDraft, transferTarget: '' })).toBe('tngAccountId')
+    expect(() => receiptTransferAccountKey({ ...transferDraft, transferTarget: 'unknown' })).toThrow('unsupported-transfer-target')
+  })
+  it('matches CIMB repayment suffixes and asks when a generic credit card name is used', () => {
+    const draft = { ...cardDraft, transferTarget: 'cimbCredit', note: 'PETRONAS VISA •••• 9627' }
+    const accounts = [account('b', 'CIMB Bank', 'accBank'), account('c', 'CIMB (9627)', 'accCredit'), account('x', 'CIMB (1234)', 'accCredit')]
+    expect(resolveReceiptAccounts(draft, accounts, { cimbCreditAccountId: 'x' })).toMatchObject({
+      targetAccountId: 'c', rememberedIds: { cimbBankAccountId: 'b', cimbCreditAccountId: 'c' },
+    })
+    expect(() => resolveReceiptAccounts(draft, accounts, {}, { target: 'x' })).toThrow('invalid-account-selection')
+    const generic = [accounts[0], account('c', 'Petronas Visa', 'accCredit')]
+    expect(resolveReceiptAccounts(draft, generic).pending).toMatchObject({ selectionRole: 'target', accountOptions: { 'Petronas Visa': 'c' } })
+    expect(resolveReceiptAccounts(draft, generic, {}, { target: 'c' }).targetAccountId).toBe('c')
+  })
   it('uses unique labels safely even for special account names', () => {
     const result = resolveReceiptAccounts(walletDraft, [account('a', '__proto__'), account('b', '__proto__')]).pending
     expect(result.accountOptions.__proto__).toBe('a')
@@ -62,6 +80,19 @@ Amount
 - MYR 12.00
 Date 16 Sep 2026
 Details POS DEBIT 20260915TNG EWALLET TOPUPA2-EC KUALA L
+Done`
+const internalRepayment = `Transaction Details
+Amount
+- MYR 439.60
+01 Oct 2026 7:58:14 AM
+Reference No. 123456789
+To PETRONAS VISA PLATINUM-I 4000 0000 0000 9627
+From BASIC SA 1000000000
+When 01 Oct 2026
+Repeat No
+Transfer Type Within CIMB Bank
+Payment Type Credit Card
+Payment Option Statement Balance
 Done`
 const uid = 'receipt_test_user'
 const key = `jsv1_${uid}_${'a'.repeat(64)}`
@@ -199,6 +230,41 @@ describe('receipt import endpoint account protocol', () => {
     expect((await commit(draft, { text: repayment, category: '' })).status).toBe('created')
     expect(ledgerRows()).toHaveLength(1)
     expect(rows.get(ledgerRows()[0])).toMatchObject({ type: 'transfer', fromAccountId: 'bank', toAccountId: 'card' })
+  })
+  it('selects the receiving CIMB card, creates one transfer, remembers it, and deduplicates', async () => {
+    addAccount('bank', 'CIMB Bank', 'accBank')
+    addAccount('card', 'Petronas Visa', 'accCredit')
+    addAccount('wallet', 'TNG', 'accEwallet')
+    const first = await preview({ text: internalRepayment })
+    expect(first).toMatchObject({ selectionRole: 'target', accountOptions: { 'Petronas Visa': 'card' } })
+    const { draft } = await preview({ text: internalRepayment, accountSelections: { target: 'card' } })
+    expect(draft).toMatchObject({ type: 'transfer', sourceAccountId: 'bank', targetAccountId: 'card', accountName: 'CIMB Bank → Petronas Visa' })
+    expect(rows.get(keyPath).accountIds).toEqual({})
+    expect((await commit(draft, { text: internalRepayment, category: '' })).status).toBe('created')
+    expect(rows.get(ledgerRows()[0])).toMatchObject({ type: 'transfer', category: 'txTransfer', amount: 439.6, fromAccountId: 'bank', toAccountId: 'card' })
+    expect(rows.get(keyPath).accountIds).toMatchObject({ cimbBankAccountId: 'bank', cimbCreditAccountId: 'card' })
+    expect(rows.get(keyPath).accountIds.tngAccountId).toBeUndefined()
+    const next = await preview({ text: internalRepayment })
+    expect((await commit(next.draft, { text: internalRepayment, category: '' })).status).toBe('duplicate')
+    expect(ledgerRows()).toHaveLength(1)
+  })
+  it('supports a mapped CIMB card on the legacy protocol and rejects a suffix mismatch', async () => {
+    addAccount('bank', 'CIMB Bank', 'accBank')
+    addAccount('card', 'CIMB (9627)', 'accCredit')
+    rows.set(keyPath, { keyHash, accountIds: { cimbBankAccountId: 'bank', cimbCreditAccountId: 'card' } })
+    const first = await preview({ text: internalRepayment, protocolVersion: undefined })
+    expect(first.draft.accountName).toBe('CIMB Bank → CIMB (9627)')
+    expect((await commit(first.draft, { text: internalRepayment, protocolVersion: undefined, category: '' })).status).toBe('created')
+    addAccount('card', 'CIMB (1234)', 'accCredit')
+    expect((await preview({ text: internalRepayment, protocolVersion: undefined })).error).toBe('target-account-mismatch')
+  })
+  it('rechecks the receiving CIMB card suffix inside the transaction', async () => {
+    addAccount('bank', 'CIMB Bank', 'accBank')
+    addAccount('card', 'CIMB (9627)', 'accCredit')
+    const { draft } = await preview({ text: internalRepayment })
+    mutateBeforeCommit = () => addAccount('card', 'CIMB (1234)', 'accCredit')
+    expect((await commit(draft, { text: internalRepayment, category: '' })).error).toBe('invalid-account-selection')
+    expect(ledgerRows()).toHaveLength(0)
   })
   it('requires the exact preview receipt and account choices before saving', async () => {
     addAccount('w', 'TNG', 'accEwallet')

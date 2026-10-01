@@ -1,8 +1,21 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.9.0',
+    version: '3.9.1',
     date: '2026-10-01',
     isLatest: true,
+    items: [
+      'Import CIMB Within CIMB Bank credit card repayments as bank-to-card transfers',
+      'Match or select the receiving CIMB credit card, check its last four digits, and remember it after confirmation',
+    ],
+    itemsZh: [
+      '支持 CIMB 行内信用卡还款截图，记录为银行到信用卡的转账',
+      '匹配或选择转入的 CIMB 信用卡，核对卡号末四位，确认后记住账户',
+    ],
+  },
+  {
+    version: '3.9.0',
+    date: '2026-10-01',
+    isLatest: false,
     items: [
       'Match receipt accounts during import, ask when needed, and remember choices only after confirmation',
       'Choose both accounts for TNG top-ups and UOB credit card repayments in the unified iPhone shortcut',

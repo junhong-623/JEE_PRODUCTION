@@ -29,6 +29,17 @@ function receiptAccountKey(draft) {
   throw new Error('unsupported-provider')
 }
 
+function receiptTransferAccountKey(draft) {
+  if (draft.type !== 'transfer') return ''
+  switch (draft.transferTarget || '') {
+    case 'uobCredit': return 'uobCreditAccountId'
+    case 'cimbCredit': return 'cimbCreditAccountId'
+    case '':
+    case 'tng': return 'tngAccountId'
+    default: throw new Error('unsupported-transfer-target')
+  }
+}
+
 function matchUobCreditAccount(accounts, payee) {
   const matches = accounts.filter(account => account.type === 'accCredit' &&
     /\bUOB\b|United\s+Overseas\s+Bank/i.test(account.name || ''))
@@ -43,4 +54,4 @@ function matchUobCreditAccount(accounts, payee) {
   return numbered.length === 1 ? numbered[0].id : ''
 }
 
-module.exports = { parseReceiptScreenshot, receiptTransactionDocumentId, receiptAccountKey, matchUobCreditAccount }
+module.exports = { parseReceiptScreenshot, receiptTransactionDocumentId, receiptAccountKey, receiptTransferAccountKey, matchUobCreditAccount }

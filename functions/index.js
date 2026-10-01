@@ -7,7 +7,7 @@ const { FieldValue, Timestamp, getFirestore } = require('firebase-admin/firestor
 const webpush = require('web-push')
 const crypto = require('crypto')
 const { validateCategory } = require('./jsaveShortcut')
-const { parseReceiptScreenshot, receiptTransactionDocumentId, receiptAccountKey, matchUobCreditAccount } = require('./jsaveReceiptShortcut')
+const { parseReceiptScreenshot, receiptTransactionDocumentId, receiptAccountKey, receiptTransferAccountKey, matchUobCreditAccount } = require('./jsaveReceiptShortcut')
 const { RECEIPT_ACCOUNT_TYPES, normalizeReceiptAccounts, receiptRoutingToken, receiptSelectionToken, resolveReceiptAccounts } = require('./jsaveReceiptAccounts')
 
 initializeApp()
@@ -116,6 +116,7 @@ exports.jsaveReceiptShortcutImport = onRequest({ invoker: 'public', cors: false 
     return res.status(422).json({ error: error.message, ...(error.sources ? { sources: error.sources } : {}) })
   }
   const accountIds = keySnapshot.data().accountIds || {}
+  const targetAccountKey = receiptTransferAccountKey(draft)
   const firstUseSelection = input.protocolVersion === 2
   if (input.protocolVersion != null && !firstUseSelection) return res.status(400).json({ error: 'unsupported-protocol' })
   const db = getFirestore()
@@ -148,7 +149,7 @@ exports.jsaveReceiptShortcutImport = onRequest({ invoker: 'public', cors: false 
     }
     if (!targetAccountId) return res.status(409).json({ error: 'target-account-not-configured' })
   } else if (draft.type === 'transfer') {
-    targetAccountId = accountIds.tngAccountId || ''
+    targetAccountId = accountIds[targetAccountKey] || ''
   }
   if (draft.type === 'transfer' && (!targetAccountId || targetAccountId === accountId)) {
     return res.status(409).json({ error: 'transfer-account-not-configured' })
@@ -165,12 +166,12 @@ exports.jsaveReceiptShortcutImport = onRequest({ invoker: 'public', cors: false 
   ])
   if (accountSnapshots.some(snapshot => !snapshot.exists)) return res.status(409).json({ error: 'account-not-found' })
   const expectedSourceType = RECEIPT_ACCOUNT_TYPES[receiptAccountKey(draft)]
-  const expectedTargetType = draft.transferTarget === 'uobCredit' ? 'accCredit' : 'accEwallet'
+  const expectedTargetType = RECEIPT_ACCOUNT_TYPES[targetAccountKey]
   if (accountSnapshots[0].data().type !== expectedSourceType ||
       (targetAccountId && accountSnapshots[1].data().type !== expectedTargetType)) {
     return res.status(409).json({ error: 'account-type-changed' })
   }
-  if (draft.transferTarget === 'uobCredit') {
+  if (draft.type === 'transfer' && expectedTargetType === 'accCredit') {
     const namedLastFour = (accountSnapshots[1].data().name || '').match(/(?:^|\D)(\d{4})\s*\)?\s*$/)?.[1]
     const receiptLastFour = draft.note.replace(/\D/g, '').slice(-4)
     if (namedLastFour && receiptLastFour && namedLastFour !== receiptLastFour) {
@@ -180,7 +181,7 @@ exports.jsaveReceiptShortcutImport = onRequest({ invoker: 'public', cors: false 
   if (input.action === 'preview') {
     const sourceName = accountSnapshots[0].data().name || draft.provider.toUpperCase()
     const accountName = targetAccountId
-      ? `${sourceName} → ${accountSnapshots[1].data().name || 'TNG'}` : sourceName
+      ? `${sourceName} → ${accountSnapshots[1].data().name || (expectedTargetType === 'accCredit' ? '信用卡' : 'TNG')}` : sourceName
     return res.json({ draft: {
       provider: draft.provider, type: draft.type, amount: draft.amount,
       currency: draft.currency, date: draft.date, time: draft.time,
