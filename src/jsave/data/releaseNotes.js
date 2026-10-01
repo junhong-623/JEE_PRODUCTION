@@ -1,8 +1,21 @@
 export const RELEASE_NOTES = [
   {
-    version: '3.10.0',
+    version: '3.10.1',
     date: '2026-10-01',
     isLatest: true,
+    items: [
+      'Remove account linking controls from shortcut settings; choose and change accounts during import',
+      'Keep remembered choices and the existing 3.10.0 shortcut and unified key working',
+    ],
+    itemsZh: [
+      '移除快捷指令设置里的新旧关联账户区，导入时选择，保存前更换账户',
+      '保留自动记住的选择，已有 3.10.0 指令和统一密钥继续使用',
+    ],
+  },
+  {
+    version: '3.10.0',
+    date: '2026-10-01',
+    isLatest: false,
     items: [
       'Choose any of your JSave accounts in the unified receipt shortcut and change accounts before saving',
       'Review and complete single transaction receipts from other banks or platforms; ordinary screenshots are skipped',

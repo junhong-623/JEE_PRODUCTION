@@ -1315,15 +1315,6 @@ input[type="number"].jsave-input::-webkit-outer-spin-button { -webkit-appearance
 .jsave-installment-overview small { display: block; max-width: 600px; margin-top: 7px; color: #9bb7ae; font-size: 11px; line-height: 1.5; }
 .jsave-shortcut-device-notice { margin: 0 0 12px; padding: 12px 14px; border: 1px solid rgba(16,185,129,.24); border-radius: 12px; background: rgba(16,185,129,.07); color: #b5d9ce; font-size: 12px; line-height: 1.5; }
 .jsave-root.jsave-light .jsave-shortcut-device-notice { color: #065f46; background: #ecfdf5; border-color: #a7f3d0; }
-.jsave-shortcut-accounts { margin-top: 20px; padding-top: 14px; border-top: 1px solid rgba(16,185,129,.18); }
-.jsave-shortcut-accounts summary { padding: 7px 0; color: #a7b9ba; font-size: 13px; font-weight: 600; cursor: pointer; }
-.jsave-shortcut-accounts summary:focus-visible { outline: 2px solid #6ee7b7; outline-offset: 4px; border-radius: 4px; }
-.jsave-shortcut-accounts > p { margin: 8px 0 14px; }
-.jsave-root.jsave-light .jsave-shortcut-accounts summary { color: #475569; }
-.jsave-shortcut-account-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
-.jsave-shortcut-account-field .jsave-label { display: block; margin-bottom: 6px; }
-.jsave-shortcut-account-field .jsave-input { width: 100%; min-width: 0; box-sizing: border-box; }
-@media (max-width: 600px) { .jsave-shortcut-account-grid { grid-template-columns: minmax(0, 1fr); } }
 .jsave-installment-badge { display: inline-block; padding: 3px 7px; border-radius: 999px; color: #b9e5d4; background: rgba(16,185,129,.14); border: 1px solid rgba(16,185,129,.23); font: 500 10px var(--font-sans); white-space: nowrap; }
 .jsave-installment-badge.settled { color: #9ca9b9; border-color: rgba(156,169,185,.25); background: rgba(156,169,185,.08); }
 .jsave-thing-payment-line { display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 7px; margin: 6px 0 2px; color: #9bb7ae; font: 500 11px var(--font-sans); }
