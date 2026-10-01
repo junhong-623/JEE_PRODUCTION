@@ -124,6 +124,8 @@ beforeEach(() => {
     if (name === 'firebase-functions/params') return { defineSecret: () => ({ value: () => '' }) }
     if (name === 'firebase-admin/app') return { initializeApp() {} }
     if (name === 'firebase-admin/firestore') return { getFirestore: () => db, FieldValue: { serverTimestamp: () => 'timestamp' } }
+    if (name === 'cloudinary') return { v2: {} }
+    if (name === 'web-push') return {}
     return original.call(this, name, ...args)
   }
   try { api = require(index) } finally { Module._load = original }
