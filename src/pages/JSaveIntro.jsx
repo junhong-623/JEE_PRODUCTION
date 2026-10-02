@@ -18,25 +18,13 @@ import './JSaveIntro.css'
 
 const COPY = {
   en: {
-    nav: ['Overview', 'How it works', 'Installments', 'Product', 'Guides', 'Instagram', 'Principles'],
+    nav: ['Product', 'Installments', 'Receipt import', 'FAQ', 'Instagram', 'Guides'],
     open: 'Open JSave', install: 'Install',
     eyebrow: 'Personal finance, without the noise',
     heroA: 'Spend clearly.', heroB: 'Save calmly.',
     heroBody: 'A focused money companion for everyday life in Malaysia. Record a purchase in seconds, understand your pace, and keep moving toward what matters.',
     start: 'Start free', explore: 'Explore the product',
     assurances: ['No bank connection', 'Works offline', 'English + 中文'],
-    productKicker: 'A calmer daily habit',
-    productTitle: ['Everything important.', 'Nothing distracting.'],
-    productBody: 'JSave keeps the daily loop deliberately small: record, understand, adjust. No ads, noisy streaks, or pressure to connect a bank account.',
-    journeyKicker: 'FROM MOMENT TO MONTH',
-    journeyTitle: 'A receipt becomes a useful decision.',
-    journeyBody: 'JSave connects the tiny action of recording today with a calmer view of the whole month. The information stays practical at every step.',
-    journeySteps: [
-      { title: 'Record', body: 'Capture the amount, category and account while the purchase is still fresh.' },
-      { title: 'Review', body: 'See spending settle into a daily budget and a clear monthly pattern.' },
-      { title: 'Adjust', body: 'Move at your own pace with simple feedback—not warnings designed to create anxiety.' },
-      { title: 'Keep', body: 'Export a clean CSV whenever you need your records somewhere else.' },
-    ],
     installmentsKicker: 'NEW · THINGS + INSTALLMENTS',
     installmentsTitle: 'Enjoy the purchase. Know every payment ahead.',
     installmentsBody: 'In JSave, a Thing can hold its installment plan alongside its purchase price. See the full picture: what it costs, what you have paid, and what is still coming.',
@@ -75,26 +63,17 @@ const COPY = {
         { title: 'Keep the photo or automate later', body: 'After a save or duplicate result, choose to keep or delete that exact photo. Once sharing from Photos works, you may add an optional screenshot automation in the Shortcuts app that runs JSave Receipt Import.', tip: 'Automation can run after screenshots in other apps too. Ordinary screenshots are skipped; likely receipts with missing details ask whether to complete them. Download the updated shortcut once and keep your existing key.' },
       ],
     },
-    stories: [
-      { no: '01', label: 'FAST CAPTURE', title: 'A money habit you can actually keep.', body: 'Choose an amount, category and account. That is enough. Recurring entries take care of predictable monthly spending without creating duplicates.', points: ['Four transaction types', 'Recurring monthly entries', 'Clear account balances'] },
-      { no: '02', label: 'USEFUL FEEDBACK', title: 'Know what today means for tomorrow.', body: 'A daily budget signal turns a long monthly number into a decision you can use right now. Goals and cost-per-day add context without judging you.', points: ['Daily budget pacing', 'Goal progress', 'True cost per day'] },
-      { no: '03', label: 'OFFLINE BY DESIGN', title: 'Your records stay available when the signal disappears.', body: 'Each account has its own offline cache. Changes queue safely and reconcile with your private cloud path when the connection returns.', points: ['Account-isolated cache', 'Reliable queued sync', 'CSV export anytime'] },
-      { no: '04', label: 'AA BILL SPLITTING', title: 'One shared bill. Only your share counts.', body: 'Pay for the table, split the total equally, and keep track of who has paid you back. JSave remembers the full bill while counting only your own share as personal spending.', points: ['Equal split in seconds', 'Track repayments', 'Accurate personal spending'] },
-    ],
-    lifestyleKicker: 'Made for real life',
-    lifestyleTitle: 'Money clarity should feel quiet.',
-    lifestyleBody: 'JSave is designed in Kuala Lumpur for the small, ordinary choices that shape a month—not for financial theatre.',
-    lifestyleCards: [{ value: 'RM 38', label: 'safe to spend today' }, { value: '72%', label: 'Tokyo goal reached' }],
-    goalKicker: 'BEYOND THE LEDGER',
-    goalTitle: 'Give every saving goal a real shape.',
-    goalBody: 'A trip, a new device, or a rainy-day fund becomes easier to understand when progress is visible. JSave shows what is saved, what remains, and the pace toward the date you chose.',
-    goalPoints: ['Multiple goals', 'Quick deposits', 'Projected completion'],
     demoKicker: 'THE REAL PRODUCT', demoTitle: 'Tap through JSave.',
-    demoBody: 'These are working interface components—not a concept render. Switch screens to see the core flow.',
-    tabs: ['Home', 'Ledger', 'Add', 'Insights', 'Goals'],
-    toolkitKicker: 'ONE CONNECTED TOOLKIT',
-    toolkitTitle: 'More context, without more clutter.',
-    toolkitBody: 'The details are there when you need them, then get out of the way.',
+    demoBody: 'Record, understand, adjust. Switch between the previews and try a sample entry.',
+    tabs: ['Home', 'Ledger', 'Add', 'Insights', 'Goals', 'AA split'],
+    demoDescriptions: [
+      'Your balances, daily budget and goal progress, together in one clear view.',
+      'Find a purchase, review a day, and keep each account’s records in order.',
+      'Choose the amount, category and account. Try saving a sample entry here.',
+      'See where your money goes and how today fits into your monthly budget.',
+      'Give a trip, a new device or your emergency fund a visible savings target.',
+      'Split a shared bill and track repayments. Only your own share counts as spending.',
+    ],
     toolkit: [
       { no: '01', title: 'Accounts', body: 'Cash, bank and savings balances stay separate and easy to understand.' },
       { no: '02', title: 'Calendar', body: 'Review the month day by day and find a transaction without digging.' },
@@ -103,15 +82,8 @@ const COPY = {
       { no: '05', title: 'Recurring', body: 'Let predictable monthly entries appear once, reliably, across your devices.' },
       { no: '06', title: 'Your data', body: 'Use it offline, sync it privately, and export it when you choose.' },
     ],
-    guidesKicker: 'JSave GUIDES', guidesTitle: 'Useful thinking, beyond the interface.',
-    guidesBody: 'Long-form, practical guides to building a calmer money routine—grounded in real Malaysian life and the decisions behind JSave.',
+    guidesKicker: 'JSave GUIDES',
     guidesRead: 'Read guide', guidesAll: 'View all guides',
-    principlesKicker: 'OUR PRINCIPLES', principlesTitle: 'Built to earn a place in your routine.',
-    principles: [
-      { title: 'Manual on purpose', body: 'You decide what enters the ledger. JSave never asks for bank credentials.' },
-      { title: 'Private by account', body: 'Offline records are isolated by user and sync only to that user’s Firebase path.' },
-      { title: 'Honest by default', body: 'No invented AI, fake user counts, or paid tiers that do not exist.' },
-    ],
     faqTitle: 'A few useful answers.',
     faqs: [
       { q: 'Can I use JSave without internet?', a: 'Yes. Add and review records offline; queued changes sync after your connection returns.' },
@@ -123,21 +95,10 @@ const COPY = {
     footer: 'Designed and built in Kuala Lumpur.', close: 'Close', menu: 'Menu',
   },
   zh: {
-    nav: ['概览', '使用方式', '分期付款', '产品', '指南', 'Instagram', '原则'], open: '打开 JSave', install: '安装',
+    nav: ['核心功能', '分期付款', '截图导入', '常见问题', 'Instagram', '指南'], open: '打开 JSave', install: '安装',
     eyebrow: '个人理财，不需要噪音', heroA: '花得清楚。', heroB: '存得从容。',
     heroBody: '为马来西亚日常生活而做的专注理财伙伴。几秒记下一笔，看懂自己的节奏，继续走向真正重要的目标。',
     start: '免费开始', explore: '看看产品', assurances: ['无需连接银行', '离线可用', '中文 + English'],
-    productKicker: '更从容的日常习惯', productTitle: ['重要的都有。', '多余的没有。'],
-    productBody: 'JSave 把每天的流程刻意保持简单：记录、看懂、调整。没有广告、吵闹的连续打卡，也不会催你绑定银行。',
-    journeyKicker: '从当下到整个月',
-    journeyTitle: '一张收据，变成一个有用的决定。',
-    journeyBody: 'JSave 把今天随手记录的小动作，连接到整个星期和月份的清晰视角。每一步都保持实际、有用。',
-    journeySteps: [
-      { title: '记录', body: '趁消费还记得，快速填下金额、类别和账户。' },
-      { title: '回看', body: '让每笔消费自然汇入每日预算和清楚的月度趋势。' },
-      { title: '调整', body: '用简单反馈找到自己的节奏，而不是用警告制造焦虑。' },
-      { title: '保留', body: '需要在其他地方使用时，随时导出干净的 CSV。' },
-    ],
     installmentsKicker: '新功能 · 物品与分期付款',
     installmentsTitle: '喜欢的物品买回家，接下来的每一期也心中有数。',
     installmentsBody: 'JSave 让你在「物品」中把分期计划和购买价格放在一起，同时看清物品价格、已经支付多少，以及未来还要付多少。',
@@ -176,24 +137,16 @@ const COPY = {
         { title: '选择照片去留，自动化可稍后加', body: '保存成功或发现重复后，可以保留或删除本次截图。先用「照片」分享方式测试成功，再视需要到「快捷指令 → 自动化」设置截图后运行统一指令。', tip: '普通截图安静跳过；疑似收据但资料不完整时，先问是否补全。此次升级需重新下载指令一次，沿用原统一密钥即可。' },
       ],
     },
-    stories: [
-      { no: '01', label: '快速记录', title: '真正坚持得下来的金钱习惯。', body: '选择金额、类别和账户，就够了。固定的每月开销可以自动记录，同时避免重复生成。', points: ['四种交易类型', '每月周期记账', '清楚的账户余额'] },
-      { no: '02', label: '有用的反馈', title: '看懂今天，会怎样影响明天。', body: '每日预算把遥远的月度数字，变成当下可用的判断。目标进度和日均成本提供背景，但不评判你。', points: ['每日预算节奏', '目标进度', '真实日均成本'] },
-      { no: '03', label: '为离线而设计', title: '没有信号，记录也依然在。', body: '每个账号都有独立的离线缓存。网络恢复后，排队中的修改会可靠地同步到你的私人云端路径。', points: ['账号隔离缓存', '可靠队列同步', '随时导出 CSV'] },
-      { no: '04', label: 'AA 分账', title: '一笔共同消费，只算自己的那份。', body: '先替整桌付款、按人数均分，再记录谁已经还款。JSave 会保留完整账单，但个人支出统计只计入你自己的份额。', points: ['几秒完成均分', '清楚追踪还款', '个人支出不失真'] },
+    demoKicker: '真实产品', demoTitle: '亲自看看 JSave。', demoBody: '记录、看懂、调整。切换下面的预览，也可以亲手试记一笔。',
+    tabs: ['主页', '账本', '新增', '洞察', '目标', 'AA 分账'],
+    demoDescriptions: [
+      '账户余额、每日预算与目标进度，放在同一个清楚的视角里。',
+      '找回一笔消费、回看某一天，把不同账户的记录整理好。',
+      '填好金额、类别和账户，就能记下一笔。这里也可以试着保存示例。',
+      '看懂钱花在哪里，以及今天的消费怎样影响整个月的预算。',
+      '旅行、新设备或应急金，都可以有看得见的储蓄进度。',
+      '共同消费可以均分并追踪还款；个人支出只计算自己的那一份。',
     ],
-    lifestyleKicker: '为真实生活而做', lifestyleTitle: '看清钱，不应该让人焦虑。',
-    lifestyleBody: 'JSave 在吉隆坡设计，关注的是组成一个月的普通小决定，而不是华而不实的金融表演。',
-    lifestyleCards: [{ value: 'RM 38', label: '今天可安心使用' }, { value: '72%', label: '东京目标进度' }],
-    goalKicker: '不只是账本',
-    goalTitle: '让每一个储蓄目标，都有具体形状。',
-    goalBody: '一趟旅行、一台新设备，或一笔应急金；当进度清楚可见，目标也会更容易理解。JSave 告诉你已经存了多少、还差多少，以及距离计划日期的节奏。',
-    goalPoints: ['多个储蓄目标', '快速存入', '预计完成时间'],
-    demoKicker: '真实产品', demoTitle: '亲自看看 JSave。', demoBody: '这里展示的是真实界面组件，不是概念图。切换页面，了解主要流程。',
-    tabs: ['主页', '账本', '新增', '洞察', '目标'],
-    toolkitKicker: '一套完整工具',
-    toolkitTitle: '更多背景，不增加杂乱。',
-    toolkitBody: '需要时提供足够细节，不需要时安静地退到后面。',
     toolkit: [
       { no: '01', title: '账户', body: '现金、银行和储蓄余额分别整理，一眼就能理解。' },
       { no: '02', title: '日历', body: '逐日回看整个月，不需要翻找也能找到一笔交易。' },
@@ -202,15 +155,8 @@ const COPY = {
       { no: '05', title: '周期记账', body: '固定月度项目只生成一次，并可靠同步到不同设备。' },
       { no: '06', title: '你的数据', body: '离线使用、私人同步，并在你选择时自由导出。' },
     ],
-    guidesKicker: 'JSave 指南', guidesTitle: '不只介绍功能，也认真谈怎样使用。',
-    guidesBody: '围绕真实马来西亚生活写成的长篇实用指南，解释怎样建立更安静、可持续的金钱习惯，以及 JSave 背后的产品取舍。',
+    guidesKicker: 'JSave 指南',
     guidesRead: '阅读指南', guidesAll: '查看全部指南',
-    principlesKicker: '产品原则', principlesTitle: '值得留在你日常里的工具。',
-    principles: [
-      { title: '有意采用手动记录', body: '由你决定什么进入账本。JSave 永远不会索取银行登录资料。' },
-      { title: '数据按账号私有', body: '离线记录按用户隔离，并只同步到该用户自己的 Firebase 路径。' },
-      { title: '默认如实表达', body: '不虚构 AI、用户数字，也不展示并不存在的付费等级。' },
-    ],
     faqTitle: '几个实用答案。',
     faqs: [
       { q: '没有网络也能用吗？', a: '可以。离线时仍能添加和查看记录，网络恢复后会自动同步排队中的修改。' },
@@ -236,7 +182,7 @@ const PWA_STEPS = {
   },
 }
 
-const NAV_TARGETS = ['#overview', '#journey', '#installments', '#product', '#guides', '#instagram', '#principles']
+const NAV_TARGETS = ['#product', '#installments', '#shortcut', '#principles', '#instagram', '#guides']
 
 function Device({ children }) {
   return <div className="ji-device-viewport"><div className="ji-device-scale"><IOSDevice width={390} height={844} dark>{children}</IOSDevice></div></div>
@@ -244,13 +190,6 @@ function Device({ children }) {
 
 function ArrowIcon() {
   return <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11M11 6l4 4-4 4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-}
-
-function FeatureGlyph({ type }) {
-  if (type === 'capture') return <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 5v22M5 16h22"/><rect x="3.5" y="3.5" width="25" height="25" rx="8"/></svg>
-  if (type === 'feedback') return <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 24V13M13 24V7M21 24v-8M29 24V4"/><path d="M3 27h27"/></svg>
-  if (type === 'split') return <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="10" cy="11" r="4"/><circle cx="22" cy="11" r="4"/><path d="M3.5 26c.7-5.1 3-7.5 6.5-7.5s5.8 2.4 6.5 7.5M15.5 26c.7-5.1 3-7.5 6.5-7.5s5.8 2.4 6.5 7.5"/></svg>
-  return <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 13a9 9 0 0117-3M25 19a9 9 0 01-17 3"/><path d="M24 4v6h-6M8 28v-6h6"/></svg>
 }
 
 function InstallmentPreview({ copy, zh }) {
@@ -502,7 +441,7 @@ export default function JSaveIntro({ onOpenApp, withHead = true, language, onLan
         <div className="ji-hero-copy ji-hero-enter">
           <p className="ji-kicker">{c.eyebrow}</p><h1>{c.heroA}<br /><span>{c.heroB}</span></h1>
           <p className="ji-hero-body">{c.heroBody}</p>
-          <div className="ji-hero-actions"><a className="ji-button ji-button-primary" href={appHref} onClick={handleOpenApp}>{c.start}<ArrowIcon /></a><a className="ji-button ji-button-text" href="#overview">{c.explore}<ArrowIcon /></a></div>
+          <div className="ji-hero-actions"><a className="ji-button ji-button-primary" href={appHref} onClick={handleOpenApp}>{c.start}<ArrowIcon /></a><a className="ji-button ji-button-text" href="#product">{c.explore}<ArrowIcon /></a></div>
           <div className="ji-assurances">{c.assurances.map(item => <span key={item}><i />{item}</span>)}</div>
         </div>
         <div className="ji-hero-product" aria-label={zh ? 'JSave 首页界面预览' : 'JSave home screen preview'}>
@@ -512,17 +451,35 @@ export default function JSaveIntro({ onOpenApp, withHead = true, language, onLan
         </div>
       </section>
 
-      <section id="overview" className="ji-intro"><Reveal className="ji-section-copy"><p className="ji-kicker">{c.productKicker}</p><h2>{c.productTitle.map(line => <span key={line}>{line}</span>)}</h2><p>{c.productBody}</p></Reveal></section>
-
-      <section id="journey" className="ji-journey">
-        <Reveal direction="left" className="ji-journey-photo">
-          <img src={`${JSAVE_BASE}/j-save-everyday.webp`} alt={zh ? '在吉隆坡咖啡店记录日常消费' : 'Recording an everyday purchase at a Kuala Lumpur cafe'} loading="lazy" />
-          <div className="ji-photo-caption"><span>01</span>{zh ? '消费发生时，顺手记下。' : 'Capture it while it is fresh.'}</div>
+      <section id="product" className="ji-demo ji-demo-compact" aria-labelledby="demo-title">
+        <span id="overview" className="ji-anchor" aria-hidden="true" /><span id="journey" className="ji-anchor" aria-hidden="true" />
+        <Reveal direction="left" className="ji-demo-copy">
+          <p className="ji-kicker">{c.demoKicker}</p><h2 id="demo-title">{c.demoTitle}</h2><p>{c.demoBody}</p>
+          <div className="ji-demo-tabs" role="tablist" aria-label={c.demoTitle}>{c.tabs.map((tab, index) => <button key={tab} id={`demo-tab-${index}`} role="tab" aria-selected={activeScreen === index} aria-controls="demo-panel" tabIndex={activeScreen === index ? 0 : -1} onClick={() => setActiveScreen(index)} onKeyDown={event => {
+            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+            event.preventDefault()
+            const next = event.key === 'Home' ? 0 : event.key === 'End' ? c.tabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + c.tabs.length) % c.tabs.length
+            setActiveScreen(next)
+            event.currentTarget.parentElement.children[next].focus()
+          }}><span>{String(index + 1).padStart(2, '0')}</span>{tab}</button>)}</div>
+          <p className="ji-demo-description" aria-live="polite">{c.demoDescriptions[activeScreen]}</p>
+          <figure className="ji-demo-photo"><img src={`${JSAVE_BASE}/${activeScreen === 4 ? 'j-save-goals.webp' : 'j-save-everyday.webp'}`} alt={zh ? (activeScreen === 4 ? '一起规划旅行储蓄目标' : '在咖啡店记录日常消费') : (activeScreen === 4 ? 'Planning a travel savings goal together' : 'Recording a purchase at a cafe')} loading="lazy" /><figcaption>{zh ? '从今天的小记录，走向想要的生活。' : 'Small entries today. Room for what matters.'}</figcaption></figure>
+          <details className="ji-more-features"><summary>{zh ? '还有哪些实用功能？' : 'What else is included?'}</summary><dl>{c.toolkit.map(item => <div key={item.no}><dt>{item.title}</dt><dd>{item.body}</dd></div>)}</dl></details>
         </Reveal>
-        <div className="ji-journey-content">
-          <Reveal direction="right"><p className="ji-kicker">{c.journeyKicker}</p><h2>{c.journeyTitle}</h2><p className="ji-journey-body">{c.journeyBody}</p></Reveal>
-          <ol className="ji-journey-steps">{c.journeySteps.map((step, index) => <Reveal as="li" direction="right" delay={index * 90} key={step.title}><span>{String(index + 1).padStart(2, '0')}</span><div><h3>{step.title}</h3><p>{step.body}</p></div></Reveal>)}</ol>
-        </div>
+        <Reveal direction="scale" delay={120} className="ji-demo-stage" id="demo-panel" role="tabpanel" aria-labelledby={`demo-tab-${activeScreen}`} tabIndex={0}><div className={`ji-demo-screen${activeScreen === 5 ? ' ji-demo-aa' : ''}`} key={activeScreen}>{activeScreen === 5 ? <div className="ji-split-visual">
+              <div className="ji-split-head"><div><span>{zh ? 'AA 分账' : 'AA SPLIT'}</span><h4>{zh ? '周五晚餐' : 'Friday dinner'}</h4></div><strong>RM 168.00</strong></div>
+              <div className="ji-split-people">
+                {[
+                  { initial: 'Y', name: zh ? '你' : 'You', status: zh ? '计入我的支出' : 'counts as your spend', own: true },
+                  { initial: 'M', name: 'Mei', status: zh ? '已还款' : 'settled', settled: true },
+                  { initial: 'K', name: 'Kai', status: zh ? '等待还款' : 'pending' },
+                  { initial: 'A', name: 'Aina', status: zh ? '已还款' : 'settled', settled: true },
+                ].map(person => <div className={`ji-split-person${person.own ? ' is-own' : ''}${person.settled ? ' is-settled' : ''}`} key={person.name}>
+                  <span className="ji-split-avatar">{person.initial}</span><div><b>{person.name}</b><small className={person.settled ? 'is-settled' : ''}>{person.status}</small></div><strong>RM 42.00</strong>
+                </div>)}
+              </div>
+              <div className="ji-split-summary"><span>{zh ? '我的实际支出' : 'YOUR ACTUAL SPEND'}</span><strong>RM 42.00</strong></div>
+            </div> : <Device>{screens[activeScreen]}</Device>}</div></Reveal>
       </section>
 
       <section id="installments" className="ji-installments" aria-labelledby="installments-title">
@@ -564,86 +521,21 @@ export default function JSaveIntro({ onOpenApp, withHead = true, language, onLan
         </Reveal>
       </section>
 
-      <section id="product" className="ji-stories">
-        {c.stories.map((story, index) => <article className={`ji-story ji-story-${index + 1}`} key={story.no}>
-          <Reveal direction={index % 2 === 0 ? 'left' : 'right'} className="ji-story-copy">
-            <div className="ji-story-glyph"><FeatureGlyph type={['capture', 'feedback', 'sync', 'split'][index]} /></div>
-            <p className="ji-story-label">{story.no} · {story.label}</p><h3>{story.title}</h3><p className="ji-story-body">{story.body}</p>
-            <ul>{story.points.map(point => <li key={point}>{point}</li>)}</ul>
-          </Reveal>
-          <Reveal direction={index % 2 === 0 ? 'right' : 'left'} delay={120} className="ji-story-visual">
-            {index === 0 && <div className="ji-story-phone"><Device><PhoneAdd lang={lang} /></Device></div>}
-            {index === 1 && <div className="ji-budget-visual"><div className="ji-budget-head"><span>{zh ? '九月节奏' : 'SEPTEMBER PACE'}</span><b>68%</b></div><div className="ji-budget-track"><span /></div><div className="ji-budget-row"><span>{zh ? '今天已用' : 'Spent today'}</span><strong>RM 42.60</strong></div><div className="ji-budget-row"><span>{zh ? '仍可安心使用' : 'Still comfortable'}</span><strong className="is-green">RM 38.20</strong></div></div>}
-            {index === 2 && <div className="ji-sync-visual"><div className="ji-sync-device"><span>{zh ? '手机' : 'PHONE'}</span><b>12</b><small>{zh ? '本地记录' : 'local records'}</small></div><div className="ji-sync-line"><i /><i /><i /></div><div className="ji-sync-device"><span>{zh ? '私人云端' : 'PRIVATE CLOUD'}</span><b>12</b><small>{zh ? '已同步' : 'synced safely'}</small></div></div>}
-            {index === 3 && <div className="ji-split-visual">
-              <div className="ji-split-head"><div><span>{zh ? 'AA 分账' : 'AA SPLIT'}</span><h4>{zh ? '周五晚餐' : 'Friday dinner'}</h4></div><strong>RM 168.00</strong></div>
-              <div className="ji-split-people">
-                {[
-                  { initial: 'Y', name: zh ? '你' : 'You', status: zh ? '计入我的支出' : 'counts as your spend', own: true },
-                  { initial: 'M', name: 'Mei', status: zh ? '已还款' : 'settled', settled: true },
-                  { initial: 'K', name: 'Kai', status: zh ? '等待还款' : 'pending' },
-                  { initial: 'A', name: 'Aina', status: zh ? '已还款' : 'settled', settled: true },
-                ].map(person => <div className={`ji-split-person${person.own ? ' is-own' : ''}${person.settled ? ' is-settled' : ''}`} key={person.name}>
-                  <span className="ji-split-avatar">{person.initial}</span><div><b>{person.name}</b><small className={person.settled ? 'is-settled' : ''}>{person.status}</small></div><strong>RM 42.00</strong>
-                </div>)}
-              </div>
-              <div className="ji-split-summary"><span>{zh ? '我的实际支出' : 'YOUR ACTUAL SPEND'}</span><strong>RM 42.00</strong></div>
-            </div>}
-          </Reveal>
-        </article>)}
+      <section id="principles" className="ji-trust" aria-labelledby="trust-title">
+        <Reveal direction="left" className="ji-trust-copy"><p className="ji-kicker">{zh ? '安心使用' : 'MADE FOR EVERYDAY TRUST'}</p><h2 id="trust-title">{zh ? '你的记录，由你掌握。' : 'Your records. Your choice.'}</h2><p>{zh ? '无需连接银行。离线也能记录，联网后同步；需要时，带走自己的数据。' : 'No bank connection needed. Record offline, sync when connected, and take your data with you.'}</p><div className="ji-trust-badges">{(zh ? ['离线可用', '账号私有', 'CSV 导出', '目前免费'] : ['Works offline', 'Private to you', 'CSV export', 'Currently free']).map(item => <span key={item}>✓ {item}</span>)}</div></Reveal>
+        <div className="ji-faq ji-faq-compact"><Reveal as="h3">{c.faqTitle}</Reveal><div>{c.faqs.map((faq, index) => {
+          const expanded = openFaq === index
+          return <Reveal as="article" delay={index * 55} key={faq.q}><button id={`faq-question-${index}`} onClick={() => setOpenFaq(expanded ? -1 : index)} aria-expanded={expanded} aria-controls={`faq-answer-${index}`}><span>{faq.q}</span><i aria-hidden="true">{expanded ? '−' : '+'}</i></button><div id={`faq-answer-${index}`} className={expanded ? 'is-open' : ''} aria-hidden={!expanded}><p>{faq.a}</p></div></Reveal>
+        })}</div></div>
       </section>
 
-      <section className="ji-lifestyle">
-        <img src={`${JSAVE_BASE}/j-save-lifestyle.webp`} alt={zh ? '桌面上的手机、笔记本与 JSave 乌龟摆件' : 'A phone, notebook and JSave turtle on a calm desk'} loading="lazy" />
-        <div className="ji-lifestyle-shade" /><Reveal direction="left" className="ji-lifestyle-copy"><p className="ji-kicker">{c.lifestyleKicker}</p><h2>{c.lifestyleTitle}</h2><p>{c.lifestyleBody}</p></Reveal>
-        <Reveal direction="up" delay={140} className="ji-lifestyle-metrics">{c.lifestyleCards.map(card => <div key={card.label}><strong>{card.value}</strong><span>{card.label}</span></div>)}</Reveal>
+      <section className="ji-updates" aria-label={zh ? '最新分享与指南' : 'Latest posts and guides'}>
+        <JSaveInstagram zh={zh} />
+        <div id="guides" className="ji-resources">
+          <Reveal className="ji-resources-heading"><div><p className="ji-kicker">{c.guidesKicker}</p><h2>{zh ? '想再多了解一点？' : 'A little more reading.'}</h2></div><a href={guidesHref(lang)}>{c.guidesAll}<ArrowIcon /></a></Reveal>
+          <div className="ji-resource-links">{guideArticles.map((article, index) => <Reveal as="article" delay={index * 70} key={article.slug}><a href={articleHref(article.slug, lang)}><img src={article.image} alt="" loading="lazy" width="1600" height="1067" /><div><p>{article.copy.category}</p><h3>{article.copy.title}</h3><span>{c.guidesRead}<ArrowIcon /></span></div></a></Reveal>)}</div>
+        </div>
       </section>
-
-      <section className="ji-goal-story">
-        <Reveal direction="left" className="ji-goal-copy">
-          <p className="ji-kicker">{c.goalKicker}</p><h2>{c.goalTitle}</h2><p>{c.goalBody}</p>
-          <ul>{c.goalPoints.map(point => <li key={point}>{point}</li>)}</ul>
-        </Reveal>
-        <Reveal direction="scale" delay={120} className="ji-goal-photo">
-          <img src={`${JSAVE_BASE}/j-save-goals.webp`} alt={zh ? '两个人一起规划旅行储蓄目标' : 'Two people planning a travel savings goal together'} loading="lazy" />
-          <div className="ji-goal-progress"><span>{zh ? '旅行目标' : 'TRAVEL GOAL'}</span><strong>72%</strong><i><b /></i></div>
-        </Reveal>
-      </section>
-
-      <section className="ji-demo" aria-labelledby="demo-title">
-        <Reveal direction="left" className="ji-demo-copy"><p className="ji-kicker">{c.demoKicker}</p><h2 id="demo-title">{c.demoTitle}</h2><p>{c.demoBody}</p>
-          <div className="ji-demo-tabs" role="tablist" aria-label={c.demoTitle}>{c.tabs.map((tab, index) => <button key={tab} role="tab" aria-selected={activeScreen === index} onClick={() => setActiveScreen(index)}><span>{String(index + 1).padStart(2, '0')}</span>{tab}</button>)}</div>
-        </Reveal>
-        <Reveal direction="scale" delay={120} className="ji-demo-stage" role="tabpanel" aria-label={c.tabs[activeScreen]}><div className="ji-demo-screen" key={activeScreen}><Device>{screens[activeScreen]}</Device></div></Reveal>
-      </section>
-
-      <section className="ji-toolkit">
-        <Reveal className="ji-toolkit-heading"><p className="ji-kicker">{c.toolkitKicker}</p><h2>{c.toolkitTitle}</h2><p>{c.toolkitBody}</p></Reveal>
-        <div className="ji-toolkit-grid">{c.toolkit.map((item, index) => <Reveal as="article" direction="scale" delay={(index % 3) * 90} key={item.no}><span>{item.no}</span><h3>{item.title}</h3><p>{item.body}</p></Reveal>)}</div>
-      </section>
-
-      <section id="guides" className="ji-guides">
-        <Reveal className="ji-guides-heading"><p className="ji-kicker">{c.guidesKicker}</p><h2>{c.guidesTitle}</h2><p>{c.guidesBody}</p></Reveal>
-        <div className="ji-guides-grid">{guideArticles.map((article, index) => <Reveal as="article" direction="scale" delay={index * 90} key={article.slug}>
-          <a href={articleHref(article.slug, lang)}>
-            <div className="ji-guide-image"><img src={article.image} alt="" loading="lazy" width="1600" height="1067" /><span>{String(index + 1).padStart(2, '0')}</span></div>
-            <p>{article.copy.category}</p><h3>{article.copy.title}</h3><div>{article.copy.deck}</div><b>{c.guidesRead}<ArrowIcon /></b>
-          </a>
-        </Reveal>)}</div>
-        <Reveal><a className="ji-guides-all" href={guidesHref(lang)}>{c.guidesAll}<ArrowIcon /></a></Reveal>
-      </section>
-
-      <JSaveInstagram zh={zh} />
-
-      <section id="principles" className="ji-principles">
-        <Reveal className="ji-section-copy"><p className="ji-kicker">{c.principlesKicker}</p><h2>{c.principlesTitle}</h2></Reveal>
-        <div className="ji-principle-grid">{c.principles.map((principle, index) => <Reveal as="article" direction="scale" delay={index * 90} key={principle.title}><span>{String(index + 1).padStart(2, '0')}</span><h3>{principle.title}</h3><p>{principle.body}</p></Reveal>)}</div>
-      </section>
-
-      <section className="ji-faq"><Reveal as="h2">{c.faqTitle}</Reveal><div>{c.faqs.map((faq, index) => {
-        const expanded = openFaq === index
-        return <Reveal as="article" delay={index * 55} key={faq.q}><button onClick={() => setOpenFaq(expanded ? -1 : index)} aria-expanded={expanded}><span>{faq.q}</span><i>{expanded ? '−' : '+'}</i></button><div className={expanded ? 'is-open' : ''}><p>{faq.a}</p></div></Reveal>
-      })}</div></section>
 
       <section className="ji-final"><div className="ji-final-glow" /><Reveal direction="scale"><h2>{c.finalTitle}</h2><p>{c.finalBody}</p><div className="ji-final-actions"><a className="ji-button ji-button-primary" href={appHref} onClick={handleOpenApp}>{c.open}<ArrowIcon /></a>{!onOpenApp && <button className="ji-button ji-button-secondary" onClick={showInstall}>{c.install}</button>}</div></Reveal></section>
       <footer className="ji-footer"><a className="ji-brand" href="#top"><span className="ji-brand-mark">J</span><span>JSave</span></a><p>{c.footer}</p><span>© 2026 JSave · <a href="https://www.jeeprod.com" target="_blank" rel="noopener noreferrer">Jee Production</a></span></footer>

@@ -114,6 +114,14 @@ export default function JSaveInstagram({ zh }) {
   const root = useRef(null)
   const [headingRef, headingVisible] = useEntrance()
   const [attempt, setAttempt] = useState(0)
+  const [expandedPosts, setExpandedPosts] = useState(false)
+  const [narrow, setNarrow] = useState(() => window.matchMedia('(max-width: 900px)').matches)
+  useEffect(() => {
+    const query = window.matchMedia('(max-width: 900px)')
+    const update = () => setNarrow(query.matches)
+    query.addEventListener('change', update)
+    return () => query.removeEventListener('change', update)
+  }, [])
   const [feed, setFeed] = useState({ status: 'idle', posts: [] })
   useEffect(() => {
     const controller = new AbortController()
@@ -150,16 +158,18 @@ export default function JSaveInstagram({ zh }) {
   }, [attempt])
 
   const loading = ['idle', 'loading'].includes(feed.status)
+  const previewCount = narrow ? 2 : 3
+  const visiblePosts = expandedPosts ? feed.posts : feed.posts.slice(0, previewCount)
   return <section id="instagram" className="ji-instagram" ref={root} aria-labelledby="instagram-title">
     <div ref={headingRef} className={`ji-ig-heading ji-ig-enter${headingVisible ? ' is-visible' : ''}`}>
       <div><p className="ji-kicker">JSAVE ON INSTAGRAM</p><h2 id="instagram-title">{zh ? '生活里的小账，慢慢聊。' : 'Small money moments. Real life.'}</h2><p className="ji-ig-description">{zh ? '新功能、记账小习惯，还有那些「okay lah」的日常消费。来自 @j._save 的最新分享。' : 'New features, everyday money habits, and the little purchases that add up. The latest from @j._save.'}</p></div>
       <a className="ji-ig-profile" href={PROFILE_URL} target="_blank" rel="noopener noreferrer"><InstagramIcon /><span>@j._save</span><span aria-hidden="true">↗</span></a>
     </div>
     <div aria-busy={loading} aria-live="polite">
-      {loading ? <div className="ji-ig-grid ji-ig-loading" aria-label={zh ? '正在加载 Instagram 帖子' : 'Loading Instagram posts'}>{[0, 1, 2].map(index => <div className="ji-ig-skeleton" key={index} aria-hidden="true"><div /><i /><i /></div>)}</div> : feed.posts.length ? <div className="ji-ig-grid">
-        {feed.posts.map((post, index) => <Post post={post} zh={zh} index={index} key={post.id} />)}
-        {feed.posts.length % 3 === 2 && <a className="ji-ig-follow" href={PROFILE_URL} target="_blank" rel="noopener noreferrer"><span className="ji-ig-follow-orbit" aria-hidden="true" /><InstagramIcon /><span>{zh ? '下一篇，\n在 Instagram 见。' : 'See you on\nInstagram.'}</span><p>{zh ? '关注 @j._save，一起花得清楚，存得从容。' : 'Follow @j._save. Spend clearly, save calmly.'}</p><b>{zh ? '关注 JSave' : 'Follow JSave'} <span aria-hidden="true">↗</span></b></a>}
+      {loading ? <div className="ji-ig-grid ji-ig-loading" aria-label={zh ? '正在加载 Instagram 帖子' : 'Loading Instagram posts'}>{[0, 1, 2].map(index => <div className="ji-ig-skeleton" key={index} aria-hidden="true"><div /><i /><i /></div>)}</div> : feed.posts.length ? <div className="ji-ig-grid" id="instagram-posts">
+        {visiblePosts.map((post, index) => <Post post={post} zh={zh} index={index} key={post.id} />)}
       </div> : <div className="ji-ig-empty"><InstagramIcon /><h3>{zh ? '更多 JSave 日常，在这里。' : 'More everyday JSave moments, here.'}</h3><p>{zh ? '到 Instagram 看最新分享，和我们聊聊你的记账习惯。' : 'Find the latest posts on Instagram and share your money habits with us.'}</p><a href={PROFILE_URL} target="_blank" rel="noopener noreferrer">{zh ? '打开 @j._save' : 'Visit @j._save'} ↗</a>{feed.status === 'unavailable' && <button onClick={() => setAttempt(value => value + 1)}>{zh ? '重新加载帖子' : 'Reload posts'}</button>}</div>}
     </div>
+    {feed.posts.length > previewCount && <div className="ji-ig-expand"><button aria-expanded={expandedPosts} aria-controls="instagram-posts" onClick={() => setExpandedPosts(value => !value)}>{expandedPosts ? (zh ? '收起帖子' : 'Show fewer posts') : (zh ? `查看更多帖子（+${feed.posts.length - previewCount}）` : `More posts (+${feed.posts.length - previewCount})`)}<span aria-hidden="true">{expandedPosts ? '−' : '+'}</span></button></div>}
   </section>
 }
