@@ -162,3 +162,6 @@
 }
 
 .ja-root :focus-visible { outline: 3px solid #61dbaa; outline-offset: 4px; }
+.ja-all-guides { display: flex; align-items: center; gap: 8px; width: fit-content; margin: 28px auto 0; padding: 12px 20px; border: 1px solid #bbd4c7; border-radius: 999px; color: var(--ja-green-dark); background: #fff; font-size: 14px; font-weight: 650; text-decoration: none; }
+.ja-all-guides svg { width: 18px; height: 18px; }
+.ja-all-guides:hover { background: #e8f8ef; }

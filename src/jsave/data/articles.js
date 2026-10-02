@@ -1,4 +1,7 @@
+import { PRACTICAL_GUIDES } from './practicalGuides.js'
+
 export const ARTICLES = [
+  ...PRACTICAL_GUIDES,
   {
     slug: 'offline-expense-tracking',
     image: '/articles/offline-expense-tracking.webp',

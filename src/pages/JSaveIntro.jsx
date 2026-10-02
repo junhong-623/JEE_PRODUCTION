@@ -370,7 +370,8 @@ export default function JSaveIntro({ onOpenApp, withHead = true, language, onLan
   const lang = language || localLanguage
   const zh = lang === 'zh'
   const c = COPY[lang]
-  const guideArticles = ARTICLE_SUMMARIES.map(article => ({ ...article, copy: article.locales[lang] }))
+  const guideArticles = ARTICLE_SUMMARIES.slice(0, 3).map(article => ({ ...article, copy: article.locales[lang] }))
+  const guideLink = path => JSAVE_BASE ? `https://jsave.jeeprod.com${path}` : path
   const appHref = onOpenApp ? '#' : 'https://jsave.jeeprod.com'
 
   const screens = [
@@ -532,8 +533,8 @@ export default function JSaveIntro({ onOpenApp, withHead = true, language, onLan
       <section className="ji-updates" aria-label={zh ? '最新分享与指南' : 'Latest posts and guides'}>
         <JSaveInstagram zh={zh} />
         <div id="guides" className="ji-resources">
-          <Reveal className="ji-resources-heading"><div><p className="ji-kicker">{c.guidesKicker}</p><h2>{zh ? '想再多了解一点？' : 'A little more reading.'}</h2></div><a href={guidesHref(lang)}>{c.guidesAll}<ArrowIcon /></a></Reveal>
-          <div className="ji-resource-links">{guideArticles.map((article, index) => <Reveal as="article" delay={index * 70} key={article.slug}><a href={articleHref(article.slug, lang)}><img src={article.image} alt="" loading="lazy" width="1600" height="1067" /><div><p>{article.copy.category}</p><h3>{article.copy.title}</h3><span>{c.guidesRead}<ArrowIcon /></span></div></a></Reveal>)}</div>
+          <Reveal className="ji-resources-heading"><div><p className="ji-kicker">{c.guidesKicker}</p><h2>{zh ? '想再多了解一点？' : 'A little more reading.'}</h2></div><a href={guideLink(guidesHref(lang))}>{c.guidesAll}<ArrowIcon /></a></Reveal>
+          <div className="ji-resource-links">{guideArticles.map((article, index) => <Reveal as="article" delay={index * 70} key={article.slug}><a href={guideLink(articleHref(article.slug, lang))}><img src={`${JSAVE_BASE}${article.image}`} alt="" loading="lazy" width="1600" height="1067" /><div><p>{article.copy.category}</p><h3>{article.copy.title}</h3><span>{c.guidesRead}<ArrowIcon /></span></div></a></Reveal>)}</div>
         </div>
       </section>
 

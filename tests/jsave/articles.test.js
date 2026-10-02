@@ -12,9 +12,9 @@ import {
 const read = path => readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8')
 
 describe('JSave long-form guides', () => {
-  it('publishes three substantial bilingual articles', () => {
-    expect(ARTICLES).toHaveLength(3)
-    expect(ARTICLE_SUMMARIES).toHaveLength(3)
+  it('publishes six substantial bilingual articles', () => {
+    expect(ARTICLES).toHaveLength(6)
+    expect(ARTICLE_SUMMARIES).toHaveLength(6)
 
     for (const article of ARTICLES) {
       for (const language of ['en', 'zh']) {

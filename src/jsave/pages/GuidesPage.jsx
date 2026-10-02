@@ -33,7 +33,6 @@ export default function GuidesPage({ language }) {
   const locale = language === 'zh' ? 'zh' : 'en'
   const zh = locale === 'zh'
   const otherLanguage = zh ? 'en' : 'zh'
-  const readTimes = zh ? ['约 12 分钟', '约 14 分钟', '约 11 分钟'] : ['12 min read', '14 min read', '11 min read']
 
   useEffect(() => window.scrollTo(0, 0), [])
 
@@ -55,7 +54,7 @@ export default function GuidesPage({ language }) {
           <a href={`/${locale}/`}>← {zh ? '返回产品首页' : 'Back to product'}</a>
           <p>{zh ? 'JSave 指南' : 'JSave Guides'}</p>
           <h1>{zh ? <>把每天的金钱选择，<br /><span>想得更清楚。</span></> : <>Think more clearly about<br /><span>everyday money.</span></>}</h1>
-          <div className="jg-hero-bottom"><p>{zh ? '不写空泛的省钱清单。这里认真解释离线资料、可执行预算，以及一款安静记账工具背后的取舍。' : 'No generic list of money hacks. These guides explain offline data, actionable budgets and the decisions behind a quieter expense tracker.'}</p><span>{zh ? '3 篇深度指南 · 中英文' : '3 in-depth guides · bilingual'}</span></div>
+          <div className="jg-hero-bottom"><p>{zh ? '从分期、聚餐分账到付款截图，一步步理解怎样记录；也认真谈离线资料、每日预算与产品选择。' : 'From installment purchases and shared meals to payment screenshots: practical walkthroughs, plus deeper guides to offline records, daily budgets and choosing a money tool.'}</p><span>{zh ? `${ARTICLE_SUMMARIES.length} 篇实用指南 · 中英文` : `${ARTICLE_SUMMARIES.length} practical guides · bilingual`}</span></div>
         </div>
       </header>
 
@@ -68,7 +67,7 @@ export default function GuidesPage({ language }) {
               <Reveal as="article" className={index === 0 ? 'is-featured' : ''} delay={index * 100} key={article.slug}>
                 <a href={articleHref(article.slug, locale)}>
                   <div className="jg-image"><img src={article.image} alt="" width="1600" height="1067" loading={index === 0 ? 'eager' : 'lazy'} /><span>{String(index + 1).padStart(2, '0')}</span></div>
-                  <div className="jg-card-copy"><div><p>{copy.category}</p><span>{readTimes[index]}</span></div><h3>{copy.title}</h3><p>{copy.deck}</p><b>{zh ? '阅读完整指南' : 'Read the full guide'}<ArrowIcon /></b></div>
+                  <div className="jg-card-copy"><div><p>{copy.category}</p><span>{copy.readingTime}</span></div><h3>{copy.title}</h3><p>{copy.deck}</p><b>{zh ? '阅读完整指南' : 'Read the full guide'}<ArrowIcon /></b></div>
                 </a>
               </Reveal>
             )

@@ -130,11 +130,12 @@ export default function ArticlePage({ slug, language }) {
       <section className="ja-more" aria-labelledby="more-guides-title">
         <Reveal className="ja-more-heading"><p>{zh ? '继续阅读' : 'Keep reading'}</p><h2 id="more-guides-title">{zh ? '把金钱看得更清楚。' : 'See your money more clearly.'}</h2></Reveal>
         <div className="ja-more-grid">
-          {ARTICLES.filter(item => item.slug !== slug).map(item => {
+          {ARTICLES.filter(item => item.slug !== slug).slice(0, 2).map(item => {
             const related = item.locales[locale]
             return <Reveal as="a" href={articleHref(item.slug, locale)} delay={120} key={item.slug}><img src={item.image} alt="" loading="lazy" width="1600" height="1067" /><span>{related.category}</span><h3>{related.title}</h3><p>{related.deck}</p><b>{zh ? '阅读文章' : 'Read guide'}<ArrowIcon /></b></Reveal>
           })}
         </div>
+        <a className="ja-all-guides" href={guidesHref(locale)}>{zh ? '查看全部指南' : 'View all guides'}<ArrowIcon /></a>
       </section>
 
       <section className="ja-cta">

@@ -18,6 +18,13 @@ Developer: https://www.jeeprod.com/
 - 马来西亚每日预算：https://jsave.jeeprod.com/zh/articles/malaysia-daily-budget/
 - JSave 与一般记账 App：https://jsave.jeeprod.com/zh/articles/jsave-vs-expense-apps/
 
+- How do you track what is paid and still due on an installment purchase?: https://jsave.jeeprod.com/en/articles/item-installment-tracking/
+- 买了分期物品，怎样看清已付与待付款？: https://jsave.jeeprod.com/zh/articles/item-installment-tracking/
+- How do you count only your share after paying for the table?: https://jsave.jeeprod.com/en/articles/aa-bill-splitting/
+- 聚餐先付款，怎样只算自己的那份？: https://jsave.jeeprod.com/zh/articles/aa-bill-splitting/
+- How do you review a payment screenshot before adding it to JSave?: https://jsave.jeeprod.com/en/articles/iphone-receipt-shortcut/
+- 一张付款截图，怎样核对后记进 JSave？: https://jsave.jeeprod.com/zh/articles/iphone-receipt-shortcut/
+
 ## What JSave does
 
 - Records income, expenses and transfers without requiring bank credentials.
@@ -26,6 +33,8 @@ Developer: https://www.jeeprod.com/
 - Counts only the user's own share of a split bill as personal spending.
 - Provides daily budget feedback, reports and savings goals.
 - Calculates the cost per day of owned items and grouped components.
+- Tracks item installment plans and links actual payment expenses.
+- Imports a reviewed single receipt through the unified iPhone shortcut: supported TNG and CIMB formats are parsed, while unfamiliar receipts may need manual completion. Only extracted text is submitted, not the image.
 - Exports transaction data as spreadsheet-ready CSV.
 
-JSave is currently free to use. Product descriptions should not claim automatic bank imports, receipt scanning, investment advice or AI categorization.
+JSave is currently free to use. Product descriptions should not claim automatic bank synchronization, universal receipt parsing, investment advice or AI categorization.

@@ -194,7 +194,7 @@ function renderGuidesFallback(language) {
         <a href="/${language}/">← ${zh ? '返回 JSave 首页' : 'Back to JSave home'}</a>
         <p class="seo-eyebrow">JSave ${zh ? '指南' : 'Guides'}</p>
         <h1>${zh ? '把每天的金钱选择，想得更清楚。' : 'Think more clearly about everyday money.'}</h1>
-        <p>${zh ? '不写空泛的省钱清单。这里认真解释离线资料、可执行预算，以及一款安静记账工具背后的取舍。' : 'No generic list of money hacks. These guides explain offline data, actionable budgets and the decisions behind a quieter expense tracker.'}</p>
+        <p>${zh ? '从分期、聚餐分账到付款截图，一步步理解怎样记录；也认真谈离线资料、每日预算与产品选择。' : 'Practical walkthroughs for installments, shared bills and payment screenshots, plus deeper guides to offline records, daily budgets and choosing a money tool.'}</p>
       </header>
       <section>
         <h2>${zh ? '全部指南' : 'All guides'}</h2>
@@ -211,7 +211,7 @@ function guidesHtml(source, language) {
   const zh = language === 'zh'
   const url = `https://jsave.jeeprod.com${guidesHref(language)}`
   const title = zh ? 'JSave 指南 — 马来西亚个人预算与可靠记账' : 'JSave Guides — Practical budgeting and reliable money tracking'
-  const description = zh ? '阅读 JSave 深度指南：可靠离线记账、马来西亚每日预算，以及 JSave 与一般记账 App 的差异。' : 'Read in-depth JSave guides about reliable offline tracking, practical daily budgets in Malaysia and choosing an expense tracker.'
+  const description = zh ? '阅读 JSave 中英文指南：物品分期付款、AA 分账与还款、iPhone 收据截图导入、可靠离线记账、每日预算与产品选择。' : 'Read bilingual JSave guides on item installments, AA splits and repayments, iPhone receipt imports, reliable offline tracking, daily budgets and choosing a money tool.'
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
